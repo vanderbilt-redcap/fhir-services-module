@@ -1,0 +1,11 @@
+{
+    "repositories": [
+        {
+            "type": "git",
+            "url": "https://github.com/mmcev106/php-fhir-r4.git"
+        }
+    ],
+    "require": {
+        "mmcev106/php-fhir-r4": "dev-master"
+    }
+}
