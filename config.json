@@ -1,0 +1,12 @@
+{
+    "name": "FHIR Services",
+    "namespace": "Vanderbilt\\FHIRServicesExternalModule",
+    "description": "TBD",
+    "authors": [
+        {
+            "name": "Mark McEver",
+            "email": "datacore@vumc.org",
+            "institution": "Vanderbilt University Medical Center"
+        }
+    ]
+}
