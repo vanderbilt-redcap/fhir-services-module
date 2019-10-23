@@ -4,31 +4,67 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "87f2c19411c200def4a674f614848f9d",
+    "content-hash": "99805598ac85658aa1d68f6fbd24eb99",
     "packages": [
         {
-            "name": "mmcev106/php-fhir-r4",
-            "version": "dev-master",
+            "name": "dcarbone/php-fhir-generated",
+            "version": "v1.0.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/mmcev106/php-fhir-r4.git",
-                "reference": "bf3254963bd118b61dbc60faa7db2d297419f60e"
+                "url": "https://github.com/dcarbone/php-fhir-generated.git",
+                "reference": "29d9d97680abb1d555d9c20a53cc03b6aecfd223"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/dcarbone/php-fhir-generated/zipball/29d9d97680abb1d555d9c20a53cc03b6aecfd223",
+                "reference": "29d9d97680abb1d555d9c20a53cc03b6aecfd223",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "ext-libxml": "*",
+                "ext-simplexml": "*",
+                "php": ">=5.4.0"
+            },
+            "require-dev": {
+                "ext-curl": "*",
+                "ext-json": "*",
+                "ext-libxml": "*",
+                "ext-simplexml": "*",
+                "phpunit/phpunit": "@stable"
             },
             "type": "library",
             "autoload": {
-                "psr-4": {
-                    "HL7\\": "src/HL7/"
+                "psr-0": {
+                    "DCarbone\\PHPFHIRGenerated\\": "./src"
                 }
             },
-            "time": "2019-10-18T19:19:11+00:00"
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "Apache-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "Daniel Paul Carbone",
+                    "email": "daniel.p.carbone@gmail.com"
+                }
+            ],
+            "description": "Pre-generated classes from dcarbone/php-fhir",
+            "homepage": "https://github.com/dcarbone/php-fhir-generated",
+            "keywords": [
+                "ehr",
+                "fhir",
+                "hl7",
+                "php",
+                "php-fhir"
+            ],
+            "time": "2019-10-21T04:15:27+00:00"
         }
     ],
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "mmcev106/php-fhir-r4": 20
-    },
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": [],

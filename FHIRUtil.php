@@ -1,22 +1,22 @@
 <?php
 require_once __DIR__ . '/vendor/autoload.php';
 
-use HL7\FHIR\R4\PHPFHIRResponseParser;
-use HL7\FHIR\R4\FHIRResource;
-use HL7\FHIR\R4\FHIRElement\FHIRString;
-use HL7\FHIR\R4\FHIRResource\FHIRBundle;
-use HL7\FHIR\R4\FHIRElement\FHIRHumanName;
-use HL7\FHIR\R4\FHIRElement\FHIRReference;
-use HL7\FHIR\R4\FHIRElement\FHIRContactPoint;
-use HL7\FHIR\R4\FHIRElement\FHIRCodeableConcept;
-use HL7\FHIR\R4\FHIRElement\FHIRContactPointSystem;
-use HL7\FHIR\R4\FHIRElement\FHIRResearchStudyStatus;
-use HL7\FHIR\R4\FHIRResource\FHIRDomainResource\FHIRComposition;
-use HL7\FHIR\R4\FHIRResource\FHIRDomainResource\FHIROrganization;
-use HL7\FHIR\R4\FHIRResource\FHIRDomainResource\FHIRPractitioner;
-use HL7\FHIR\R4\FHIRResource\FHIRDomainResource\FHIRResearchStudy;
-use HL7\FHIR\R4\FHIRElement\FHIRBackboneElement\FHIRBundle\FHIRBundleEntry;
-use HL7\FHIR\R4\FHIRElement\FHIRBackboneElement\FHIROrganization\FHIROrganizationContact;
+use DCarbone\PHPFHIRGenerated\R4\PHPFHIRResponseParser;
+use DCarbone\PHPFHIRGenerated\R4\FHIRResource;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRString;
+use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRBundle;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRHumanName;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRReference;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRContactPoint;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRCodeableConcept;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRContactPointSystem;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRResearchStudyStatus;
+use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRComposition;
+use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIROrganization;
+use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRPractitioner;
+use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRResearchStudy;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRBundle\FHIRBundleEntry;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIROrganization\FHIROrganizationContact;
 
 class FHIRUtil
 {
@@ -73,11 +73,10 @@ class FHIRUtil
             }
         
             return new FHIRReference([
-                'reference' => $o->getFHIRTypeName() . "/$id"
+                'reference' => $o->_getFHIRTypeName() . "/$id"
             ]);
         };
 
-        
         $addToBundle = function ($o) use ($bundle){
             $bundle->addEntry(new FHIRBundleEntry([
                 'resource' => $o
@@ -85,7 +84,6 @@ class FHIRUtil
 
             return $o;
         };
-
         
         $sponsor = $addToBundle(new FHIROrganization([
             'id' => '123',
