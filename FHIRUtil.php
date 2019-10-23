@@ -155,28 +155,55 @@ class FHIRUtil
     }
 
     function questionnaireToDataDictionary($questionnaire){
-        $q = json_decode(file_get_contents($questionnaire));
+        $q = FHIRUtil::parse(file_get_contents($questionnaire));
         $forms = [];
 
-        if($q->resourceType !== 'Questionnaire'){
+        if($q->_getFHIRTypeName() !== 'Questionnaire'){
             throw new Exception("Unexpected resource type : " . $q->resourceType);
         }
 
         $createObject = function ($item){
             $object = new stdClass();
-            @$object->type = $item->type;
-            @$object->text = $item->text;
+
+            if($item->_getFHIRTypeName() === 'Questionnaire.Item'){
+                $type = $item->getType();
+                if($type){
+                    $object->type = $type->getValue()->getValue()->getValue();
+                }
+            }
+
+            $text = $item->getText();
+            if($text){
+                $object->text = $text->getValue();
+            }
 
             return $object;
         };
 
-        $handleItems = function ($group) use (&$handleItems, $createObject, &$forms){
-            $groupId = @$group->linkId;
+        $isRepeating = function($item){
+            if($item->_getFHIRTypeName() !== 'Questionnaire.Item'){
+                return false;
+            }
+
+            $repeats = $item->getRepeats();
+            return $repeats && $repeats->getValue()->getValue();
+        };
+
+        $getLinkId = function($item){
+            if($item->_getFHIRTypeName() !== 'Questionnaire.Item'){
+                return null;
+            }
+
+            return $item->getLinkId()->getValue()->getValue();
+        };
+
+        $handleItems = function ($group) use (&$handleItems, $createObject, &$forms, $isRepeating, $getLinkId){
+            $groupId = $getLinkId($group);
             $fields = [];
 
-            foreach($group->item as $item){
-                $id = $item->linkId;
-                if($item->type === 'group'){
+            foreach($group->getItem() as $item){
+                $id = $item->getLinkId()->getValue()->getValue();
+                if($item->getType()->getValue()->getValue()->getValue() === 'group'){
                     if($groupId && strpos($id, $groupId) !== 0){
                         throw new Exception("The item ID ($id) does not start with it's parent group ID ($groupId)!  If this is expected then we'll need a different way to track parent/child relationships.");
                     }
@@ -187,11 +214,11 @@ class FHIRUtil
                     if(isset($fields[$id])){
                         throw new Exception("The following linkId is defined twice: $id");
                     }
-                    else if(@$item->repeats){
+                    else if($isRepeating($item)){
                         throw new Exception("The following field repeats, which is only supportted for groups currently: $id");
                     }
-                    else if($item->text !== $item->code[0]->display){
-                        throw new Exception("Text & display differ: '{$item->text}' vs. '{$item->code[0]->display}'");
+                    else if($item->getText()->__toString() !== $item->getCode()[0]->getDisplay()->__toString()){
+                        throw new Exception("Text & display differ: '{$item->getText()}' vs. '{$item->getCode()[0]->getDisplay()}'");
                     }
                 }
 
@@ -202,7 +229,7 @@ class FHIRUtil
             $form->id = $groupId;
             $form->fields = $fields;
 
-            if(@$group->repeats){
+            if($isRepeating($group)){
                 $form->repeats = true;
             }
             
