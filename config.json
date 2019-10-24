@@ -11,5 +11,8 @@
     ],
     "permissions": [
         "redcap_data_entry_form"
+    ],
+    "no-auth-pages": [
+        "service"
     ]
 }

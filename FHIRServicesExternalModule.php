@@ -6,7 +6,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         <script>
             (function(){
                 var pdfButton = $('#pdfExportDropdownTrigger')
-                var bundleButton = $('<a href="<?=$this->getUrl('service.php') . "&fhir-url=/Composition/$record/\$document"?>">Create FHIR Bundle</a>')
+                var bundleButton = $('<a href="<?=$this->getUrl('service.php', true) . "&fhir-url=/Composition/$record/\$document"?>">Create FHIR Bundle</a>')
                 bundleButton.attr('class', pdfButton.attr('class'))
                 bundleButton.css({
                     'margin-left': '3px',
