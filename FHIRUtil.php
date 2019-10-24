@@ -156,28 +156,30 @@ class FHIRUtil
 
     function questionnaireToDataDictionary($questionnaire){
         $q = FHIRUtil::parse(file_get_contents($questionnaire));
-        $forms = [];
 
         if($q->_getFHIRTypeName() !== 'Questionnaire'){
             throw new Exception("Unexpected resource type : " . $q->resourceType);
         }
 
-        $createObject = function ($item){
-            $object = new stdClass();
-
+        $getType = function($item){
             if($item->_getFHIRTypeName() === 'Questionnaire.Item'){
                 $type = $item->getType();
                 if($type){
-                    $object->type = $type->getValue()->getValue()->getValue();
+                    $type = $type->getValue()->getValue()->getValue();
+                    if($type === 'string'){
+                        $type = 'text';
+                    }
+
+                    return $type;
                 }
             }
+        };
 
+        $getText = function($item){
             $text = $item->getText();
             if($text){
-                $object->text = $text->getValue();
+                return $text->getValue()->getValue();
             }
-
-            return $object;
         };
 
         $isRepeating = function($item){
@@ -197,9 +199,22 @@ class FHIRUtil
             return $item->getLinkId()->getValue()->getValue();
         };
 
-        $handleItems = function ($group) use (&$handleItems, $createObject, &$forms, $isRepeating, $getLinkId){
+        $getInstrumentName = function($group) use ($getText){
+            $name = strtolower($getText($group));
+            $name = str_replace(' ', '_', $name);
+            $name = str_replace('(', '', $name);
+            $name = str_replace(')', '', $name);
+            $name = str_replace(':', '', $name);
+
+            return $name;
+        };
+        
+        $out = fopen('php://memory', 'r+');
+        fputcsv($out, ["Variable / Field Name","Form Name","Section Header","Field Type","Field Label","Choices, Calculations, OR Slider Labels","Field Note","Text Validation Type OR Show Slider Number","Text Validation Min","Text Validation Max","Identifier?","Branching Logic (Show field only if...)","Required Field?","Custom Alignment","Question Number (surveys only)","Matrix Group Name","Matrix Ranking?","Field Annotation"]);
+       
+        $handleItems = function ($group) use (&$handleItems, $isRepeating, $getLinkId, &$out, $getType, $getText, $getInstrumentName){
             $groupId = $getLinkId($group);
-            $fields = [];
+            $instrumentName = $getInstrumentName($group);
 
             foreach($group->getItem() as $item){
                 $id = $item->getLinkId()->getValue()->getValue();
@@ -211,38 +226,25 @@ class FHIRUtil
                     $handleItems($item);
                 }
                 else{
-                    if(isset($fields[$id])){
-                        throw new Exception("The following linkId is defined twice: $id");
-                    }
-                    else if($isRepeating($item)){
+                    if($isRepeating($item)){
                         throw new Exception("The following field repeats, which is only supportted for groups currently: $id");
                     }
                     else if($item->getText()->__toString() !== $item->getCode()[0]->getDisplay()->__toString()){
                         throw new Exception("Text & display differ: '{$item->getText()}' vs. '{$item->getCode()[0]->getDisplay()}'");
                     }
-                }
 
-                $fields[$id] = $createObject($item);
-            }
+                    // We'll use the instrument name function for fields too until UAMS comes up with better field names.
+                    $fieldName = $instrumentName . '_' . $getInstrumentName($item);
 
-            $form = $createObject($group);
-            $form->id = $groupId;
-            $form->fields = $fields;
-
-            if($isRepeating($group)){
-                $form->repeats = true;
-            }
-            
-            if($groupId){
-                $forms[$groupId] = $form;
-            }
-            else if(empty($fields)){
-                throw new Exception("Top level fields are not supported: " . json_encode($fields, JSON_PRETTY_PRINT));
+                    fputcsv($out, [$fieldName, $instrumentName, '', $getType($item), $getText($item)]);
+                } 
             }
         };
 
         $handleItems($q);
 
-        return json_encode($forms, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES);
+        rewind($out);
+
+        return stream_get_contents($out);
     }
 }
