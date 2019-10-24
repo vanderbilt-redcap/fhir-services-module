@@ -6,6 +6,7 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIROperationOu
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIROperationOutcome\FHIROperationOutcomeIssue;
 
 $sendResponse = function($o){
+    header("Content-disposition: attachment; filename=\"bundle.json\""); 
     echo FHIRUtil::jsonSerialize($o);
     exit();
 };

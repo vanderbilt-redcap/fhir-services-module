@@ -8,5 +8,8 @@
             "email": "datacore@vumc.org",
             "institution": "Vanderbilt University Medical Center"
         }
+    ],
+    "permissions": [
+        "redcap_data_entry_form"
     ]
 }
