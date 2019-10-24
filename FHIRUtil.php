@@ -77,7 +77,7 @@ class FHIRUtil
     }
 
     function getData($pid, $record){
-        return json_decode(REDCap::getData($pid, 'json', $record), true)[0];
+        return json_decode(REDCap::getData($pid, 'json', $record), true);
     }
 
     function buildBundle($compositionId){
@@ -86,11 +86,25 @@ class FHIRUtil
         $studiesPid = self::getPidFromSqlField($compositionsPid, 'subject_id');
         $organizationsPid = self::getPidFromSqlField($studiesPid, 'sponsor_id');
     
-        $compositionData = self::getData($compositionsPid, $record);
-        $authorData = self::getData($practitionersPid, $compositionData['author_id']); 
-        $studyData = self::getData($studiesPid, $compositionData['study_id']);
-        $sponsorData = self::getData($organizationsPid, $studyData['sponsor_id']);
-        $piData = self::getData($practitionersPid, $studyData['principal_investigator_id']);
+        $compositionData = self::getData($compositionsPid, $record)[0];
+        $authorData = self::getData($practitionersPid, $compositionData['author_id'])[0]; 
+        $studyData = self::getData($studiesPid, $compositionData['study_id'])[0];
+        $piData = self::getData($practitionersPid, $studyData['principal_investigator_id'])[0];
+        
+        $sponsorInstances = self::getData($organizationsPid, $studyData['sponsor_id']);
+        $sponsorContacts = [];
+        foreach($sponsorInstances as $instance){
+            $instrument = $instance['redcap_repeat_instrument'];
+            if(empty($instrument)){
+                $sponsorData = $instance;
+            }
+            else if($instrument === 'contacts'){
+                $sponsorContacts[] = $instance;
+            }
+            else{
+                throw new Exception("Unsupported repeating instrument: $instrument");
+            }
+        }
         
         $bundle = new FHIRBundle;
 
@@ -123,25 +137,26 @@ class FHIRUtil
 
             return $o;
         };
-        
+
         $sponsor = $addToBundle(new FHIROrganization([
             'id' => $sponsorData['organization_id'],
-            'name' => $sponsorData['organization_name'],
-            'contact' => [
-                new FHIROrganizationContact([
-                    'name' => new FHIRHumanName([
-                        'given' => $sponsorData['contact_first_name'],
-                        'family' => $sponsorData['contact_last_name']
-                    ]),
-                    'telecom' => new FHIRContactPoint([
-                        'system' => new FHIRContactPointSystem([
-                            'value' => 'email'
-                        ]),
-                        'value' => $sponsorData['contact_email']
-                    ])
-                ])
-            ]
+            'name' => $sponsorData['organization_name']
         ]));
+
+        foreach($sponsorContacts as $contact){
+            $sponsor->addContact(new FHIROrganizationContact([
+                'name' => new FHIRHumanName([
+                    'given' => $contact['contact_first_name'],
+                    'family' => $contact['contact_last_name']
+                ]),
+                'telecom' => new FHIRContactPoint([
+                    'system' => new FHIRContactPointSystem([
+                        'value' => 'email'
+                    ]),
+                    'value' => $contact['contact_email']
+                ])
+            ]));
+        }
         
         $pi = $addToBundle(new FHIRPractitioner([
             'id' => $piData['practitioner_id'],
