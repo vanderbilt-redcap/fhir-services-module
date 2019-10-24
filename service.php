@@ -27,9 +27,8 @@ if(empty($fhirUrl)){
 
 $parts = explode('/', $fhirUrl);
 if($parts[1] === 'Composition' && $parts[3] === '$document'){
-    $record = $parts[2];
-    $data = REDCap::getData($_GET['pid'], 'json', $record);
-    $sendResponse(FHIRUtil::buildBundle());
+    $compositionId = $parts[2];
+    $sendResponse(FHIRUtil::buildBundle($compositionId));
 }
 
 $sendErrorResponse("The specified FHIR URL is not supported: $fhirUrl");

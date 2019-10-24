@@ -52,13 +52,52 @@ class FHIRUtil
         return $dom->saveXML();
     }
 
-    function buildBundle(){
+    private function getPidFromSqlField($pid, $fieldName){
+        $pid = db_escape($pid);
+        $fieldName = db_escape($fieldName);
+
+        $sql = "
+            select element_enum
+            from redcap_metadata
+            where project_id = $pid
+            and field_name = '$fieldName'
+        ";
+
+        $result = db_query($sql);
+
+        $row = $result->fetch_assoc();
+        if($result->fetch_assoc() !== null){
+            throw new Exception("Multiple fields found!");
+        }
+
+        $sql = $row['element_enum'];
+        preg_match("/project_id \= ([0-9]+)/", $sql, $matches);
+
+        return $matches[1];
+    }
+
+    function getData($pid, $record){
+        return json_decode(REDCap::getData($pid, 'json', $record), true)[0];
+    }
+
+    function buildBundle($compositionId){
+        $compositionsPid = $_GET['pid'];
+        $practitionersPid = self::getPidFromSqlField($compositionsPid, 'author_id');
+        $studiesPid = self::getPidFromSqlField($compositionsPid, 'subject_id');
+        $organizationsPid = self::getPidFromSqlField($studiesPid, 'sponsor_id');
+    
+        $compositionData = self::getData($compositionsPid, $record);
+        $authorData = self::getData($practitionersPid, $compositionData['author_id']); 
+        $studyData = self::getData($studiesPid, $compositionData['study_id']);
+        $sponsorData = self::getData($organizationsPid, $studyData['sponsor_id']);
+        $piData = self::getData($practitionersPid, $studyData['principal_investigator_id']);
+        
         $bundle = new FHIRBundle;
 
         $getReference = function ($o) use ($bundle){
             $id = $o->getId();
             if(empty($id)){
-                throw new Exception('A reference cannot be created for an object without an id!');
+                throw new Exception('A reference cannot be created for an object without an id: ' . self::jsonSerialize($o));
             }
         
             $existsInBundle = false;
@@ -86,66 +125,66 @@ class FHIRUtil
         };
         
         $sponsor = $addToBundle(new FHIROrganization([
-            'id' => '123',
-            'name' => 'Mongoloid University',
+            'id' => $sponsorData['organization_id'],
+            'name' => $sponsorData['organization_name'],
             'contact' => [
                 new FHIROrganizationContact([
                     'name' => new FHIRHumanName([
-                        'given' => 'Joe',
-                        'family' => 'Bloe'
+                        'given' => $sponsorData['contact_first_name'],
+                        'family' => $sponsorData['contact_last_name']
                     ]),
                     'telecom' => new FHIRContactPoint([
                         'system' => new FHIRContactPointSystem([
                             'value' => 'email'
                         ]),
-                        'value' => 'joe.bloe@shmoe.com'
+                        'value' => $sponsorData['contact_email']
                     ])
                 ])
             ]
         ]));
         
         $pi = $addToBundle(new FHIRPractitioner([
-            'id' => '123',
+            'id' => $piData['practitioner_id'],
             'name' => new FHIRHumanName([
-                'given' => 'John',
-                'family' => 'Bon'
+                'given' => $piData['first_name'],
+                'family' => $piData['last_name']
             ]),
             'telecom' => new FHIRContactPoint([
                 'system' => new FHIRContactPointSystem([
                     'value' => 'email'
                 ]),
-                'value' => 'John.Bon@jovi.com'
+                'value' => $piData['email']
             ])
         ]));
         
         $study = $addToBundle(new FHIRResearchStudy([
-            'id' => '123',
-            'title' => 'Some study',
+            'id' => $studyData['study_id'],
+            'title' => $studyData['title'],
             'status' => new FHIRResearchStudyStatus([
-                'value' => 'TBD' // TODO
+                'value' => $studyData['status']
             ]),
             'principalInvestigator' => $getReference($pi),
             'sponsor' => $getReference($sponsor),
         ]));
         
         $compositionAuthor = $addToBundle(new FHIRPractitioner([
-            'id' => '123',
+            'id' => $authorData['practitioner_id'],
             'name' => new FHIRHumanName([
-                'given' => 'Joe',
-                'family' => 'Bloe'
+                'given' => $authorData['first_name'],
+                'family' => $authorData['last_name']
             ]),
             'telecom' => new FHIRContactPoint([
                 'system' => new FHIRContactPointSystem([
                     'value' => 'email'
                 ]),
-                'value' => 'joe.bloe@shmoe.com'
+                'value' => $authorData['email']
             ])
         ]));
         
-        $composition = $addToBundle(new FHIRComposition([
-            'id' => '123',
+        $addToBundle(new FHIRComposition([
+            'id' => $compositionData['composition_id'],
             'type' => new FHIRCodeableConcept([
-                'text' => 'Determination Letter'
+                'text' => $compositionData['type']
             ]),
             'author' => $getReference($compositionAuthor),
             'subject' => $getReference($study)
