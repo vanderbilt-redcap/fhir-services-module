@@ -165,10 +165,8 @@ class FHIRUtil
         fputcsv($out, ["Variable / Field Name","Form Name","Section Header","Field Type","Field Label","Choices, Calculations, OR Slider Labels","Field Note","Text Validation Type OR Show Slider Number","Text Validation Min","Text Validation Max","Identifier?","Branching Logic (Show field only if...)","Required Field?","Custom Alignment","Question Number (surveys only)","Matrix Group Name","Matrix Ranking?","Field Annotation"]);
        
         self::walkQuestionnaire($q, function($parent, $item) use ($out){
+            $fieldName = self::getFieldName($parent, $item);
             $instrumentName = self::getInstrumentName($parent);
-
-            // We'll use the instrument name function for fields too until UAMS comes up with better field names.
-            $fieldName = $instrumentName . '_' . self::getInstrumentName($item);
 
             fputcsv($out, [$fieldName, $instrumentName, '', self::getType($item), self::getText($item)]);
         });
@@ -176,6 +174,52 @@ class FHIRUtil
         rewind($out);
 
         return stream_get_contents($out);
+    }
+
+    function getFieldName($parent, $item){
+        // We'll use the instrument name function for fields too until we come up with better link IDs.
+        return self::getInstrumentName($parent) . '_' . self::getInstrumentName($item);
+    }
+
+    function questionnaireResponseToREDCapExport($path){
+        $o = FHIRUtil::parse(file_get_contents($path));
+
+        $data = [];
+
+        $handleObject = function($parent) use (&$handleObject, &$data){
+            foreach($parent->getItem() as $item){
+                $answers = $item->getAnswer();
+                if(empty($answers)){
+                    $handleObject($item);
+                }
+                else{
+                    foreach($answers as $answer){
+                        $data[self::getFieldName($parent, $item)] = self::getAnswerValue($item, $answer);
+                    }
+                }
+            }
+        };
+
+        $handleObject($o);
+
+        $out = fopen('php://memory', 'r+');
+
+        fputcsv($out, array_keys($data));
+        fputcsv($out, $data);
+
+        rewind($out);
+
+        return stream_get_contents($out);
+    }
+
+    function getAnswerValue($item, $answer){
+        $v = $answer->getValueString()->getValue()->__toString();
+
+        if(self::getText($item) === 'Last Updated at:'){
+            $v = DateTime::createFromFormat('F j, Y \a\t g:i A e', $v)->format('Y-m-d H:i');
+        }
+
+        return $v;
     }
 
     function walkQuestionnaire($group, $fieldAction){
