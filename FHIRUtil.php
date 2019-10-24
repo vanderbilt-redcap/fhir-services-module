@@ -178,7 +178,7 @@ class FHIRUtil
         return stream_get_contents($out);
     }
 
-   function walkQuestionnaire($group, $fieldAction){
+    function walkQuestionnaire($group, $fieldAction){
         $handleItems = function ($group) use (&$handleItems, &$out, &$fieldAction){
             $groupId = self::getLinkId($group);
 
