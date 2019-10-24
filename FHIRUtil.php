@@ -160,61 +160,27 @@ class FHIRUtil
         if($q->_getFHIRTypeName() !== 'Questionnaire'){
             throw new Exception("Unexpected resource type : " . $q->resourceType);
         }
-
-        $getType = function($item){
-            if($item->_getFHIRTypeName() === 'Questionnaire.Item'){
-                $type = $item->getType();
-                if($type){
-                    $type = $type->getValue()->getValue()->getValue();
-                    if($type === 'string'){
-                        $type = 'text';
-                    }
-
-                    return $type;
-                }
-            }
-        };
-
-        $getText = function($item){
-            $text = $item->getText();
-            if($text){
-                return $text->getValue()->getValue();
-            }
-        };
-
-        $isRepeating = function($item){
-            if($item->_getFHIRTypeName() !== 'Questionnaire.Item'){
-                return false;
-            }
-
-            $repeats = $item->getRepeats();
-            return $repeats && $repeats->getValue()->getValue();
-        };
-
-        $getLinkId = function($item){
-            if($item->_getFHIRTypeName() !== 'Questionnaire.Item'){
-                return null;
-            }
-
-            return $item->getLinkId()->getValue()->getValue();
-        };
-
-        $getInstrumentName = function($group) use ($getText){
-            $name = strtolower($getText($group));
-            $name = str_replace(' ', '_', $name);
-            $name = str_replace('(', '', $name);
-            $name = str_replace(')', '', $name);
-            $name = str_replace(':', '', $name);
-
-            return $name;
-        };
         
         $out = fopen('php://memory', 'r+');
         fputcsv($out, ["Variable / Field Name","Form Name","Section Header","Field Type","Field Label","Choices, Calculations, OR Slider Labels","Field Note","Text Validation Type OR Show Slider Number","Text Validation Min","Text Validation Max","Identifier?","Branching Logic (Show field only if...)","Required Field?","Custom Alignment","Question Number (surveys only)","Matrix Group Name","Matrix Ranking?","Field Annotation"]);
        
-        $handleItems = function ($group) use (&$handleItems, $isRepeating, $getLinkId, &$out, $getType, $getText, $getInstrumentName){
-            $groupId = $getLinkId($group);
-            $instrumentName = $getInstrumentName($group);
+        self::walkFHIRObject($q, function($parent, $item) use ($out){
+            $instrumentName = self::getInstrumentName($parent);
+
+            // We'll use the instrument name function for fields too until UAMS comes up with better field names.
+            $fieldName = $instrumentName . '_' . self::getInstrumentName($item);
+
+            fputcsv($out, [$fieldName, $instrumentName, '', self::getType($item), self::getText($item)]);
+        });
+
+        rewind($out);
+
+        return stream_get_contents($out);
+    }
+
+    function walkFHIRObject($group, $fieldAction){
+        $handleItems = function ($group) use (&$handleItems, &$out, &$fieldAction){
+            $groupId = self::getLinkId($group);
 
             foreach($group->getItem() as $item){
                 $id = $item->getLinkId()->getValue()->getValue();
@@ -226,25 +192,66 @@ class FHIRUtil
                     $handleItems($item);
                 }
                 else{
-                    if($isRepeating($item)){
+                    if(self::isRepeating($item)){
                         throw new Exception("The following field repeats, which is only supportted for groups currently: $id");
                     }
                     else if($item->getText()->__toString() !== $item->getCode()[0]->getDisplay()->__toString()){
                         throw new Exception("Text & display differ: '{$item->getText()}' vs. '{$item->getCode()[0]->getDisplay()}'");
                     }
 
-                    // We'll use the instrument name function for fields too until UAMS comes up with better field names.
-                    $fieldName = $instrumentName . '_' . $getInstrumentName($item);
-
-                    fputcsv($out, [$fieldName, $instrumentName, '', $getType($item), $getText($item)]);
+                    $fieldAction($group, $item);
                 } 
             }
         };
 
-        $handleItems($q);
+        $handleItems($group);
+    }
 
-        rewind($out);
+    function isRepeating($item){
+        if($item->_getFHIRTypeName() !== 'Questionnaire.Item'){
+            return false;
+        }
 
-        return stream_get_contents($out);
+        $repeats = $item->getRepeats();
+        return $repeats && $repeats->getValue()->getValue();
+    }
+
+    function getLinkId($item){
+        if($item->_getFHIRTypeName() !== 'Questionnaire.Item'){
+            return null;
+        }
+
+        return $item->getLinkId()->getValue()->getValue();
+    }
+
+    function getType($item){
+        if($item->_getFHIRTypeName() === 'Questionnaire.Item'){
+            $type = $item->getType();
+            if($type){
+                $type = $type->getValue()->getValue()->getValue();
+                if($type === 'string'){
+                    $type = 'text';
+                }
+
+                return $type;
+            }
+        }
+    }
+
+    function getText($item){
+        $text = $item->getText();
+        if($text){
+            return $text->getValue()->getValue();
+        }
+    }
+
+    function getInstrumentName($group){
+        $name = strtolower(self::getText($group));
+        $name = str_replace(' ', '_', $name);
+        $name = str_replace('(', '', $name);
+        $name = str_replace(')', '', $name);
+        $name = str_replace(':', '', $name);
+
+        return $name;
     }
 }
