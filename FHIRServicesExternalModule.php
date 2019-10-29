@@ -22,4 +22,24 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             <?php
         }
     }
+
+    function redcap_every_page_top(){
+        if(strpos($_SERVER['REQUEST_URI'], APP_PATH_WEBROOT . 'Design/data_dictionary_upload.php') === 0){
+            //$this->onDataDictionaryUploadPage();
+        }
+    }
+
+    function onDataDictionaryUploadPage(){
+        ?>
+        <div id="fhir-upload-container" class="round" style="background-color:#EFF6E8;max-width:700px;margin:20px 0;padding:15px 25px;border:1px solid #A5CC7A;">
+        </div>
+        <script>
+            $(function(){
+                var csvSection = $('#uploadmain').parent().parent()
+                var fhirSection = csvSection.clone()
+                csvSection.after(fhirSection)
+            })
+        </script>
+        <?php
+    }
 }
