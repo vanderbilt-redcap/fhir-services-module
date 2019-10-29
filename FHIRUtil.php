@@ -1,8 +1,8 @@
 <?php
 require_once __DIR__ . '/vendor/autoload.php';
 
-use DCarbone\PHPFHIRGenerated\R4\PHPFHIRResponseParser;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource;
+use DCarbone\PHPFHIRGenerated\R4\PHPFHIRResponseParser;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRString;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRBundle;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRHumanName;
@@ -15,6 +15,7 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRComposition
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIROrganization;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRPractitioner;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRResearchStudy;
+use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRQuestionnaireResponse;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRBundle\FHIRBundleEntry;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIROrganization\FHIROrganizationContact;
 
@@ -206,6 +207,11 @@ class FHIRUtil
         ]));
 
         return $bundle;
+    }
+
+    function getQuestionnaireResponse($projectId, $responseId){
+        // $data = REDCap::getData($projectId, 'json', $responseId)[0];
+        return new FHIRQuestionnaireResponse;
     }
 
     function questionnaireToDataDictionary($questionnaire){

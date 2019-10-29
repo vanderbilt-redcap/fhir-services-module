@@ -6,7 +6,7 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIROperationOu
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIROperationOutcome\FHIROperationOutcomeIssue;
 
 $sendResponse = function($o){
-    header("Content-disposition: attachment; filename=\"bundle.json\""); 
+    header('Content-disposition: attachment; filename="' . $o->_getFHIRTypeName() . '.json"'); 
     echo FHIRUtil::jsonSerialize($o);
     exit();
 };
@@ -30,6 +30,13 @@ $parts = explode('/', $fhirUrl);
 if($parts[1] === 'Composition' && $parts[3] === '$document'){
     $compositionId = $parts[2];
     $sendResponse(FHIRUtil::buildBundle($compositionId));
+}
+else if ($parts[1] === 'QuestionnaireResponse'){
+    $responseId = explode('-', $parts[2]);
+    $projectId = $responseId[0];
+    $responseId = $responseId[1];
+
+    $sendResponse(FHIRUtil::getQuestionnaireResponse($projectId, $responseId));
 }
 
 $sendErrorResponse("The specified FHIR URL is not supported: $fhirUrl");
