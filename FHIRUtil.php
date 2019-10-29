@@ -1,4 +1,5 @@
-<?php
+<?php namespace Vanderbilt\FHIRServicesExternalModule;
+
 require_once __DIR__ . '/vendor/autoload.php';
 
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource;
@@ -18,6 +19,8 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRResearchStu
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRQuestionnaireResponse;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRBundle\FHIRBundleEntry;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIROrganization\FHIROrganizationContact;
+
+use Exception;
 
 class FHIRUtil
 {
@@ -216,8 +219,10 @@ class FHIRUtil
     function questionnaireToDataDictionary($questionnaire){
         $q = FHIRUtil::parse(file_get_contents($questionnaire));
 
-        if($q->_getFHIRTypeName() !== 'Questionnaire'){
-            throw new Exception("Unexpected resource type : " . $q->resourceType);
+        $expectedResourceType = 'Questionnaire';
+        $actualResourceType = $q->_getFHIRTypeName();
+        if($actualResourceType !== $expectedResourceType){
+            throw new Exception("Expected a resource type of '$expectedResourceType', but found '$actualResourceType' instead." . $q->resourceType);
         }
         
         $out = fopen('php://memory', 'r+');

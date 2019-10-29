@@ -11,8 +11,18 @@
     ],
     "permissions": [
         "redcap_every_page_top",
-        "redcap_data_entry_form"
+        "redcap_data_entry_form",
+        "redcap_module_link_check_display"
     ],
+    "links": {
+		"project": [
+			{
+				"name": "Questionnaire Settings",
+				"url": "questionnaire-settings.php",
+                "show-header-and-footer": true
+			}
+		]
+	},
     "no-auth-pages": [
         "service"
     ],
@@ -22,7 +32,11 @@
 			"name": "Project Type",
 			"type": "dropdown",
 			"choices":[
-				{
+                {
+					"name" : "Questionnaire",
+					"value" : "questionnaire"
+				},
+                {
 					"name" : "Composition",
 					"value" : "composition"
 				}

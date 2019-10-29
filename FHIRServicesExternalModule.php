@@ -1,5 +1,9 @@
 <?php namespace Vanderbilt\FHIRServicesExternalModule;
 
+require_once __DIR__ . '/FHIRUtil.php';
+
+use MetaData;
+
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
     function redcap_data_entry_form($project_id, $record){
         if($this->getProjectSetting('project-type') === 'composition'){
@@ -44,5 +48,95 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             })
         </script>
         <?php
+    }
+
+    function redcap_module_link_check_display($project_id, $link){
+        if(
+            strpos($link['url'], 'questionnaire-settings') !== false
+            &&
+            $this->getProjectSetting('project-type') !== 'questionnaire'
+        ){
+            return false;
+        }
+        
+        return $link;
+    }
+
+    // This method was mostly copied from data_dictionary_upload.php
+    function saveQuestionnaire($file){
+        $dictionaryPath = tempnam(sys_get_temp_dir(), 'fhir-questionnaire-data-dictionary-');
+        
+        try{
+            file_put_contents($dictionaryPath, FHIRUtil::questionnaireToDataDictionary($file['tmp_name']));
+
+            require_once APP_PATH_DOCROOT . '/Design/functions.php';
+            $dictionary_array = excel_to_array($dictionaryPath);
+        }
+        finally{
+            unlink($dictionaryPath);
+        }
+
+        list ($errors_array, $warnings_array, $dictionary_array) = MetaData::error_checking($dictionary_array);
+
+        $handleErrors = function($errors, $type){
+            if(empty($errors)){
+                return false;
+            }
+
+            ?>
+            <p>Uploading the questionnaire failed with the following <?=$type?>:</p>
+            <pre><?=json_encode($errors)?></pre>
+            <br>
+            <?php
+            
+            return true;
+        };
+
+        if($handleErrors($errors_array, 'errors')){
+            return;
+        }
+
+        if($handleErrors($warnings_array, 'warnings')){
+            return;
+        }
+
+        // Set up all actions as a transaction to ensure everything is done here
+        db_query("SET AUTOCOMMIT=0");
+        db_query("BEGIN");
+        
+        // Create a data dictionary snapshot of the *current* metadata and store the file in the edocs table
+        MetaData::createDataDictionarySnapshot();
+
+        // Save data dictionary in metadata table
+        $sql_errors = MetaData::save_metadata($dictionary_array);
+
+        // Display any failed queries to Super Users, but only give minimal info of error to regular users
+        if ($handleErrors($sql_errors, 'errors')) {
+            // ERRORS OCCURRED, so undo any changes made
+            db_query("ROLLBACK");
+            // Set back to previous value
+            db_query("SET AUTOCOMMIT=1");
+
+            return;
+        }
+
+        // COMMIT CHANGES
+        db_query("COMMIT");
+        // Set back to previous value
+        db_query("SET AUTOCOMMIT=1");
+
+        $edocId = \Files::uploadFile($file, $this->getProjectId());
+        $this->setProjectSetting('questionnaire', $edocId);
+    }
+
+    function getQuestionnaireEDoc(){
+        $edocId = $this->getProjectSetting('questionnaire');
+        if(!$edocId){
+            return null;
+        }
+
+        $edocId = db_escape($edocId);
+        $result = $this->query("select * from redcap_edocs_metadata where doc_id = $edocId");
+        return $result->fetch_assoc();
     }
 }
