@@ -15,5 +15,18 @@
     ],
     "no-auth-pages": [
         "service"
+    ],
+    "project-settings": [
+        {
+			"key": "project-type",
+			"name": "Project Type",
+			"type": "dropdown",
+			"choices":[
+				{
+					"name" : "Composition",
+					"value" : "composition"
+				}
+			]
+		}
     ]
 }

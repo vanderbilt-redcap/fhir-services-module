@@ -2,7 +2,7 @@
 
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
     function redcap_data_entry_form($project_id, $record){
-        if(\REDCap::getRecordIdField() === 'composition_id'){
+        if($this->getProjectSetting('project-type') === 'composition'){
             $projectId = $this->getProjectId();
             $urlPrefix = $this->getUrl('service.php', true);
             $urlPrefix = str_replace("&pid=$projectId", '', $urlPrefix);    
