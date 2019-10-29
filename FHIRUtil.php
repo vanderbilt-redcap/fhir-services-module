@@ -231,8 +231,15 @@ class FHIRUtil
     }
 
     function getFieldName($parent, $item){
-        // We'll use the instrument name function for fields too until we come up with better link IDs.
-        return self::getInstrumentName($parent) . '_' . self::getInstrumentName($item);
+        $n = $item->getLinkId()->getValue()->getValue();
+        $n = strtolower($n);
+        $n = ltrim($n, '/');
+        $n = str_replace('/', '_', $n);
+        $n = str_replace('.', '_', $n);
+        $n = str_replace('[', '', $n);
+        $n = str_replace(']', '', $n);
+
+        return $n;
     }
 
     function questionnaireResponseToREDCapExport($path){
