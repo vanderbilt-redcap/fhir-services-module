@@ -81,8 +81,7 @@ class FHIRUtil
         return json_decode(REDCap::getData($pid, 'json', $record), true);
     }
 
-    function buildBundle($compositionId){
-        $compositionsPid = $_GET['pid'];
+    function buildBundle($compositionsPid, $compositionId){
         $practitionersPid = self::getPidFromSqlField($compositionsPid, 'author_id');
         $studiesPid = self::getPidFromSqlField($compositionsPid, 'subject_id');
         $organizationsPid = self::getPidFromSqlField($studiesPid, 'sponsor_id');

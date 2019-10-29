@@ -27,16 +27,15 @@ if(empty($fhirUrl)){
 }
 
 $parts = explode('/', $fhirUrl);
+$idParts = explode('-', $parts[2]);
+$projectId = $idParts[0];
+$recordId = $idParts[1];
+
 if($parts[1] === 'Composition' && $parts[3] === '$document'){
-    $compositionId = $parts[2];
-    $sendResponse(FHIRUtil::buildBundle($compositionId));
+    $sendResponse(FHIRUtil::buildBundle($projectId, $recordId));
 }
 else if ($parts[1] === 'QuestionnaireResponse'){
-    $responseId = explode('-', $parts[2]);
-    $projectId = $responseId[0];
-    $responseId = $responseId[1];
-
-    $sendResponse(FHIRUtil::getQuestionnaireResponse($projectId, $responseId));
+    $sendResponse(FHIRUtil::getQuestionnaireResponse($projectId, $recordId));
 }
 
 $sendErrorResponse("The specified FHIR URL is not supported: $fhirUrl");

@@ -3,11 +3,14 @@
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
     function redcap_data_entry_form($project_id, $record){
         if(\REDCap::getRecordIdField() === 'composition_id'){
+            $projectId = $this->getProjectId();
+            $urlPrefix = $this->getUrl('service.php', true);
+            $urlPrefix = str_replace("&pid=$projectId", '', $urlPrefix);    
             ?>
             <script>
                 (function(){
                     var pdfButton = $('#pdfExportDropdownTrigger')
-                    var bundleButton = $('<a href="<?=$this->getUrl('service.php', true) . "&fhir-url=/Composition/$record/\$document"?>">Create FHIR Bundle</a>')
+                    var bundleButton = $('<a href="<?="$urlPrefix&fhir-url=/Composition/$projectId-$record/\$document"?>">Create FHIR Bundle</a>')
                     bundleButton.attr('class', pdfButton.attr('class'))
                     bundleButton.css({
                         'margin-left': '3px',
