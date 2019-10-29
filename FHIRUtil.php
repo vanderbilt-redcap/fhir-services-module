@@ -217,10 +217,16 @@ class FHIRUtil
         
         $out = fopen('php://memory', 'r+');
         fputcsv($out, ["Variable / Field Name","Form Name","Section Header","Field Type","Field Label","Choices, Calculations, OR Slider Labels","Field Note","Text Validation Type OR Show Slider Number","Text Validation Min","Text Validation Max","Identifier?","Branching Logic (Show field only if...)","Required Field?","Custom Alignment","Question Number (surveys only)","Matrix Group Name","Matrix Ranking?","Field Annotation"]);
-       
-        self::walkQuestionnaire($q, function($parent, $item) use ($out){
+        
+        $idRowAdded = false;
+        self::walkQuestionnaire($q, function($parent, $item) use ($out, &$idRowAdded){
             $fieldName = self::getFieldName($parent, $item);
             $instrumentName = self::getInstrumentName($parent);
+
+            if(!$idRowAdded){
+                fputcsv($out, ['response_id', $instrumentName, '', 'text', 'Response ID']);
+                $idRowAdded = true;
+            }
 
             fputcsv($out, [$fieldName, $instrumentName, '', self::getType($item), self::getText($item)]);
         });
@@ -245,7 +251,7 @@ class FHIRUtil
     function questionnaireResponseToREDCapExport($path){
         $o = FHIRUtil::parse(file_get_contents($path));
 
-        $data = [];
+        $data = ['response_id' => ''];
 
         $handleObject = function($parent) use (&$handleObject, &$data){
             foreach($parent->getItem() as $item){
