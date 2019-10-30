@@ -217,6 +217,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function getData($pid, $record){
+        if(empty($record)){
+            throw new Exception('A record ID is required.');
+        }
+
         return json_decode(REDCap::getData($pid, 'json', $record), true);
     }
 
@@ -225,9 +229,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $studiesPid = self::getPidFromSqlField($compositionsPid, 'subject_id');
         $organizationsPid = self::getPidFromSqlField($studiesPid, 'sponsor_id');
     
-        $compositionData = self::getData($compositionsPid, $record)[0];
+        $compositionData = self::getData($compositionsPid, $compositionId)[0];
         $authorData = self::getData($practitionersPid, $compositionData['author_id'])[0]; 
-        $studyData = self::getData($studiesPid, $compositionData['study_id'])[0];
+        $studyData = self::getData($studiesPid, $compositionData['subject_id'])[0];
         $piData = self::getData($practitionersPid, $studyData['principal_investigator_id'])[0];
         
         $sponsorInstances = self::getData($organizationsPid, $studyData['sponsor_id']);
