@@ -1,13 +1,11 @@
 <?php namespace Vanderbilt\FHIRServicesExternalModule;
-require_once __DIR__ . '/vendor/autoload.php';
-require_once __DIR__ . '/FHIRUtil.php';
 
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIROperationOutcome;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIROperationOutcome\FHIROperationOutcomeIssue;
 
-$sendResponse = function($o){
+$sendResponse = function($o) use ($module){
     header('Content-type: application/fhir+json'); 
-    echo FHIRUtil::jsonSerialize($o);
+    echo $module->jsonSerialize($o);
     exit();
 };
 
@@ -43,10 +41,10 @@ if(
 }
 
 if($urlParts[1] === 'Composition' && $urlParts[3] === '$document'){
-    $sendResponse(FHIRUtil::buildBundle($projectId, $recordId));
+    $sendResponse($module->buildBundle($projectId, $recordId));
 }
 else if ($urlParts[1] === 'QuestionnaireResponse'){
-    $sendResponse(FHIRUtil::getQuestionnaireResponse($projectId, $recordId));
+    $sendResponse($module->getQuestionnaireResponse($projectId, $recordId));
 }
 
 $sendErrorResponse("The specified FHIR URL is not supported: $fhirUrl");
