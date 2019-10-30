@@ -26,15 +26,26 @@ if(empty($fhirUrl)){
     $sendErrorResponse("You must specify a 'fhir-url' parameter.");
 }
 
-$parts = explode('/', $fhirUrl);
-$idParts = explode('-', $parts[2]);
+$urlParts = explode('/', $fhirUrl);
+$resourceId = $urlParts[2];
+$idParts = explode('-', $resourceId);
 $projectId = $idParts[0];
 $recordId = $idParts[1];
 
-if($parts[1] === 'Composition' && $parts[3] === '$document'){
+if(
+    empty($projectId)
+    ||
+    !ctype_digit($projectId)
+    ||
+    empty($recordId)
+){
+    $sendErrorResponse("The resource ID specified is not valid: $resourceId");
+}
+
+if($urlParts[1] === 'Composition' && $urlParts[3] === '$document'){
     $sendResponse(FHIRUtil::buildBundle($projectId, $recordId));
 }
-else if ($parts[1] === 'QuestionnaireResponse'){
+else if ($urlParts[1] === 'QuestionnaireResponse'){
     $sendResponse(FHIRUtil::getQuestionnaireResponse($projectId, $recordId));
 }
 
