@@ -1,5 +1,7 @@
 <?php namespace Vanderbilt\FHIRServicesExternalModule;
 
+use Exception;
+
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIROperationOutcome;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIROperationOutcome\FHIROperationOutcomeIssue;
 
@@ -9,12 +11,15 @@ $sendResponse = function($o) use ($module){
     exit();
 };
 
-$sendErrorResponse = function($message) use (&$sendResponse){
+$sendErrorResponse = function($message, $diagnostics=null) use (&$sendResponse){
     $sendResponse(new FHIROperationOutcome([
         'issue' => new FHIROperationOutcomeIssue([
             'severity' => 'error',
             'code' => 'processing',
-            'diagnostics' => $message
+            'details' => [
+                'text' => $message
+            ],
+            'diagnostics' => $diagnostics
         ])
     ]));
 };
@@ -40,11 +45,17 @@ if(
     $sendErrorResponse("The resource ID specified is not valid: $resourceId");
 }
 
-if($urlParts[1] === 'Composition' && $urlParts[3] === '$document'){
-    $sendResponse($module->buildBundle($projectId, $recordId));
+try{
+    if($urlParts[1] === 'Composition' && $urlParts[3] === '$document'){
+        $sendResponse($module->buildBundle($projectId, $recordId));
+    }
+    else if ($urlParts[1] === 'QuestionnaireResponse'){
+        $sendResponse($module->getQuestionnaireResponse($projectId, $recordId));
+    }
+    else{
+        $sendErrorResponse("The specified FHIR URL is not supported: $fhirUrl");
+    }
 }
-else if ($urlParts[1] === 'QuestionnaireResponse'){
-    $sendResponse($module->getQuestionnaireResponse($projectId, $recordId));
+catch(Exception $e){
+    $sendErrorResponse("Exception: " . $e->getMessage(), $e->getTraceAsString());
 }
-
-$sendErrorResponse("The specified FHIR URL is not supported: $fhirUrl");
