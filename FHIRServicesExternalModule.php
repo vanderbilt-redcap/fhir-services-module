@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
+use DateTime;
 use Exception;
 use MetaData;
 use REDCap;
@@ -409,7 +410,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     function questionnaireResponseToREDCapExport($path){
         $o = $this->parse(file_get_contents($path));
 
-        $data = ['response_id' => ''];
+        $data = ['response_id' => 'TBD'];
 
         $handleObject = function($parent) use (&$handleObject, &$data){
             foreach($parent->getItem() as $item){
