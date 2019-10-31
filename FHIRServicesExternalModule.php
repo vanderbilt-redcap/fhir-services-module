@@ -233,16 +233,16 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function buildBundle($compositionsPid, $compositionId){
-        $practitionersPid = self::getPidFromSqlField($compositionsPid, 'author_id');
-        $studiesPid = self::getPidFromSqlField($compositionsPid, 'subject_id');
-        $organizationsPid = self::getPidFromSqlField($studiesPid, 'sponsor_id');
+        $practitionersPid = $this->getPidFromSqlField($compositionsPid, 'author_id');
+        $studiesPid = $this->getPidFromSqlField($compositionsPid, 'subject_id');
+        $organizationsPid = $this->getPidFromSqlField($studiesPid, 'sponsor_id');
     
-        $compositionData = self::getData($compositionsPid, $compositionId)[0];
-        $authorData = self::getData($practitionersPid, $compositionData['author_id'])[0]; 
-        $studyData = self::getData($studiesPid, $compositionData['subject_id'])[0];
-        $piData = self::getData($practitionersPid, $studyData['principal_investigator_id'])[0];
+        $compositionData = $this->getData($compositionsPid, $compositionId)[0];
+        $authorData = $this->getData($practitionersPid, $compositionData['author_id'])[0]; 
+        $studyData = $this->getData($studiesPid, $compositionData['subject_id'])[0];
+        $piData = $this->getData($practitionersPid, $studyData['principal_investigator_id'])[0];
         
-        $sponsorInstances = self::getData($organizationsPid, $studyData['sponsor_id']);
+        $sponsorInstances = $this->getData($organizationsPid, $studyData['sponsor_id']);
         $sponsorContacts = [];
         foreach($sponsorInstances as $instance){
             $instrument = $instance['redcap_repeat_instrument'];
@@ -262,7 +262,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $getReference = function ($o) use ($bundle){
             $id = $o->getId();
             if(empty($id)){
-                throw new Exception('A reference cannot be created for an object without an id: ' . self::jsonSerialize($o));
+                throw new Exception('A reference cannot be created for an object without an id: ' . $this->jsonSerialize($o));
             }
         
             $existsInBundle = false;
@@ -377,16 +377,16 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         fputcsv($out, ["Variable / Field Name","Form Name","Section Header","Field Type","Field Label","Choices, Calculations, OR Slider Labels","Field Note","Text Validation Type OR Show Slider Number","Text Validation Min","Text Validation Max","Identifier?","Branching Logic (Show field only if...)","Required Field?","Custom Alignment","Question Number (surveys only)","Matrix Group Name","Matrix Ranking?","Field Annotation"]);
         
         $idRowAdded = false;
-        self::walkQuestionnaire($q, function($parent, $item) use ($out, &$idRowAdded){
-            $fieldName = self::getFieldName($parent, $item);
-            $instrumentName = self::getInstrumentName($parent);
+        $this->walkQuestionnaire($q, function($parent, $item) use ($out, &$idRowAdded){
+            $fieldName = $this->getFieldName($parent, $item);
+            $instrumentName = $this->getInstrumentName($parent);
 
             if(!$idRowAdded){
                 fputcsv($out, ['response_id', $instrumentName, '', 'text', 'Response ID']);
                 $idRowAdded = true;
             }
 
-            fputcsv($out, [$fieldName, $instrumentName, '', self::getType($item), self::getText($item)]);
+            fputcsv($out, [$fieldName, $instrumentName, '', $this->getType($item), $this->getText($item)]);
         });
 
         rewind($out);
@@ -419,7 +419,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 }
                 else{
                     foreach($answers as $answer){
-                        $data[self::getFieldName($parent, $item)] = self::getAnswerValue($item, $answer);
+                        $data[$this->getFieldName($parent, $item)] = $this->getAnswerValue($item, $answer);
                     }
                 }
             }
@@ -440,7 +440,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     function getAnswerValue($item, $answer){
         $v = $answer->getValueString()->getValue()->__toString();
 
-        if(self::getText($item) === 'Last Updated at:'){
+        if($this->getText($item) === 'Last Updated at:'){
             $v = DateTime::createFromFormat('F j, Y \a\t g:i A e', $v)->format('Y-m-d H:i');
         }
 
@@ -449,7 +449,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
     function walkQuestionnaire($group, $fieldAction){
         $handleItems = function ($group) use (&$handleItems, &$out, &$fieldAction){
-            $groupId = self::getLinkId($group);
+            $groupId = $this->getLinkId($group);
 
             foreach($group->getItem() as $item){
                 $id = $item->getLinkId()->getValue()->getValue();
@@ -461,7 +461,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     $handleItems($item);
                 }
                 else{
-                    if(self::isRepeating($item)){
+                    if($this->isRepeating($item)){
                         throw new Exception("The following field repeats, which is only supportted for groups currently: $id");
                     }
                     else if($item->getText()->__toString() !== $item->getCode()[0]->getDisplay()->__toString()){
@@ -515,7 +515,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function getInstrumentName($group){
-        $name = strtolower(self::getText($group));
+        $name = strtolower($this->getText($group));
         $name = str_replace(' ', '_', $name);
         $name = str_replace('(', '', $name);
         $name = str_replace(')', '', $name);
