@@ -193,6 +193,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     private function getPidFromSqlField($pid, $fieldName){
+        if(empty($pid)){
+            throw new Exception('A project id must be specified.');
+        }
+
         $pid = db_escape($pid);
         $fieldName = db_escape($fieldName);
 
@@ -206,6 +210,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $result = db_query($sql);
 
         $row = $result->fetch_assoc();
+        if($row === null){
+            throw new Exception("Could not find the field named '$fieldName' for project $pid.");
+        }
+
         if($result->fetch_assoc() !== null){
             throw new Exception("Multiple fields found!");
         }
