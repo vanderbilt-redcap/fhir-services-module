@@ -207,7 +207,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             and field_name = '$fieldName'
         ";
 
-        $result = db_query($sql);
+        $result = $this->query($sql);
 
         $row = $result->fetch_assoc();
         if($row === null){
