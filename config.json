@@ -18,7 +18,8 @@
 		"project": [
 			{
 				"name": "Questionnaire Settings",
-				"url": "questionnaire-settings.php",
+                "url": "questionnaire-settings.php",
+                "icon": "cog_go",
                 "show-header-and-footer": true
 			}
 		]
