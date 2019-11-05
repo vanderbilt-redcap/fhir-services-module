@@ -460,6 +460,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $n = str_replace('[', '', $n);
         $n = str_replace(']', '', $n);
 
+        if(ctype_digit($n[0])){
+            // REDCap fields can't start with a number.
+            $n = "q_$n";
+        }
+
         return $n;
     }
 
