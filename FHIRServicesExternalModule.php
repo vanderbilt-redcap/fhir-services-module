@@ -521,9 +521,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     if($this->isRepeating($item)){
                         throw new Exception("The following field repeats, which is only supportted for groups currently: $id");
                     }
-                    else if($item->getText()->__toString() !== $item->getCode()[0]->getDisplay()->__toString()){
-                        throw new Exception("Text & display differ: '{$item->getText()}' vs. '{$item->getCode()[0]->getDisplay()}'");
-                    }
+                    // else if($item->getText()->__toString() !== $item->getCode()[0]->getDisplay()->__toString()){
+                    //     throw new Exception("Text & display differ: '{$item->getText()}' vs. '{$item->getCode()[0]->getDisplay()}'");
+                    // }
 
                     $fieldAction($group, $item);
                 } 
