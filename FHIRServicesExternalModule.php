@@ -101,9 +101,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         list ($errors_array, $warnings_array, $dictionary_array) = MetaData::error_checking($dictionary_array);
 
-        $handleErrors = function($errors, $type){
+        $checkForErrors = function($errors, $type, $runOnError = null){
             if(empty($errors)){
                 return false;
+            }
+
+            if($runOnError){
+                $runOnError();
             }
 
             ?>
@@ -112,16 +116,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             <br>
             <?php
             
-            return true;
+            throw new Exception("Uploading the questionnaire failed with the previously printed errors.");
         };
 
-        if($handleErrors($errors_array, 'errors')){
-            return;
-        }
-
-        if($handleErrors($warnings_array, 'warnings')){
-            return;
-        }
+        $checkForErrors($errors_array, 'errors');
+        $checkForErrors($warnings_array, 'warnings');
 
         // Set up all actions as a transaction to ensure everything is done here
         db_query("SET AUTOCOMMIT=0");
@@ -134,14 +133,14 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $sql_errors = MetaData::save_metadata($dictionary_array);
 
         // Display any failed queries to Super Users, but only give minimal info of error to regular users
-        if ($handleErrors($sql_errors, 'errors')) {
+        $checkForErrors($sql_errors, 'errors', function(){
             // ERRORS OCCURRED, so undo any changes made
             db_query("ROLLBACK");
             // Set back to previous value
             db_query("SET AUTOCOMMIT=1");
 
             return;
-        }
+        });
 
         // COMMIT CHANGES
         db_query("COMMIT");
