@@ -28,14 +28,19 @@ $urlParts = $module->getFHIRUrlParts();
 
 try{
     if($urlParts[1] === 'Composition' && $urlParts[3] === '$document'){
-        $sendResponse($module->buildBundle());
+        $response = $module->buildBundle();
+    }
+    else if ($urlParts[1] === 'Questionnaire' && $_SERVER['REQUEST_METHOD'] === 'POST'){
+        $response = $module->saveQuestionnaire();
     }
     else if ($urlParts[1] === 'QuestionnaireResponse'){
-        $sendResponse($module->getQuestionnaireResponse());
+        $response = $module->getQuestionnaireResponse();
     }
     else{
         $sendErrorResponse("The specified FHIR URL is not supported: $fhirUrl");
     }
+
+    $sendResponse($response);
 }
 catch(Exception $e){
     $sendErrorResponse("Exception: " . $e->getMessage(), $e->getTraceAsString());

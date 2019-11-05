@@ -25,6 +25,8 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRQuestionnai
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRBundle\FHIRBundleEntry;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIROrganization\FHIROrganizationContact;
 
+const QUESTIONNAIRE_RECEIVED = 'Questionnaire Received';
+
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
     function redcap_data_entry_form($project_id, $record){
         if($this->getProjectSetting('project-type') === 'composition'){
@@ -84,7 +86,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     // This method was mostly copied from data_dictionary_upload.php
-    function saveQuestionnaire($file){
+    function replaceDataDictionaryWithQuestionnaire($file){
         $dictionaryPath = tempnam(sys_get_temp_dir(), 'fhir-questionnaire-data-dictionary-');
         
         try{
@@ -167,6 +169,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
     
     function jsonSerialize($FHIRObject){
+        if(empty($FHIRObject)){
+            throw new Exception('A valid FHIR object must be specified.');
+        }
+
         $a = json_decode(json_encode($FHIRObject->jsonSerialize()), true);
         
         $handle = function(&$a) use (&$handle){
@@ -399,6 +405,23 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return new FHIRQuestionnaireResponse;
     }
 
+    function saveQuestionnaire(){
+        $input = file_get_contents('php://input');
+        $q = $this->parse($input);
+        $type = $q->_getFHIRTypeName();
+        if($type !== 'Questionnaire'){
+            throw new Exception("Expected a Questionnaire but found the following type instead: $type");
+        }
+
+        $logId = $this->log(QUESTIONNAIRE_RECEIVED, [
+            'content' => $input
+        ]);
+
+        $q->setId("received-questionnaire-$logId");
+
+        return $q;
+    }
+
     function questionnaireToDataDictionary($questionnaire){
         $q = $this->parse(file_get_contents($questionnaire));
 
@@ -595,5 +618,25 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 		}
 
 		return $fullPath;
-	}
+    }
+    
+    function getQuestionnaireUrl($section){
+        return $this->getUrl("questionnaire-options.php?section=$section");
+    }
+
+    function getReceivedQuestionnaires($whereClause = ''){
+        return $this->queryLogs("
+            select log_id, timestamp, content
+            where project_id is null
+            and message = '" . QUESTIONNAIRE_RECEIVED . "'
+            $whereClause
+            order by log_id desc
+        ");
+    }
+
+    function getReceivedQuestionnaire($logId){
+        $logId = db_escape($logId);
+        $result = $this->getReceivedQuestionnaires("and log_id = $logId");
+        return $result->fetch_assoc();
+    }
 }

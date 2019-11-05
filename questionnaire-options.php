@@ -4,13 +4,25 @@ if($section){
     require_once $module->getSafePath("questionnaire/$section.php");
     return;
 }
+
+$getSectionButton = function($section, $label) use ($module){
+    $url = $module->getQuestionnaireUrl($section);
+    return "
+        <p>
+            <a href='$url'>
+                <button>$label</button>
+            </a>
+        </p>
+    ";
+};
+
 ?>
 
 <div class="projhdr">Questionnaire Options</div>
 
-<p><a href="<?=$module->getUrl('questionnaire-options.php?section=data-dictionary')?>"><button>Data Dictionary Options</button></a></p>
+<?=$getSectionButton('data-dictionary', 'Data Dictionary Options')?>
 
-<form id='fhir-import-questionnaire-response-form' method='post' action='<?=$module->getUrl('questionnaire/import-response.php')?>' enctype='multipart/form-data'>
+<form id='fhir-import-questionnaire-response-form' method='post' action='<?=$module->getQuestionnaireUrl('import-response')?>' enctype='multipart/form-data'>
     <button>Import a FHIR QuestionnaireResponse</button>
     <input type='file' name='import' style='display: none'>
 </form>
@@ -29,3 +41,5 @@ if($section){
         })
     })
 </script>
+
+<?=$getSectionButton('received', 'View Received Questionnaires')?>

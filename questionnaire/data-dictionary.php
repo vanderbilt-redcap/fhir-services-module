@@ -9,10 +9,30 @@
 <br>
 <?php
 
-$uploadedFile = @$_FILES['questionnaire'];
+$logId = @$_POST['log-id'];
+if($logId){
+    $log = $module->getReceivedQuestionnaire($logId);
+
+    $tempFilePath = tempnam(sys_get_temp_dir(), 'received-questionnaire');
+    file_put_contents($tempFilePath, $log['content']);
+
+    $uploadedFile = [
+        'name' => 'Received Questionnaire ' . $log['log_id'] . '.json',
+        'tmp_name' => $tempFilePath,
+        'size' => filesize($tempFilePath)
+    ];
+}
+else{
+    $uploadedFile = @$_FILES['questionnaire'];
+}
+
 if($uploadedFile){
-    $module->saveQuestionnaire($uploadedFile);
-    ?><h6>Upload successful</h6><?php
+    $module->replaceDataDictionaryWithQuestionnaire($uploadedFile);
+    if($tempFilePath){
+        unlink($tempFilePath);
+    }
+
+    ?><h6>Data Dictionary Successfully Replaced</h6><?php
 }
 
 $edoc = $module->getQuestionnaireEDoc();
