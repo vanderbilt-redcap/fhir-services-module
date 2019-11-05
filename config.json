@@ -17,8 +17,8 @@
     "links": {
 		"project": [
 			{
-				"name": "Questionnaire Settings",
-                "url": "questionnaire-settings.php",
+				"name": "Questionnaire Options",
+                "url": "questionnaire-options.php",
                 "icon": "cog_go",
                 "show-header-and-footer": true
 			}
