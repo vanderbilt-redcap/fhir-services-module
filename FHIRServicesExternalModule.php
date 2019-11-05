@@ -233,7 +233,39 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return json_decode(REDCap::getData($pid, 'json', $record), true);
     }
 
+    function getFHIRUrlParts(){
+        $fhirUrl = $_GET['fhir-url'];
+
+        if(empty($fhirUrl)){
+            $sendErrorResponse("You must specify a 'fhir-url' parameter.");
+        }
+
+        return explode('/', $fhirUrl);
+    }
+
+    function getProjectAndRecordIdsFromFHIRUrl(){
+        $urlParts = $this->getFHIRUrlParts();
+        $resourceId = $urlParts[2];
+        $idParts = explode('-', $resourceId);
+        $projectId = $idParts[0];
+        $recordId = $idParts[1];
+
+        if(
+            empty($projectId)
+            ||
+            !ctype_digit($projectId)
+            ||
+            empty($recordId)
+        ){
+            $sendErrorResponse("The resource ID specified is not valid: $resourceId");
+        }
+
+        return [$projectId, $recordId]; 
+    }
+
     function buildBundle($compositionsPid, $compositionId){
+        list($compositionsPid, $compositionId) = $this->getProjectAndRecordIdsFromFHIRUrl();
+
         $practitionersPid = $this->getPidFromSqlField($compositionsPid, 'author_id');
         $studiesPid = $this->getPidFromSqlField($compositionsPid, 'subject_id');
         $organizationsPid = $this->getPidFromSqlField($studiesPid, 'sponsor_id');
@@ -360,7 +392,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $bundle;
     }
 
-    function getQuestionnaireResponse($projectId, $responseId){
+    function getQuestionnaireResponse(){
+        list($projectId, $responseId) = $this->getProjectAndRecordIdsFromFHIRUrl();
+        
         // $data = REDCap::getData($projectId, 'json', $responseId)[0];
         return new FHIRQuestionnaireResponse;
     }

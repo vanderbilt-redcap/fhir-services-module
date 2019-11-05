@@ -24,33 +24,14 @@ $sendErrorResponse = function($message, $diagnostics=null) use (&$sendResponse){
     ]));
 };
 
-$fhirUrl = $_GET['fhir-url'];
-if(empty($fhirUrl)){
-    $sendErrorResponse("You must specify a 'fhir-url' parameter.");
-}
-
-$urlParts = explode('/', $fhirUrl);
-$resourceId = $urlParts[2];
-$idParts = explode('-', $resourceId);
-$projectId = $idParts[0];
-$recordId = $idParts[1];
-
-if(
-    empty($projectId)
-    ||
-    !ctype_digit($projectId)
-    ||
-    empty($recordId)
-){
-    $sendErrorResponse("The resource ID specified is not valid: $resourceId");
-}
+$urlParts = $module->getFHIRUrlParts();
 
 try{
     if($urlParts[1] === 'Composition' && $urlParts[3] === '$document'){
-        $sendResponse($module->buildBundle($projectId, $recordId));
+        $sendResponse($module->buildBundle());
     }
     else if ($urlParts[1] === 'QuestionnaireResponse'){
-        $sendResponse($module->getQuestionnaireResponse($projectId, $recordId));
+        $sendResponse($module->getQuestionnaireResponse());
     }
     else{
         $sendErrorResponse("The specified FHIR URL is not supported: $fhirUrl");
