@@ -90,7 +90,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $dictionaryPath = tempnam(sys_get_temp_dir(), 'fhir-questionnaire-data-dictionary-');
         
         try{
-            file_put_contents($dictionaryPath, $this->questionnaireToDataDictionary($file['tmp_name']));
+            $csv = $this->questionnaireToDataDictionary($file['tmp_name']);
+            file_put_contents($dictionaryPath, $csv);
 
             require_once APP_PATH_DOCROOT . '/Design/functions.php';
             $dictionary_array = excel_to_array($dictionaryPath);
@@ -430,25 +431,55 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             throw new Exception("Expected a resource type of '$expectedResourceType', but found '$actualResourceType' instead." . $q->resourceType);
         }
         
-        $out = fopen('php://memory', 'r+');
-        fputcsv($out, ["Variable / Field Name","Form Name","Section Header","Field Type","Field Label","Choices, Calculations, OR Slider Labels","Field Note","Text Validation Type OR Show Slider Number","Text Validation Min","Text Validation Max","Identifier?","Branching Logic (Show field only if...)","Required Field?","Custom Alignment","Question Number (surveys only)","Matrix Group Name","Matrix Ranking?","Field Annotation"]);
-        
-        $idRowAdded = false;
-        $this->walkQuestionnaire($q, function($parent, $item) use ($out, &$idRowAdded){
+        $forms = [];
+        $this->walkQuestionnaire($q, function($parent, $item) use (&$forms){
             $fieldName = $this->getFieldName($parent, $item);
             $instrumentName = $this->getInstrumentName($parent);
-
-            if(!$idRowAdded){
-                fputcsv($out, ['response_id', $instrumentName, '', 'text', 'Response ID']);
-                $idRowAdded = true;
+            if(empty($instrumentName)){
+                $instrumentName = "top_level_questions";
             }
 
-            fputcsv($out, [$fieldName, $instrumentName, '', $this->getType($item), $this->getText($item)]);
+            $forms[$instrumentName][$fieldName] = [
+                'type' => $this->getType($item),
+                'label' => $this->getText($item),
+                'choices' => $this->getChoices($item)
+            ];
         });
+        
+        $out = fopen('php://memory', 'r+');
+        fputcsv($out, ["Variable / Field Name","Form Name","Section Header","Field Type","Field Label","Choices, Calculations, OR Slider Labels","Field Note","Text Validation Type OR Show Slider Number","Text Validation Min","Text Validation Max","Identifier?","Branching Logic (Show field only if...)","Required Field?","Custom Alignment","Question Number (surveys only)","Matrix Group Name","Matrix Ranking?","Field Annotation"]);
+        fputcsv($out, ['response_id', current(array_keys($forms)), '', 'text', 'Response ID']);
+
+        foreach($forms as $formName=>$fields){
+            foreach($fields as $name=>$field){
+                fputcsv($out, [$name, $formName, '', $field['type'], $field['label'], $field['choices']]);
+            }
+        }
 
         rewind($out);
 
         return stream_get_contents($out);
+    }
+
+    function getChoices($item){
+        if(empty($item->getAnswerOption())){
+            return null;
+        }
+
+        $choices = [];
+        foreach($item->getAnswerOption() as $option){
+            $coding = $option->getValueCoding();
+            $code = $this->getValue($coding->getCode());
+            $display = $this->getValue($coding->getDisplay());
+            
+            $choices[] = "$code, $display";
+        }
+
+        return implode('|', $choices);
+    }
+
+    function getValue($fhirObject){
+        return $fhirObject->getValue()->getValue();
     }
 
     function getFieldName($parent, $item){
@@ -515,7 +546,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
             foreach($group->getItem() as $item){
                 $id = $item->getLinkId()->getValue()->getValue();
-                if($item->getType()->getValue()->getValue()->getValue() === 'group'){
+                if(in_array($item->getType()->getValue()->getValue()->getValue(), ['group', 'display'])){
                     if($groupId && strpos($id, $groupId) !== 0){
                         throw new Exception("The item ID ($id) does not start with it's parent group ID ($groupId)!  If this is expected then we'll need a different way to track parent/child relationships.");
                     }
@@ -560,8 +591,17 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $type = $item->getType();
             if($type){
                 $type = $type->getValue()->getValue()->getValue();
-                if($type === 'string'){
+                if(in_array($type, ['string', 'integer', 'decimal', 'dateTime'])){
                     $type = 'text';
+                }
+                else if($type === 'text'){
+                    $type = 'notes';
+                }
+                else if(in_array($type, ['choice', 'open-choice'])){
+                    return 'dropdown';
+                }
+                else{
+                    throw new Exception("Type not supported: $type");
                 }
 
                 return $type;
@@ -582,6 +622,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $name = str_replace('(', '', $name);
         $name = str_replace(')', '', $name);
         $name = str_replace(':', '', $name);
+        $name = str_replace('?', '', $name);
 
         return $name;
     }
