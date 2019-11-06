@@ -10,7 +10,7 @@ $edoc = $module->getQuestionnaireEDoc();
 $q = $module->parse(file_get_contents(EDOC_PATH . $edoc['stored_name']));
 
 $objects = [];
-$module->walkQuestionnaire($q, function($parent, $item) use ($module, $data){
+$module->walkQuestionnaire($q, function($parents, $item) use ($module, $data){
     $fieldName = $module->getFieldName($item);
     $value = $data[$fieldName];
     if(!$value){

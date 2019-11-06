@@ -466,9 +466,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
         
         $forms = [];
-        $this->walkQuestionnaire($q, function($parent, $item) use (&$forms){
+        $this->walkQuestionnaire($q, function($parents, $item) use (&$forms){
             $fieldName = $this->getFieldName($item);
-            $instrumentName = $this->getInstrumentName($parent);
+            $instrumentName = $this->getInstrumentName(end($parents));
             if(empty($instrumentName)){
                 $instrumentName = "top_level_questions";
             }
@@ -578,23 +578,33 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $v;
     }
 
-    function walkQuestionnaire($group, $fieldAction){
+    function walkQuestionnaire($parents, $fieldAction){
+        if(!is_array($parents)){
+            if($parents->_getFHIRTypeName() === 'Questionnaire'){
+                // This is expected on the initial call.
+                $parents = [$parents];
+            }
+            else{
+                throw new Exception("An array of parent resources was expected.");
+            }
+        }
+
+        $group = end($parents);
         $groupId = $this->getLinkId($group);
 
         foreach($group->getItem() as $item){
             $id = $item->getLinkId()->getValue()->getValue();
             if(in_array($item->getType()->getValue()->getValue()->getValue(), ['group', 'display'])){
-                self::walkQuestionnaire($item, $fieldAction);
+                $newParents = $parents;
+                $newParents[] = $item;
+                self::walkQuestionnaire($newParents, $fieldAction);
             }
             else{
                 if($this->isRepeating($item)){
                     throw new Exception("The following field repeats, which is only supported for groups currently: $id");
                 }
-                // else if($item->getText()->__toString() !== $item->getCode()[0]->getDisplay()->__toString()){
-                //     throw new Exception("Text & display differ: '{$item->getText()}' vs. '{$item->getCode()[0]->getDisplay()}'");
-                // }
 
-                $fieldAction($group, $item);
+                $fieldAction($parents, $item);
             } 
         }
     }
