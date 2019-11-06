@@ -579,28 +579,24 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function walkQuestionnaire($group, $fieldAction){
-        $handleItems = function ($group) use (&$handleItems, &$out, &$fieldAction){
-            $groupId = $this->getLinkId($group);
+        $groupId = $this->getLinkId($group);
 
-            foreach($group->getItem() as $item){
-                $id = $item->getLinkId()->getValue()->getValue();
-                if(in_array($item->getType()->getValue()->getValue()->getValue(), ['group', 'display'])){
-                    $handleItems($item);
-                }
-                else{
-                    if($this->isRepeating($item)){
-                        throw new Exception("The following field repeats, which is only supported for groups currently: $id");
-                    }
-                    // else if($item->getText()->__toString() !== $item->getCode()[0]->getDisplay()->__toString()){
-                    //     throw new Exception("Text & display differ: '{$item->getText()}' vs. '{$item->getCode()[0]->getDisplay()}'");
-                    // }
-
-                    $fieldAction($group, $item);
-                } 
+        foreach($group->getItem() as $item){
+            $id = $item->getLinkId()->getValue()->getValue();
+            if(in_array($item->getType()->getValue()->getValue()->getValue(), ['group', 'display'])){
+                self::walkQuestionnaire($item, $fieldAction);
             }
-        };
+            else{
+                if($this->isRepeating($item)){
+                    throw new Exception("The following field repeats, which is only supported for groups currently: $id");
+                }
+                // else if($item->getText()->__toString() !== $item->getCode()[0]->getDisplay()->__toString()){
+                //     throw new Exception("Text & display differ: '{$item->getText()}' vs. '{$item->getCode()[0]->getDisplay()}'");
+                // }
 
-        $handleItems($group);
+                $fieldAction($group, $item);
+            } 
+        }
     }
 
     function isRepeating($item){
