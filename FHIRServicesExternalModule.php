@@ -54,8 +54,42 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function redcap_every_page_top(){
-        if(strpos($_SERVER['REQUEST_URI'], APP_PATH_WEBROOT . 'Design/data_dictionary_upload.php') === 0){
-            //$this->onDataDictionaryUploadPage();
+        if(strpos($_SERVER['REQUEST_URI'], APP_PATH_WEBROOT . 'DataEntry/record_home.php') === 0){
+            ?>
+            <script>
+                (function(){
+                    var waitForElement = function(selector, callback) {
+                        var element = $(selector)
+                        if (element.length) {
+                            callback(element);
+                        } else {
+                            setTimeout(function() {
+                                waitForElement(selector, callback);
+                            }, 100);
+                        }
+                    }
+
+                    waitForElement('#recordActionDropdown', function(element){                       
+                        var lastPdfOption = $(element.find('a[href*=\\/PDF\\/]').toArray().reverse()[0]).parent()
+                        
+                        var addButton = function(text, iconName, url){
+                            var newOption = lastPdfOption.clone()
+
+                            newOption.find('a').attr('href', url)
+
+                            var icon = newOption.find('i.fas')[0]
+                            icon.className = 'fas fa-' + iconName
+                            icon.nextSibling.textContent = ' ' + text
+                            
+                            lastPdfOption.after(newOption)
+                        }
+                       
+                        addButton('Download FHIR export of record data for all instruments', 'file-export', <?=json_encode($this->getUrl('questionnaire/export-response.php') . "&id=" . $_GET['id'])?>)
+                        // addButton('Send to Remote FHIR Server', 'network-wired')
+                    })
+                })()
+            </script>
+            <?php
         }
     }
 
@@ -433,7 +467,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         
         $forms = [];
         $this->walkQuestionnaire($q, function($parent, $item) use (&$forms){
-            $fieldName = $this->getFieldName($parent, $item);
+            $fieldName = $this->getFieldName($item);
             $instrumentName = $this->getInstrumentName($parent);
             if(empty($instrumentName)){
                 $instrumentName = "top_level_questions";
@@ -486,7 +520,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $fhirObject->getValue()->getValue();
     }
 
-    function getFieldName($parent, $item){
+    function getFieldName($item){
         $n = $item->getLinkId()->getValue()->getValue();
         $n = strtolower($n);
         $n = ltrim($n, '/');
@@ -516,7 +550,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 }
                 else{
                     foreach($answers as $answer){
-                        $data[$this->getFieldName($parent, $item)] = $this->getAnswerValue($item, $answer);
+                        $data[$this->getFieldName($item)] = $this->getAnswerValue($item, $answer);
                     }
                 }
             }
