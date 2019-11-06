@@ -479,6 +479,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function getValue($fhirObject){
+        if($fhirObject === null){
+            return null;
+        }
+
         return $fhirObject->getValue()->getValue();
     }
 
@@ -531,7 +535,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function getAnswerValue($item, $answer){
-        $v = $answer->getValueString()->getValue()->__toString();
+        $v = $this->getValue($answer->getValueString());
 
         if($this->getText($item) === 'Last Updated at:'){
             $v = DateTime::createFromFormat('F j, Y \a\t g:i A e', $v)->format('Y-m-d H:i');
