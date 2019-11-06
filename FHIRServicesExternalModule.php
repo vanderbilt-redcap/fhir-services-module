@@ -547,15 +547,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             foreach($group->getItem() as $item){
                 $id = $item->getLinkId()->getValue()->getValue();
                 if(in_array($item->getType()->getValue()->getValue()->getValue(), ['group', 'display'])){
-                    if($groupId && strpos($id, $groupId) !== 0){
-                        throw new Exception("The item ID ($id) does not start with it's parent group ID ($groupId)!  If this is expected then we'll need a different way to track parent/child relationships.");
-                    }
-                    
                     $handleItems($item);
                 }
                 else{
                     if($this->isRepeating($item)){
-                        throw new Exception("The following field repeats, which is only supportted for groups currently: $id");
+                        throw new Exception("The following field repeats, which is only supported for groups currently: $id");
                     }
                     // else if($item->getText()->__toString() !== $item->getCode()[0]->getDisplay()->__toString()){
                     //     throw new Exception("Text & display differ: '{$item->getText()}' vs. '{$item->getCode()[0]->getDisplay()}'");
@@ -599,6 +595,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 }
                 else if(in_array($type, ['choice', 'open-choice'])){
                     return 'dropdown';
+                }
+                else if($type === 'boolean'){
+                    return 'yesno';
                 }
                 else{
                     throw new Exception("Type not supported: $type");
