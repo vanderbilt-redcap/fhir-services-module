@@ -9,6 +9,7 @@ use Exception;
 
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource;
 use DCarbone\PHPFHIRGenerated\R4\PHPFHIRResponseParser;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRCoding;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRString;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRBundle;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRHumanName;
@@ -544,7 +545,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $forms[$instrumentName][$fieldName] = [
                 'type' => $this->getType($item),
                 'label' => $this->getText($item),
-                'choices' => $this->getChoices($item)
+                'choices' => $this->getREDCapChoices($item)
             ];
         });
         
@@ -563,29 +564,42 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return stream_get_contents($out);
     }
 
-    function getChoices($item){
-        if(empty($item->getAnswerOption())){
-            return null;
-        }
-
-        $choices = [];
+    function getAnswers($item){
+        $answers = [];
         foreach($item->getAnswerOption() as $option){
             $coding = $option->getValueCoding();
             $code = $this->getValue($coding->getCode());
             $display = $this->getValue($coding->getDisplay());
             
+            $answers[$code] = $display;
+        }
+
+        return $answers;
+    }
+
+    function getREDCapChoices($item){
+        if(empty($item->getAnswerOption())){
+            return null;
+        }
+
+        $choices = [];
+        foreach($this->getAnswers($item) as $code=>$display){
             $choices[] = "$code, $display";
         }
 
         return implode('|', $choices);
     }
 
-    function getValue($fhirObject){
-        if($fhirObject === null){
+    function getValue($o){
+        if($o === null){
             return null;
         }
 
-        return $fhirObject->getValue()->getValue();
+        while(method_exists($o, 'getValue')){
+            $o = $o->getValue();
+        }
+
+        return $o;
     }
 
     function getFieldName($item){
@@ -807,7 +821,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $questionnaire = $this->parse(file_get_contents(EDOC_PATH . $edoc['stored_name']));
 
-        $questionnaireResponse = $this->addIdentifier(new FHIRQuestionnaireResponse, $projectId, $recordId);
+        $questionnaireResponse = new FHIRQuestionnaireResponse([
+            'status' => 'completed'
+        ]);
+
+        $questionnaireResponse = $this->addIdentifier($questionnaireResponse, $projectId, $recordId);
 
         $responseObjects = [];
         $getResponseObject = function($parentResponseItem, $item) use (&$responseObjects, $questionnaireResponse){
@@ -842,11 +860,32 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             foreach($items as $item){
                 $responseItem = $getResponseObject($lastResponseItem, $item);
                 $lastResponseItem = $responseItem;
-            }    
+            }
 
-            $responseItem->addAnswer(new FHIRQuestionnaireResponseAnswer([
-                'valueString' => $value
-            ]));
+            $type = $this->getValue($item->getType());
+            if(in_array($type, ['string', 'text'])){
+                $answerData = ['valueString' => $value];
+            }
+            else if($type === 'integer'){
+                $answerData = ['valueInteger' => $value];
+            }
+            else if($type === 'decimal'){
+                $answerData = ['valueDecimal' => $value];
+            }
+            else if(in_array($type, ['choice', 'open-choice'])){
+                $answerData = [
+                    'valueCoding' => new FHIRCoding([
+                        'code' => $value,
+                        'display' => $this->getAnswers($item)[$value],
+                        'system' => 'Custom'
+                    ])
+                ];
+            }
+            else{
+                throw new Exception("Type not supported: $type");
+            }
+
+            $responseItem->addAnswer(new FHIRQuestionnaireResponseAnswer($answerData));
         });
 
         return $questionnaireResponse;
