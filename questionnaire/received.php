@@ -6,7 +6,17 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRQuestionnai
 $result = $module->getReceivedQuestionnaires();
 $rows = [];
 while($row = $result->fetch_assoc()){
-    $row['object'] = $module->parse($row['content']);
+    $o = $module->parse($row['content']);;
+    
+    if($row['type'] === 'Questionnaire'){
+        $title = $o->getTitle();
+    }
+    else{
+        $title = $module->getText($o->getItem()[0]);
+    }
+
+    $row['title'] = $title;
+
     $rows[$row['log_id']] = $row;
 }
 
@@ -24,24 +34,29 @@ while($row = $result->fetch_assoc()){
 
 <div class="projhdr">Questionnaire Data Dictionary Options</div>
 <br>
-<h5>Received Questionnaires</h5>
+<h5>Received Questionnaires & Responses</h5>
 <table class='table recevied-questionnaires'>
     <tr>
         <th>ID</th>
         <th>Date/Time</th>
+        <th>Type</th>
         <th>Title</th>
         <th></th>
     </tr>
     <?php
     foreach($rows as $logId=>$row){
+        $type = $row['type'];
         ?>
         <tr data-log-id="<?=$logId?>">
             <td><?=$logId?></td>
             <td><?=$row['timestamp']?></td>
-            <td><?=$row['object']->getTitle()?></td>
+            <td><?=$type?></td>
+            <td><?=$row['title']?></td>
             <td>
                 <button class='details'>Show Details</button>
-                <button class='replace-data-dictionary'>Replace Data Dictionary</button>
+                <?php if($type === 'Questionnaire') { ?>
+                    <button class='replace-data-dictionary'>Replace Data Dictionary</button>
+                <?php } ?>
             </td>
         </tr>
         <?php

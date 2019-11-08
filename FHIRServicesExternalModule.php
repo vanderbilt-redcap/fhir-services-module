@@ -29,7 +29,7 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIROrganizatio
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaireResponse\FHIRQuestionnaireResponseItem;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaireResponse\FHIRQuestionnaireResponseAnswer;
 
-const QUESTIONNAIRE_RECEIVED = 'Questionnaire Received';
+const RESOURCE_RECEIVED = 'Resource Received';
 
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
     function redcap_every_page_top(){
@@ -506,21 +506,22 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return new FHIRQuestionnaireResponse;
     }
 
-    function saveQuestionnaire(){
+    function saveResource($expectedType){
         $input = file_get_contents('php://input');
-        $q = $this->parse($input);
-        $type = $q->_getFHIRTypeName();
-        if($type !== 'Questionnaire'){
-            throw new Exception("Expected a Questionnaire but found the following type instead: $type");
+        $o = $this->parse($input);
+        $type = $o->_getFHIRTypeName();
+        if($type !== $expectedType){
+            throw new Exception("Expected a $expectedType but found the following type instead: $type");
         }
 
-        $logId = $this->log(QUESTIONNAIRE_RECEIVED, [
+        $logId = $this->log(RESOURCE_RECEIVED, [
+            'type' => $type,
             'content' => $input
         ]);
 
-        $q->setId("received-questionnaire-$logId");
+        $o->setId("$logId");
 
-        return $q;
+        return $o;
     }
 
     function questionnaireToDataDictionary($questionnaire){
@@ -781,9 +782,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
     function getReceivedQuestionnaires($whereClause = ''){
         return $this->queryLogs("
-            select log_id, timestamp, content
+            select log_id, timestamp, type, content
             where project_id is null
-            and message = '" . QUESTIONNAIRE_RECEIVED . "'
+            and message = '" . RESOURCE_RECEIVED . "'
+            and type in('Questionnaire', 'QuestionnaireResponse');
             $whereClause
             order by log_id desc
         ");

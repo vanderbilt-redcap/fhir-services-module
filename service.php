@@ -29,19 +29,20 @@ $sendErrorResponse = function($message, $diagnostics=null) use (&$sendResponse){
 };
 
 $urlParts = $module->getFHIRUrlParts();
+$type = $urlParts[1];
 
 try{
-    if($urlParts[1] === 'Composition' && $urlParts[3] === '$document'){
+    if($_SERVER['REQUEST_METHOD'] === 'POST'){
+        $response = $module->saveResource($type);
+    }
+    else if($type === 'Composition' && $urlParts[3] === '$document'){
         $response = $module->buildBundle();
     }
-    else if ($urlParts[1] === 'Questionnaire' && $_SERVER['REQUEST_METHOD'] === 'POST'){
-        $response = $module->saveQuestionnaire();
-    }
-    else if ($urlParts[1] === 'QuestionnaireResponse'){
+    else if ($type === 'QuestionnaireResponse'){
         $response = $module->getQuestionnaireResponse();
     }
     else{
-        $sendErrorResponse("The specified FHIR URL is not supported: $fhirUrl");
+        $sendErrorResponse("The specified FHIR URL is not supported for this request type: $fhirUrl");
     }
 
     $sendResponse($response);

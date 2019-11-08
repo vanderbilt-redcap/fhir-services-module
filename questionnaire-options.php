@@ -42,4 +42,4 @@ $getSectionButton = function($section, $label) use ($module){
     })
 </script>
 
-<?=$getSectionButton('received', 'View Received Questionnaires')?>
+<?=$getSectionButton('received', 'View Received Questionnaires & Responses')?>
