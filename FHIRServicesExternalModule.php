@@ -390,6 +390,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             return $o;
         };
 
+        $composition = $addToBundle(new FHIRComposition([
+            'id' => $compositionData['composition_id'],
+            'type' => new FHIRCodeableConcept([
+                'text' => $compositionData['type']
+            ])
+        ]));
+
         $sponsor = $addToBundle(new FHIROrganization([
             'id' => $sponsorData['organization_id'],
             'name' => $sponsorData['organization_name']
@@ -447,16 +454,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 'value' => $authorData['email']
             ])
         ]));
+       
+        $composition->setAuthor($getReference($compositionAuthor));
+        $composition->setSubject($getReference($study));
         
-        $addToBundle(new FHIRComposition([
-            'id' => $compositionData['composition_id'],
-            'type' => new FHIRCodeableConcept([
-                'text' => $compositionData['type']
-            ]),
-            'author' => $getReference($compositionAuthor),
-            'subject' => $getReference($study)
-        ]));
-
         return $bundle;
     }
 
