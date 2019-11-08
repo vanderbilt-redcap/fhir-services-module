@@ -2,10 +2,10 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use DateTime;
-use Exception;
-use MetaData;
 use REDCap;
+use DateTime;
+use MetaData;
+use Exception;
 
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource;
 use DCarbone\PHPFHIRGenerated\R4\PHPFHIRResponseParser;
@@ -13,6 +13,7 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRString;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRBundle;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRHumanName;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRReference;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBundleType;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRContactPoint;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRCodeableConcept;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRContactPointSystem;
@@ -24,8 +25,8 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRResearchStu
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRQuestionnaireResponse;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRBundle\FHIRBundleEntry;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIROrganization\FHIROrganizationContact;
-use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaireResponse\FHIRQuestionnaireResponseAnswer;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaireResponse\FHIRQuestionnaireResponseItem;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaireResponse\FHIRQuestionnaireResponseAnswer;
 
 const QUESTIONNAIRE_RECEIVED = 'Questionnaire Received';
 
@@ -354,7 +355,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             }
         }
         
-        $bundle = new FHIRBundle;
+        $bundle = new FHIRBundle([
+            'type' => new FHIRBundleType([
+                'value' => 'document'
+            ])
+        ]);
 
         $getReference = function ($o) use ($bundle){
             if(!$o){
@@ -457,7 +462,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
        
         $composition->setAuthor($getReference($compositionAuthor));
         $composition->setSubject($getReference($study));
-        
+
         return $bundle;
     }
 
