@@ -890,4 +890,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         return $questionnaireResponse;
     }
+
+    function getRemoteFHIRServerUrl(){
+        $url = $this->getProjectSetting('remote-fhir-server-url');
+        if(empty($url)){
+            throw new Exception('A remote FHIR server url must be configured.');
+        }
+
+        return $url;
+    }
 }

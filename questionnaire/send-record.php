@@ -4,7 +4,7 @@ $questionnaireResponse = $module->getFHIRResourceForRecord($_GET['id']);
 
 $resourceType = 'QuestionnaireResponse';
 
-$url = $module->getProjectSetting('remote-fhir-server-url');
+$url = $module->getRemoteFHIRServerUrl();
 $response = file_get_contents("$url/$resourceType", false, stream_context_create([
     'http' => [
         'method' => 'POST',
