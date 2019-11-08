@@ -1,7 +1,6 @@
 <?php namespace Vanderbilt\FHIRServicesExternalModule;
 
 require_once __DIR__ . '/vendor/autoload.php';
-require_once __DIR__ . '/model-overrides/FHIRBundle.php';
 
 use REDCap;
 use DateTime;
@@ -11,6 +10,7 @@ use Exception;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource;
 use DCarbone\PHPFHIRGenerated\R4\PHPFHIRResponseParser;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRString;
+use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRBundle;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRHumanName;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRReference;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBundleType;
@@ -233,7 +233,18 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             throw new Exception('A valid FHIR object must be specified.');
         }
 
-        $a = json_decode(json_encode($FHIRObject->jsonSerialize()), true);
+        $a = $FHIRObject->jsonSerialize();
+
+        if(method_exists($FHIRObject, 'getIdentifier')){
+            $identifier = $FHIRObject->getIdentifier();
+            if($identifier){
+                // This fixes an upstream bug that exludes the 'system' value.
+                // TODO - We should contribute a permanent upstream fix.
+                $a['identifier'] = $identifier->jsonSerialize();
+            }
+        }
+
+        $a = json_decode(json_encode($a), true);
         
         $handle = function(&$a) use (&$handle){
             foreach($a as $key=>&$value){
@@ -329,11 +340,18 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return [$projectId, $recordId]; 
     }
 
-    function getIdentifier($projectId, $recordId){
-        return new FHIRIdentifier([
+    function addIdentifier($resource, $projectId, $recordId){
+        $identifier = $resource->getIdentifier();
+        if($identifier){
+            throw new Exception("Cannot add an identifier because one is already set: " . $this->jsonSerialize($identifier));
+        }
+        
+        $resource->setIdentifier(new FHIRIdentifier([
             'system' => APP_PATH_WEBROOT_FULL,
             'value' => "$projectId-$recordId"
-        ]);
+        ]));
+
+        return $resource;
     }
 
     function buildBundle($compositionsPid, $compositionId){
@@ -364,11 +382,12 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
         
         $bundle = new FHIRBundle([
-            'identifier' => $this->getIdentifier($compositionsPid, $compositionId),
             'type' => new FHIRBundleType([
                 'value' => 'document'
             ])
         ]);
+
+        $this->addIdentifier($bundle, $compositionsPid, $compositionId);
 
         $getReference = function ($o) use ($bundle){
             if(!$o){
@@ -772,13 +791,17 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function getFHIRResourceForRecord($recordId){
-        $data = $this->getData($this->getProjectId(), $_GET['id'])[0];
+        $projectId = $this->getProjectId();
+        $recordId = $_GET['id'];
+
+        $data = $this->getData($projectId, $recordId)[0];
 
         $edoc = $this->getQuestionnaireEDoc();
 
         $questionnaire = $this->parse(file_get_contents(EDOC_PATH . $edoc['stored_name']));
 
-        $questionnaireResponse = new FHIRQuestionnaireResponse;
+        $questionnaireResponse = $this->addIdentifier(new FHIRQuestionnaireResponse, $projectId, $recordId);
+
         $responseObjects = [];
         $getResponseObject = function($parentResponseItem, $item) use (&$responseObjects, $questionnaireResponse){
             if(!$parentResponseItem){
