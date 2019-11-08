@@ -42,6 +42,11 @@
 					"value" : "composition"
 				}
 			]
-		}
+        },
+        {
+            "key": "remote-fhir-server-url",
+            "name": "Remote FHIR Server URL",
+            "type": "text"
+        }
     ]
 }

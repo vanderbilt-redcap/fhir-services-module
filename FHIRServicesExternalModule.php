@@ -24,6 +24,8 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRResearchStu
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRQuestionnaireResponse;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRBundle\FHIRBundleEntry;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIROrganization\FHIROrganizationContact;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaireResponse\FHIRQuestionnaireResponseAnswer;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaireResponse\FHIRQuestionnaireResponseItem;
 
 const QUESTIONNAIRE_RECEIVED = 'Questionnaire Received';
 
@@ -56,6 +58,15 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     function redcap_every_page_top(){
         if(strpos($_SERVER['REQUEST_URI'], APP_PATH_WEBROOT . 'DataEntry/record_home.php') === 0){
             ?>
+            <div id="fhir-services-send-record" class="modal" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            <p>Sending record to remote FHIR server...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <script>
                 (function(){
                     var waitForElement = function(selector, callback) {
@@ -69,23 +80,52 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                         }
                     }
 
-                    waitForElement('#recordActionDropdown', function(element){                       
-                        var lastPdfOption = $(element.find('a[href*=\\/PDF\\/]').toArray().reverse()[0]).parent()
-                        
-                        var addButton = function(text, iconName, url){
-                            var newOption = lastPdfOption.clone()
+                    var sendRecord = function(){
+                        var dialog = $('#fhir-services-send-record')
+                        dialog.modal('show')
 
-                            newOption.find('a').attr('href', url)
+                        $.post(<?=json_encode($this->getUrl('questionnaire/send-record.php') . "&id=" . $_GET['id'])?>).always(function(response){
+                            if(response === 'success'){
+                                alert('The record was successfully sent to the remote FHIR server.')
+                            }
+                            else{
+                                alert('An error ocurred.  See the browser log for details.')
+                                console.log(response)
+                            }
+
+                            dialog.modal('hide')
+                        })
+                    }
+
+                    waitForElement('#recordActionDropdownDiv', function(dropdown){                       
+                        var lastPdfOption = $(dropdown.find('a[href*=\\/PDF\\/]').toArray().reverse()[0]).parent()
+                        
+                        var addButton = function(text, iconName, action){
+                            var newOption = lastPdfOption.clone()
 
                             var icon = newOption.find('i.fas')[0]
                             icon.className = 'fas fa-' + iconName
-                            icon.nextSibling.textContent = ' ' + text
+                            icon.nextSibling.textContent = ' ' + text             
+
+                            var a = newOption.find('a')
+                            a.removeAttr('target')
+                            
+                            newOption.click(function(e){
+                                e.preventDefault()
+                                dropdown.hide()
+                                action()
+                            })              
                             
                             lastPdfOption.after(newOption)
                         }
                        
-                        addButton('Download FHIR export of record data for all instruments', 'file-export', <?=json_encode($this->getUrl('questionnaire/export-response.php') . "&id=" . $_GET['id'])?>)
-                        // addButton('Send to Remote FHIR Server', 'network-wired')
+                        addButton('Send record to remote FHIR server', 'network-wired', function(){
+                            sendRecord()
+                        })
+
+                        addButton('Export record in FHIR format', 'file-export', function(){
+                            window.open(<?=json_encode($this->getUrl('questionnaire/export-response.php') . "&id=" . $_GET['id'])?>)
+                        })
                     })
                 })()
             </script>
@@ -726,5 +766,56 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $logId = db_escape($logId);
         $result = $this->getReceivedQuestionnaires("and log_id = $logId");
         return $result->fetch_assoc();
+    }
+
+    function getFHIRResourceForRecord($recordId){
+        $data = $this->getData($this->getProjectId(), $_GET['id'])[0];
+
+        $edoc = $this->getQuestionnaireEDoc();
+
+        $questionnaire = $this->parse(file_get_contents(EDOC_PATH . $edoc['stored_name']));
+
+        $questionnaireResponse = new FHIRQuestionnaireResponse;
+        $responseObjects = [];
+        $getResponseObject = function($parentResponseItem, $item) use (&$responseObjects, $questionnaireResponse){
+            if(!$parentResponseItem){
+                // This is the Questionnaire root
+                return $questionnaireResponse;
+            }
+
+            $itemId = $this->getLinkId($item);
+            $responseItem = $responseObjects[$itemId];
+            if(!$responseItem){      
+                $responseItem = new FHIRQuestionnaireResponseItem;
+                $responseItem->setLinkId($itemId);
+                $responseItem->setText($item->getText());
+
+                $responseObjects[$itemId] = $responseItem;
+                $parentResponseItem->addItem($responseItem);
+            }
+
+            return $responseItem;
+        };
+
+        $this->walkQuestionnaire($questionnaire, function($parents, $item) use ($data, &$getResponseObject){
+            $fieldName = $this->getFieldName($item);
+            $value = $data[$fieldName];
+            if(!$value){
+                return;
+            }
+
+            $items = array_merge($parents, [$item]);
+            $lastResponseItem = null; 
+            foreach($items as $item){
+                $responseItem = $getResponseObject($lastResponseItem, $item);
+                $lastResponseItem = $responseItem;
+            }    
+
+            $responseItem->addAnswer(new FHIRQuestionnaireResponseAnswer([
+                'valueString' => $value
+            ]));
+        });
+
+        return $questionnaireResponse;
     }
 }
