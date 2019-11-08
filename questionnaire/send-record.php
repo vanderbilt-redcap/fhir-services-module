@@ -14,11 +14,30 @@ $response = file_get_contents("$url/$resourceType", false, stream_context_create
     ]
 ]));
 
-$resource = $module->parse($response);
-$responseResourceType = $resource->_getFHIRTypeName();
-if($responseResourceType === $resourceType){
-    echo 'success';
+$handleError = function() use ($resourceType, $response){
+    echo "A $resourceType response was expected, but ";
+    
+    if(empty($response)){
+        echo "an empty response was received.";
+    }
+    else{
+        echo "the following was received instead: $response";
+    }
+
+    echo "\n";
+};
+
+try{
+    $resource = $module->parse($response);
+    $responseResourceType = $resource->_getFHIRTypeName();
+    if($responseResourceType === $resourceType){
+        echo 'success';
+    }
+    else{
+        $handleError();
+    }
 }
-else{
-    echo "A $resourceType response was expected, but the following was received instead: $response";
+catch(Exception $e){
+    $handleError();
+    throw $e;
 }
