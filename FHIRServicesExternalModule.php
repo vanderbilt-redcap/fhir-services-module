@@ -30,33 +30,12 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnai
 const QUESTIONNAIRE_RECEIVED = 'Questionnaire Received';
 
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
-    function redcap_data_entry_form($project_id, $record){
-        if($this->getProjectSetting('project-type') === 'composition'){
-            $projectId = $this->getProjectId();
-            $urlPrefix = $this->getUrl('service.php', true);
-            $urlPrefix = str_replace("&pid=$projectId", '', $urlPrefix);    
-            ?>
-            <script>
-                (function(){
-                    var pdfButton = $('#pdfExportDropdownTrigger')
-                    var bundleButton = $('<a href="<?="$urlPrefix&fhir-url=/Composition/$projectId-$record/\$document"?>">Create FHIR Bundle</a>')
-                    bundleButton.attr('class', pdfButton.attr('class'))
-                    bundleButton.css({
-                        'margin-left': '3px',
-                        'min-height': '26px',
-                        'margin-bottom': '15px',
-                        'vertical-align': 'top'
-                    })
-    
-                    pdfButton.after(bundleButton)
-                })()
-            </script>
-            <?php
-        }
-    }
-
     function redcap_every_page_top(){
         if(strpos($_SERVER['REQUEST_URI'], APP_PATH_WEBROOT . 'DataEntry/record_home.php') === 0){
+            $projectId = $this->getProjectId();
+            $recordId = $_GET['id'];
+            $urlPrefix = $this->getUrl('service.php', true);
+            $urlPrefix = str_replace("&pid=$projectId", '', $urlPrefix); 
             ?>
             <div id="fhir-services-send-record" class="modal" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
                 <div class="modal-dialog" role="document">
@@ -118,14 +97,23 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                             
                             lastPdfOption.after(newOption)
                         }
-                       
-                        addButton('Send record to remote FHIR server', 'network-wired', function(){
-                            sendRecord()
-                        })
+                        
+                        var projectType = <?=json_encode($this->getProjectSetting('project-type'))?>;
+                    
+                        if(projectType === 'composition'){
+                            addButton('Create FHIR Bundle', 'file-export', function(){
+                                window.open(<?=json_encode("$urlPrefix&fhir-url=/Composition/$projectId-$recordId/\$document")?>)
+                            })
+                        }
+                        else if(projectType === 'questionnaire'){
+                            addButton('Send record to remote FHIR server', 'network-wired', function(){
+                                sendRecord()
+                            })
 
-                        addButton('Export record in FHIR format', 'file-export', function(){
-                            window.open(<?=json_encode($this->getUrl('questionnaire/export-response.php') . "&id=" . $_GET['id'])?>)
-                        })
+                            addButton('Export record in FHIR format', 'file-export', function(){
+                                window.open(<?=json_encode($this->getUrl('questionnaire/export-response.php') . "&id=" . $_GET['id'])?>)
+                            })
+                        }
                     })
                 })()
             </script>

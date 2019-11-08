@@ -11,7 +11,6 @@
     ],
     "permissions": [
         "redcap_every_page_top",
-        "redcap_data_entry_form",
         "redcap_module_link_check_display"
     ],
     "links": {
