@@ -109,10 +109,6 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                             addButton('Send record to remote FHIR server', 'network-wired', function(){
                                 sendRecord()
                             })
-
-                            addButton('Export record in FHIR format', 'file-export', function(){
-                                window.open(<?=json_encode($this->getUrl('questionnaire/export-response.php') . "&id=" . $_GET['id'])?>)
-                            })
                         }
                     })
                 })()
