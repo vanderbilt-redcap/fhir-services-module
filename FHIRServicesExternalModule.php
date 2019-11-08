@@ -354,6 +354,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $resource;
     }
 
+    function getInstant(){
+        return date('Y-m-d\TH:i:sP');
+    }
+
     function buildBundle($compositionsPid, $compositionId){
         list($compositionsPid, $compositionId) = $this->getProjectAndRecordIdsFromFHIRUrl();
 
@@ -382,6 +386,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
         
         $bundle = new FHIRBundle([
+            'timestamp' => $this->getInstant(),
             'type' => new FHIRBundleType([
                 'value' => 'document'
             ])
