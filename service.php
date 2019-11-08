@@ -12,6 +12,10 @@ $sendResponse = function($o) use ($module){
 };
 
 $sendErrorResponse = function($message, $diagnostics=null) use (&$sendResponse){
+    if(strpos($_SERVER['HTTP_ACCEPT'], 'text/html') === 0){
+        echo "A browser was detected.  The OperationOutcome will be prefixed with a human readable version of the error details:\n\n$diagnostics\n\n";
+    }
+
     $sendResponse(new FHIROperationOutcome([
         'issue' => new FHIROperationOutcomeIssue([
             'severity' => 'error',

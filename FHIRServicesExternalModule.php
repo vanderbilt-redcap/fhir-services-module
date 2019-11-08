@@ -357,6 +357,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $bundle = new FHIRBundle;
 
         $getReference = function ($o) use ($bundle){
+            if(!$o){
+                throw new Exception("A FHIR resource must be specified.");
+            }
+
             $id = $o->getId();
             if(empty($id)){
                 throw new Exception('A reference cannot be created for an object without an id: ' . $this->jsonSerialize($o));
