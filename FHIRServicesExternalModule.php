@@ -1,6 +1,7 @@
 <?php namespace Vanderbilt\FHIRServicesExternalModule;
 
 require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/model-overrides/FHIRBundle.php';
 
 use REDCap;
 use DateTime;
@@ -10,10 +11,10 @@ use Exception;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource;
 use DCarbone\PHPFHIRGenerated\R4\PHPFHIRResponseParser;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRString;
-use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRBundle;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRHumanName;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRReference;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBundleType;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRIdentifier;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRContactPoint;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRCodeableConcept;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRContactPointSystem;
@@ -328,6 +329,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return [$projectId, $recordId]; 
     }
 
+    function getIdentifier($projectId, $recordId){
+        return new FHIRIdentifier([
+            'system' => APP_PATH_WEBROOT_FULL,
+            'value' => "$projectId-$recordId"
+        ]);
+    }
+
     function buildBundle($compositionsPid, $compositionId){
         list($compositionsPid, $compositionId) = $this->getProjectAndRecordIdsFromFHIRUrl();
 
@@ -356,6 +364,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
         
         $bundle = new FHIRBundle([
+            'identifier' => $this->getIdentifier($compositionsPid, $compositionId),
             'type' => new FHIRBundleType([
                 'value' => 'document'
             ])
