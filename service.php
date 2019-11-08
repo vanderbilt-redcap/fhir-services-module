@@ -36,7 +36,8 @@ try{
         $response = $module->saveResource($type);
     }
     else if($type === 'Composition' && $urlParts[3] === '$document'){
-        $response = $module->buildBundle();
+        list($projectId, $recordId) = $module->getProjectAndRecordIdsFromFHIRUrl();
+        $response = $module->buildBundle($projectId, $recordId);
     }
     else if ($type === 'QuestionnaireResponse'){
         $response = $module->getQuestionnaireResponse();

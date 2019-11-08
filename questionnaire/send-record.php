@@ -1,15 +1,15 @@
 <?php
 
-$questionnaireResponse = $module->getFHIRResourceForRecord($_GET['id']);
+$resource = $module->getFHIRResourceForRecord($_GET['id']);
 
-$resourceType = 'QuestionnaireResponse';
+$resourceType = $resource->_getFHIRTypeName();
 
 $url = $module->getRemoteFHIRServerUrl();
 $response = file_get_contents("$url/$resourceType", false, stream_context_create([
     'http' => [
         'method' => 'POST',
         'header' => "Content-Type: application/json\r\n",
-        'content' => $module->jsonSerialize($questionnaireResponse),
+        'content' => $module->jsonSerialize($resource),
         'ignore_errors' => true
     ]
 ]));

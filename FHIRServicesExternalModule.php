@@ -68,7 +68,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
                         $.post(<?=json_encode($this->getUrl('questionnaire/send-record.php') . "&id=" . $_GET['id'])?>).always(function(response){
                             if(response === 'success'){
-                                alert('The record was successfully sent to the remote FHIR server.')
+                                alert('The data was successfully sent to the remote FHIR server.')
                             }
                             else{
                                 alert('An error ocurred.  See the browser log for details.')
@@ -101,11 +101,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                             lastPdfOption.after(newOption)
                         }
                         
-                        var projectType = <?=json_encode($this->getProjectSetting('project-type'))?>;
+                        var projectType = <?=json_encode($this->getProjectType())?>;
                     
                         if(projectType === 'composition'){
-                            addButton('Create FHIR Bundle', 'file-export', function(){
-                                window.open(<?=json_encode("$urlPrefix&fhir-url=/Composition/$projectId-$recordId/\$document")?>)
+                            addButton('Send FHIR Bundle to remote FHIR server', 'file-export', function(){
+                                sendRecord()
                             })
                         }
                         else if(projectType === 'questionnaire'){
@@ -138,12 +138,16 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         if(
             strpos($link['url'], 'questionnaire-options') !== false
             &&
-            $this->getProjectSetting('project-type') !== 'questionnaire'
+            $this->getProjectType() !== 'questionnaire'
         ){
             return false;
         }
         
         return $link;
+    }
+
+    function getProjectType(){
+        return $this->getProjectSetting('project-type');
     }
 
     // This method was mostly copied from data_dictionary_upload.php
@@ -315,7 +319,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $fhirUrl = $_GET['fhir-url'];
 
         if(empty($fhirUrl)){
-            $sendErrorResponse("You must specify a 'fhir-url' parameter.");
+            throw new Exception("You must specify a 'fhir-url' parameter.");
         }
 
         return explode('/', $fhirUrl);
@@ -360,8 +364,6 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function buildBundle($compositionsPid, $compositionId){
-        list($compositionsPid, $compositionId) = $this->getProjectAndRecordIdsFromFHIRUrl();
-
         $practitionersPid = $this->getPidFromSqlField($compositionsPid, 'author_id');
         $studiesPid = $this->getPidFromSqlField($compositionsPid, 'subject_id');
         $organizationsPid = $this->getPidFromSqlField($studiesPid, 'sponsor_id');
@@ -812,6 +814,16 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function getFHIRResourceForRecord($recordId){
+        $type = $this->getProjectType();
+        if($type === 'questionnaire'){
+            return $this->buildQuestionnaire($recordId);
+        }
+        else if($type === 'composition'){
+            return $this->buildBundle($this->getProjectId(), $recordId);
+        }
+    }
+
+    function buildQuestionnaire($recordId){
         $projectId = $this->getProjectId();
         $recordId = $_GET['id'];
 
