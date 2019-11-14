@@ -496,7 +496,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             ])
         ]));
        
-        $composition->setAuthor($getReference($compositionAuthor));
+        $composition->addAuthor($getReference($compositionAuthor));
         $composition->setSubject($getReference($study));
 
         return $bundle;
