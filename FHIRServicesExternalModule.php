@@ -260,8 +260,38 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $a = json_decode(json_encode($a), true);
         
         $handle = function(&$a) use (&$handle){
+            $fixContact = function(&$contact){
+                foreach($contact['telecom'] as &$telecom){
+                    $telecom['system'] = $telecom['system']['value'];
+                }
+            };
+
+            $type = $a['resourceType'];
+            if($type === 'Organization'){
+                $contacts = $a['contact'];
+                if(!empty($contacts)){
+                    foreach($a['contact'] as &$contact){
+                        $fixContact($contact);
+                    }
+                }
+            }
+            else if($type === 'Practitioner'){
+                $fixContact($a);
+            }
+            else if($type === 'Bundle'){
+                $a['type'] = $a['type']['value'];
+            }
+            else if($type === 'Composition'){
+                $a['confidentiality'] = $a['confidentiality']['value'];
+                $a['status'] = $a['status']['value'];
+            }
+            else if($type === 'ResearchStudy'){
+                $a['status'] = $a['status']['value'];
+            }
+
             foreach($a as $key=>&$value){
                 if($key[0] === '_'){
+                    // TODO - Contribute this change back.
                     unset($a[$key]);
                     continue;
                 }
@@ -396,8 +426,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         
         $authorId = $compositionData['author_id'];
         $authorRoleData = $this->getData($practitionerRolesPid, $authorId)[0];
-        $authorPractitionerData = $this->getData($practitionersPid, $authorRoleData['practitioner_id'])[0];
-        $authorOrganizationData = $this->getData($organizationsPid, $authorRoleData['organization_id']);
+        $authorPractitionerId = $authorRoleData['practitioner_id'];
+
+        $authorPractitionerData = $this->getData($practitionersPid, $authorPractitionerId)[0];
+        $authorOrganizationId = $authorRoleData['organization_id'];
+        $authorOrganizationData = $this->getData($organizationsPid, $authorOrganizationId);
 
         // TODO - Add support for contacts
         if(count($authorOrganizationData) > 1){
@@ -525,7 +558,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             'sponsor' => $getReference($sponsor),
         ]), $studiesPid, $studyId);
         
-        $authorOrganization = $addToBundle($this->getOrganizationFromRecord($authorOrganizationData), $organizationsPid, $sponsorId);
+        $authorOrganization = $addToBundle($this->getOrganizationFromRecord($authorOrganizationData), $organizationsPid, $authorOrganizationId);
 
         // TODO - Combine this and the other FHIRPractitioner above into a getPractitionerFromRecord() method
         $authorPractitioner = $addToBundle(new FHIRPractitioner([
@@ -539,7 +572,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 ]),
                 'value' => $authorPractitionerData['email']
             ])
-        ]), $practitionersPid, $authorPractitionerData['practitioner_id']);
+        ]), $practitionersPid, $authorPractitionerId);
 
         $authorPractitionerRole = $addToBundle(new FHIRPractitionerRole([
             'practitioner' => $getReference($authorPractitioner),
