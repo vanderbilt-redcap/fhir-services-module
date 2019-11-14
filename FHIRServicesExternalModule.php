@@ -451,6 +451,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $composition = $addToBundle(new FHIRComposition([
             'id' => $compositionData['composition_id'],
+            'status' => 'preliminary',
+            'date' => $this->getInstant(), // TODO - This should pull the last edit time from the log instead.
+            'title' => $compositionData['type'],
+            'confidentiality' => 'L', // TODO - Where should this come from?
             'type' => new FHIRCodeableConcept([
                 'text' => $compositionData['type']
             ])
@@ -458,6 +462,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $sponsor = $addToBundle(new FHIROrganization([
             'id' => $sponsorData['organization_id'],
+            'type' => [new FHIRCodeableConcept([
+                'coding' => new FHIRCoding([
+                    'code' => 'prov' // TODO - Where should this come from?
+                ])
+            ])],
             'name' => $sponsorData['organization_name']
         ]), $organizationsPid, $sponsorId);
 
