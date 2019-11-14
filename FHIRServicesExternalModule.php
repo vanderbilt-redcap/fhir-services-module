@@ -23,6 +23,7 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRResearchStudyStatus;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRComposition;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIROrganization;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRPractitioner;
+use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRPractitionerRole;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRResearchStudy;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRQuestionnaireResponse;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRBundle\FHIRBundleEntry;
@@ -245,7 +246,14 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             if($identifier){
                 // This fixes an upstream bug that exludes the 'system' value.
                 // TODO - We should contribute a permanent upstream fix.
-                $a['identifier'] = $identifier->jsonSerialize();
+                if(is_array($identifier)){
+                    for($i=0; $i<count($identifier); $i++){
+                        $identifier[$i] = $identifier[$i]->jsonSerialize();
+                    }
+                }
+                else{
+                    $a['identifier'] = $identifier->jsonSerialize();
+                }
             }
         }
 
@@ -346,6 +354,14 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function addIdentifier($resource, $projectId, $recordId){
+        if($resource->getId()){
+            throw new Exception('The ID is already set!');
+        }
+
+        $resourceId = "$projectId-$recordId";
+
+        $resource->setId($resourceId);
+
         $identifier = $resource->getIdentifier();
         if($identifier){
             throw new Exception("Cannot add an identifier because one is already set: " . $this->jsonSerialize($identifier));
@@ -353,7 +369,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         
         $identifier = new FHIRIdentifier([
             'system' => APP_PATH_WEBROOT_FULL,
-            'value' => "$projectId-$recordId"
+            'value' => $resourceId
         ]);
 
         $methodName = 'addIdentifier';
@@ -371,14 +387,25 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function buildBundle($compositionsPid, $compositionId){
-        $practitionersPid = $this->getPidFromSqlField($compositionsPid, 'author_id');
+        $practitionerRolesPid = $this->getPidFromSqlField($compositionsPid, 'author_id');
+        $practitionersPid = $this->getPidFromSqlField($practitionerRolesPid, 'practitioner_id');
         $studiesPid = $this->getPidFromSqlField($compositionsPid, 'subject_id');
         $organizationsPid = $this->getPidFromSqlField($studiesPid, 'sponsor_id');
     
         $compositionData = $this->getData($compositionsPid, $compositionId)[0];
         
         $authorId = $compositionData['author_id'];
-        $authorData = $this->getData($practitionersPid, $authorId)[0]; 
+        $authorRoleData = $this->getData($practitionerRolesPid, $authorId)[0];
+        $authorPractitionerData = $this->getData($practitionersPid, $authorRoleData['practitioner_id'])[0];
+        $authorOrganizationData = $this->getData($organizationsPid, $authorRoleData['organization_id']);
+
+        // TODO - Add support for contacts
+        if(count($authorOrganizationData) > 1){
+            throw new Exception("Instances are not currently supported for the author organization");
+        }
+        else{
+            $authorOrganizationData = $authorOrganizationData[0];
+        }
         
         $studyId = $compositionData['subject_id'];
         $studyData = $this->getData($studiesPid, $studyId)[0];
@@ -450,7 +477,6 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         };
 
         $composition = $addToBundle(new FHIRComposition([
-            'id' => $compositionData['composition_id'],
             'status' => 'preliminary',
             'date' => $this->getInstant(), // TODO - This should pull the last edit time from the log instead.
             'title' => $compositionData['type'],
@@ -460,16 +486,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             ])
         ]));
 
-        $sponsor = $addToBundle(new FHIROrganization([
-            'id' => $sponsorData['organization_id'],
-            'type' => [new FHIRCodeableConcept([
-                'coding' => new FHIRCoding([
-                    'code' => 'prov' // TODO - Where should this come from?
-                ])
-            ])],
-            'name' => $sponsorData['organization_name']
-        ]), $organizationsPid, $sponsorId);
-
+        $sponsor = $addToBundle($this->getOrganizationFromRecord($sponsorData), $organizationsPid, $sponsorId);
+        
         foreach($sponsorContacts as $contact){
             $sponsor->addContact(new FHIROrganizationContact([
                 'name' => new FHIRHumanName([
@@ -486,7 +504,6 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
         
         $pi = $addToBundle(new FHIRPractitioner([
-            'id' => $piData['practitioner_id'],
             'name' => new FHIRHumanName([
                 'given' => $piData['first_name'],
                 'family' => $piData['last_name']
@@ -500,7 +517,6 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         ]), $practitionersPid, $piId);
         
         $study = $addToBundle(new FHIRResearchStudy([
-            'id' => $studyData['study_id'],
             'title' => $studyData['title'],
             'status' => new FHIRResearchStudyStatus([
                 'value' => $studyData['status']
@@ -509,24 +525,47 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             'sponsor' => $getReference($sponsor),
         ]), $studiesPid, $studyId);
         
-        $compositionAuthor = $addToBundle(new FHIRPractitioner([
-            'id' => $authorData['practitioner_id'],
+        $authorOrganization = $addToBundle($this->getOrganizationFromRecord($authorOrganizationData), $organizationsPid, $sponsorId);
+
+        // TODO - Combine this and the other FHIRPractitioner above into a getPractitionerFromRecord() method
+        $authorPractitioner = $addToBundle(new FHIRPractitioner([
             'name' => new FHIRHumanName([
-                'given' => $authorData['first_name'],
-                'family' => $authorData['last_name']
+                'given' => $authorPractitionerData['first_name'],
+                'family' => $authorPractitionerData['last_name']
             ]),
             'telecom' => new FHIRContactPoint([
                 'system' => new FHIRContactPointSystem([
                     'value' => 'email'
                 ]),
-                'value' => $authorData['email']
+                'value' => $authorPractitionerData['email']
             ])
-        ]), $practitionersPid, $authorId);
+        ]), $practitionersPid, $authorPractitionerData['practitioner_id']);
+
+        $authorPractitionerRole = $addToBundle(new FHIRPractitionerRole([
+            'practitioner' => $getReference($authorPractitioner),
+            'organization' => $getReference($authorOrganization),
+            'code' => [new FHIRCodeableConcept([
+                'coding' => new FHIRCoding([
+                    'display' => 'Site Investigator' // TODO - Where should this come from?
+                ])
+            ])]
+        ]), $practitionerRolesPid, $authorId);
        
-        $composition->addAuthor($getReference($compositionAuthor));
+        $composition->addAuthor($getReference($authorPractitionerRole));
         $composition->setSubject($getReference($study));
 
         return $bundle;
+    }
+
+    function getOrganizationFromRecord($organization){
+        return new FHIROrganization([
+            'type' => [new FHIRCodeableConcept([
+                'coding' => new FHIRCoding([
+                    'code' => 'prov' // TODO - Where should this come from?
+                ])
+            ])],
+            'name' => $organization['organization_name']
+        ]);
     }
 
     function getQuestionnaireResponse(){
