@@ -351,10 +351,17 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             throw new Exception("Cannot add an identifier because one is already set: " . $this->jsonSerialize($identifier));
         }
         
-        $resource->setIdentifier(new FHIRIdentifier([
+        $identifier = new FHIRIdentifier([
             'system' => APP_PATH_WEBROOT_FULL,
             'value' => "$projectId-$recordId"
-        ]));
+        ]);
+
+        $methodName = 'addIdentifier';
+        if(!method_exists($resource, $methodName)){
+            $methodName = 'setIdentifier';
+        }
+
+        $resource->{$methodName}($identifier);
 
         return $resource;
     }
@@ -369,11 +376,18 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $organizationsPid = $this->getPidFromSqlField($studiesPid, 'sponsor_id');
     
         $compositionData = $this->getData($compositionsPid, $compositionId)[0];
-        $authorData = $this->getData($practitionersPid, $compositionData['author_id'])[0]; 
-        $studyData = $this->getData($studiesPid, $compositionData['subject_id'])[0];
-        $piData = $this->getData($practitionersPid, $studyData['principal_investigator_id'])[0];
         
-        $sponsorInstances = $this->getData($organizationsPid, $studyData['sponsor_id']);
+        $authorId = $compositionData['author_id'];
+        $authorData = $this->getData($practitionersPid, $authorId)[0]; 
+        
+        $studyId = $compositionData['subject_id'];
+        $studyData = $this->getData($studiesPid, $studyId)[0];
+
+        $piId = $studyData['principal_investigator_id'];
+        $piData = $this->getData($practitionersPid, $piId)[0];
+        
+        $sponsorId = $studyData['sponsor_id'];
+        $sponsorInstances = $this->getData($organizationsPid, $sponsorId);
         $sponsorContacts = [];
         foreach($sponsorInstances as $instance){
             $instrument = $instance['redcap_repeat_instrument'];
@@ -423,7 +437,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             ]);
         };
 
-        $addToBundle = function ($o) use ($bundle){
+        $addToBundle = function ($o, $projectId = null, $recordId = null) use ($bundle){
+            if($projectId && $recordId){
+                $this->addIdentifier($o, $projectId, $recordId);
+            }
+
             $bundle->addEntry(new FHIRBundleEntry([
                 'resource' => $o
             ]));
@@ -441,7 +459,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $sponsor = $addToBundle(new FHIROrganization([
             'id' => $sponsorData['organization_id'],
             'name' => $sponsorData['organization_name']
-        ]));
+        ]), $organizationsPid, $sponsorId);
 
         foreach($sponsorContacts as $contact){
             $sponsor->addContact(new FHIROrganizationContact([
@@ -470,7 +488,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 ]),
                 'value' => $piData['email']
             ])
-        ]));
+        ]), $practitionersPid, $piId);
         
         $study = $addToBundle(new FHIRResearchStudy([
             'id' => $studyData['study_id'],
@@ -480,7 +498,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             ]),
             'principalInvestigator' => $getReference($pi),
             'sponsor' => $getReference($sponsor),
-        ]));
+        ]), $studiesPid, $studyId);
         
         $compositionAuthor = $addToBundle(new FHIRPractitioner([
             'id' => $authorData['practitioner_id'],
@@ -494,7 +512,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 ]),
                 'value' => $authorData['email']
             ])
-        ]));
+        ]), $practitionersPid, $authorId);
        
         $composition->addAuthor($getReference($compositionAuthor));
         $composition->setSubject($getReference($study));
