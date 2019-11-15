@@ -390,7 +390,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $resourceId = "$projectId-$recordId";
 
-        $resource->setId($resourceId);
+        if(!($resource instanceof FHIRBundle)){
+            $resource->setId($resourceId);
+        }
 
         $identifier = $resource->getIdentifier();
         if($identifier){
