@@ -241,23 +241,6 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
 
         $a = $FHIRObject->jsonSerialize();
-
-        if(method_exists($FHIRObject, 'getIdentifier')){
-            $identifier = $FHIRObject->getIdentifier();
-            if($identifier){
-                // This fixes an upstream bug that exludes the 'system' value.
-                // TODO - We should contribute a permanent upstream fix.
-                if(is_array($identifier)){
-                    for($i=0; $i<count($identifier); $i++){
-                        $identifier[$i] = $identifier[$i]->jsonSerialize();
-                    }
-                }
-                else{
-                    $a['identifier'] = $identifier->jsonSerialize();
-                }
-            }
-        }
-
         $a = json_decode(json_encode($a), true);
         
         $handle = function(&$a) use (&$handle){
