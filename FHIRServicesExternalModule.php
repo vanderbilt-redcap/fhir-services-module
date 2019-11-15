@@ -23,10 +23,11 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRResearchStudyStatus;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRComposition;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIROrganization;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRPractitioner;
-use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRPractitionerRole;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRResearchStudy;
+use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRPractitionerRole;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRQuestionnaireResponse;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRBundle\FHIRBundleEntry;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRComposition\FHIRCompositionSection;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIROrganization\FHIROrganizationContact;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaireResponse\FHIRQuestionnaireResponseItem;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaireResponse\FHIRQuestionnaireResponseAnswer;
@@ -284,6 +285,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             else if($type === 'Composition'){
                 $a['confidentiality'] = $a['confidentiality']['value'];
                 $a['status'] = $a['status']['value'];
+
+                foreach($a['section'] as &$section){
+                    $section['text']['status'] = $section['text']['status']['value'];
+                }
             }
             else if($type === 'ResearchStudy'){
                 $a['status'] = $a['status']['value'];
@@ -473,30 +478,70 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $this->addIdentifier($bundle, $compositionsPid, $compositionId);
 
-        $getReference = function ($o) use ($bundle){
+        $getReferenceString = function($resource){
+            $id = $resource->getId();
+            if(empty($id)){
+                throw new Exception('A reference cannot be created for an object without an id: ' . $this->jsonSerialize($resource));
+            }
+
+            return $resource->_getFHIRTypeName() . "/$id";
+        };
+
+        $getResourceFromReference = function($reference) use ($bundle, $getReferenceString){
+            $expectedReferenceString = $this->getValue($reference->getReference());
+
+            foreach($bundle->getEntry() as $entry){
+                $resource = $entry->getResource();
+
+                if(empty($resource->getId())){
+                    // A reference string can't be created for items without an id.
+                    continue;
+                }
+                
+                if($expectedReferenceString === $getReferenceString($resource)){
+                    return $resource;
+                }
+            }
+
+            return null;
+        };
+
+        $getReference = function ($o) use ($bundle, $getReferenceString, $getResourceFromReference){
             if(!$o){
                 throw new Exception("A FHIR resource must be specified.");
             }
 
-            $id = $o->getId();
-            if(empty($id)){
-                throw new Exception('A reference cannot be created for an object without an id: ' . $this->jsonSerialize($o));
-            }
-        
-            $existsInBundle = false;
-            foreach($bundle->getEntry() as $entry){
-                if($entry->getResource() === $o){
-                    $existsInBundle = true;
-                }
-            }
-            
-            if(!$existsInBundle){
-                throw new Exception("A reference cannot be created for an object that hasn't been added to the bundle!");
-            }
-        
-            return new FHIRReference([
-                'reference' => $o->_getFHIRTypeName() . "/$id"
+            $reference = new FHIRReference([
+                'reference' => $getReferenceString($o)
             ]);
+                    
+            if(!$getResourceFromReference($reference)){
+                throw new Exception("A reference cannot be created for an object that hasn't been added to the bundle: " . $this->jsonSerialize($o));
+            }
+        
+            return $reference;
+        };
+
+        $getCompositionSection = function($id, $params = []) use ($getReference, $getResourceFromReference){
+            extract($params);
+    
+            ob_start();
+            require __DIR__ . "/templates/$id.php";
+            $html = ob_get_clean();
+    
+            $section = new FHIRCompositionSection([
+                'id' => $id,
+                'text' => [
+                    'status' => 'generated',
+                    'div' => $html
+                ]
+            ]);
+    
+            foreach($params as $param){
+                $section->addEntry($getReference($param));
+            }
+    
+            return $section;
         };
 
         $addToBundle = function ($o, $projectId = null, $recordId = null) use ($bundle){
@@ -588,6 +633,15 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
        
         $composition->addAuthor($getReference($authorPractitionerRole));
         $composition->setSubject($getReference($study));
+        $composition->addSection($getCompositionSection('title'));
+        $composition->addSection($getCompositionSection('information', [
+            'relyingOrg' => $authorOrganization,
+            'study' => $study,
+            'piRole' => $authorPractitionerRole
+        ]));
+        $composition->addSection($getCompositionSection('close', [
+            'study' => $study
+        ]));
 
         return $bundle;
     }
