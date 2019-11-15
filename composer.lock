@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "dcarbone/php-fhir-generated",
-            "version": "v1.0.0",
+            "version": "v1.0.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/dcarbone/php-fhir-generated.git",
-                "reference": "29d9d97680abb1d555d9c20a53cc03b6aecfd223"
+                "reference": "914e4607f105a8d4f86a72b331bb017d2f3fc6f6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dcarbone/php-fhir-generated/zipball/29d9d97680abb1d555d9c20a53cc03b6aecfd223",
-                "reference": "29d9d97680abb1d555d9c20a53cc03b6aecfd223",
+                "url": "https://api.github.com/repos/dcarbone/php-fhir-generated/zipball/914e4607f105a8d4f86a72b331bb017d2f3fc6f6",
+                "reference": "914e4607f105a8d4f86a72b331bb017d2f3fc6f6",
                 "shasum": ""
             },
             "require": {
@@ -58,7 +58,7 @@
                 "php",
                 "php-fhir"
             ],
-            "time": "2019-10-21T04:15:27+00:00"
+            "time": "2019-11-10T18:14:27+00:00"
         }
     ],
     "packages-dev": [],
