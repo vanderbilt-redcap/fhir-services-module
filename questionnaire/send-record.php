@@ -1,6 +1,7 @@
 <?php
 
 $resource = $module->getFHIRResourceForRecord($_GET['id']);
+//echo $module->jsonSerialize($resource);die();
 
 $resourceType = $resource->_getFHIRTypeName();
 
