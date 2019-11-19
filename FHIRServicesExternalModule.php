@@ -64,11 +64,19 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                         }
                     }
 
-                    var sendRecord = function(){
+                    var sendRecord = function(testing){
+                        var url = <?=json_encode($this->getUrl('questionnaire/send-record.php') . "&id=" . $_GET['id'])?>;
+
+                        if(testing){
+                            url = url + '&test'
+                            window.open(url)
+                            return
+                        }
+                       
                         var dialog = $('#fhir-services-send-record')
                         dialog.modal('show')
 
-                        $.post(<?=json_encode($this->getUrl('questionnaire/send-record.php') . "&id=" . $_GET['id'])?>).always(function(response){
+                        $.post(url).always(function(response){
                             if(response === 'success'){
                                 alert('The data was successfully sent to the remote FHIR server.')
                             }
@@ -104,17 +112,25 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                         }
                         
                         var projectType = <?=json_encode($this->getProjectType())?>;
-                    
+
+                        var resourceName
                         if(projectType === 'composition'){
-                            addButton('Send FHIR Bundle to remote FHIR server', 'file-export', function(){
-                                sendRecord()
-                            })
+                            resourceName ='Bundle'
                         }
                         else if(projectType === 'questionnaire'){
-                            addButton('Send record to remote FHIR server', 'network-wired', function(){
-                                sendRecord()
-                            })
+                            resourceName = 'QuestionnaireResponse'
                         }
+                        else{
+                            return
+                        }
+                    
+                        addButton('Send FHIR ' + resourceName + ' to remote FHIR server', 'file-export', function(){
+                            sendRecord(false)
+                        })
+
+                        addButton('Open FHIR ' + resourceName, 'file', function(){
+                            sendRecord(true)
+                        })
                     })
                 })()
             </script>

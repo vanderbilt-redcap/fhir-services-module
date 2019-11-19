@@ -3,6 +3,7 @@
 $resource = $module->getFHIRResourceForRecord($_GET['id']);
 
 if(isset($_GET['test'])){
+    header('Content-type: application/fhir+json'); 
     echo $module->jsonSerialize($resource);
     die();
 }
@@ -13,7 +14,7 @@ $url = $module->getRemoteFHIRServerUrl();
 $response = file_get_contents("$url/$resourceType", false, stream_context_create([
     'http' => [
         'method' => 'POST',
-        'header' => "Content-Type: application/json\r\n",
+        'header' => "Content-Type: application/fhir+json\r\n",
         'content' => $module->jsonSerialize($resource),
         'ignore_errors' => true
     ]
