@@ -289,7 +289,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     $section['text']['status'] = $section['text']['status']['value'];
                 }
             }
-            else if($type === 'ResearchStudy'){
+            else if(in_array($type, ['QuestionnaireResponse', 'ResearchStudy'])){
                 $a['status'] = $a['status']['value'];
             }
 
