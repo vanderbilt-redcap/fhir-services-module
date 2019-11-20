@@ -2,6 +2,10 @@
 
 $resource = $module->getFHIRResourceForRecord($_GET['id']);
 
+// Remove the ID since it is not allowed because it will be different on the remote system.
+// The 'identifier' will still contain the id from this system.
+$resource->setId(null);
+
 if(isset($_GET['test'])){
     header('Content-type: application/fhir+json'); 
     echo $module->jsonSerialize($resource);
