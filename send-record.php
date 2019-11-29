@@ -1,5 +1,7 @@
 <?php
 
+header('Content-type: application/json'); 
+
 $projectId = $module->getProjectId();
 $recordId = $_GET['id'];
 
@@ -15,7 +17,6 @@ else{
 $resource->setId(null);
 
 if(isset($_GET['test'])){
-    header('Content-type: application/fhir+json'); 
     echo $module->jsonSerialize($resource);
     die();
 }
@@ -49,7 +50,10 @@ try{
     $resource = $module->parse($response);
     $responseResourceType = $resource->_getFHIRTypeName();
     if($responseResourceType === $resourceType){
-        echo 'success';
+        echo json_encode([
+            'status' => 'success',
+            'remote-response' => $module->jsonSerialize($resource)
+        ]);
     }
     else{
         $handleError();

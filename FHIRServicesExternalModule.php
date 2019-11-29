@@ -90,8 +90,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                         dialog.modal('show')
 
                         $.post(url).always(function(response){
-                            if(response === 'success'){
+                            if(response.status === 'success'){
                                 alert('The data was successfully sent to the remote FHIR server.')
+                                console.log('Remote Response: ' + response['remote-response'])
                             }
                             else{
                                 alert('An error ocurred.  See the browser log for details.')
@@ -266,8 +267,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 			join redcap_events_metadata m
 				on m.arm_id = a.arm_id
 			where project_id = ?
-		';
-
+        ';
+        
 		$result = $this->query($sql, $projectId);
 		$row = $result->fetch_assoc();
 
@@ -1103,9 +1104,36 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function buildQuestionnaireResponse($projectId, $recordId){
-        $data = $this->getData($projectId, $recordId)[0];
-        if(empty($data)){
+        $instances = $this->getData($projectId, $recordId);
+        if(empty($instances)){
             throw new Exception("A resource with the specified ID does not exist.");
+        }
+
+        $data = [];
+        foreach($instances as $instanceData){
+            $currentRecordId = current($instanceData);
+            if($currentRecordId !== $recordId){
+                throw new Exception("Expected record ID $recordId, but found $currentRecordId!");
+            }
+
+            $instance = $instanceData['redcap_repeat_instance'];
+            if(!$instance){
+                $instance = 1;
+            }
+            
+            unset($instanceData[key($instanceData)]);
+            unset($instanceData['redcap_repeat_instrument']);
+            unset($instanceData['redcap_repeat_instance']);
+
+            foreach($instanceData as $fieldName=>$value){
+                if($value){
+                    if(isset($data[$fieldName][$instance])){
+                        throw new Exception("A value is already set for instance $instance of the $fieldName field!");
+                    }
+
+                    $data[$fieldName][$instance] = $value;
+                }
+            }
         }
 
         $edoc = $this->getQuestionnaireEDoc($projectId);
@@ -1119,20 +1147,20 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $questionnaireResponse = $this->addIdentifier($questionnaireResponse, $projectId, $recordId);
 
         $responseObjects = [];
-        $getResponseObject = function($parentResponseItem, $item) use (&$responseObjects, $questionnaireResponse){
+        $getResponseObject = function($parentResponseItem, $item, $instanceIndex) use (&$responseObjects, $questionnaireResponse){
             if(!$parentResponseItem){
                 // This is the Questionnaire root
                 return $questionnaireResponse;
             }
 
             $itemId = $this->getLinkId($item);
-            $responseItem = $responseObjects[$itemId];
+            $responseItem = $responseObjects[$itemId][$instanceIndex];
             if(!$responseItem){      
                 $responseItem = new FHIRQuestionnaireResponseItem;
                 $responseItem->setLinkId($itemId);
                 $responseItem->setText($item->getText());
 
-                $responseObjects[$itemId] = $responseItem;
+                $responseObjects[$itemId][$instanceIndex] = $responseItem;
                 $parentResponseItem->addItem($responseItem);
             }
 
@@ -1141,42 +1169,45 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $this->walkQuestionnaire($questionnaire, function($parents, $item) use ($data, &$getResponseObject){
             $fieldName = $this->getFieldName($item);
-            $value = $data[$fieldName];
-            if(!$value){
-                return;
-            }
+            $instances = $data[$fieldName];
+            foreach($instances as $instance=>$value){
+                $items = array_merge($parents, [$item]);
+                $lastResponseItem = null; 
+                $parentInstance = 1;
+                foreach($items as $item){
+                    if(self::isRepeating($item)){
+                        $parentInstance = $instance;
+                    }
 
-            $items = array_merge($parents, [$item]);
-            $lastResponseItem = null; 
-            foreach($items as $item){
-                $responseItem = $getResponseObject($lastResponseItem, $item);
-                $lastResponseItem = $responseItem;
-            }
+                    $responseItem = $getResponseObject($lastResponseItem, $item, $parentInstance-1);
+                    $lastResponseItem = $responseItem;
+                }
 
-            $type = $this->getValue($item->getType());
-            if(in_array($type, ['string', 'text'])){
-                $answerData = ['valueString' => $value];
-            }
-            else if($type === 'integer'){
-                $answerData = ['valueInteger' => $value];
-            }
-            else if($type === 'decimal'){
-                $answerData = ['valueDecimal' => $value];
-            }
-            else if(in_array($type, ['choice', 'open-choice'])){
-                $answerData = [
-                    'valueCoding' => new FHIRCoding([
-                        'code' => $value,
-                        'display' => $this->getAnswers($item)[$value],
-                        'system' => 'Custom'
-                    ])
-                ];
-            }
-            else{
-                throw new Exception("Type not supported: $type");
-            }
+                $type = $this->getValue($item->getType());
+                if(in_array($type, ['string', 'text'])){
+                    $answerData = ['valueString' => $value];
+                }
+                else if($type === 'integer'){
+                    $answerData = ['valueInteger' => $value];
+                }
+                else if($type === 'decimal'){
+                    $answerData = ['valueDecimal' => $value];
+                }
+                else if(in_array($type, ['choice', 'open-choice'])){
+                    $answerData = [
+                        'valueCoding' => new FHIRCoding([
+                            'code' => $value,
+                            'display' => $this->getAnswers($item)[$value],
+                            'system' => 'Custom'
+                        ])
+                    ];
+                }
+                else{
+                    throw new Exception("Type not supported: $type");
+                }
 
-            $responseItem->addAnswer(new FHIRQuestionnaireResponseAnswer($answerData));
+                $responseItem->addAnswer(new FHIRQuestionnaireResponseAnswer($answerData));
+            }
         });
 
         return $questionnaireResponse;
