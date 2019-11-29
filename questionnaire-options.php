@@ -1,7 +1,7 @@
 <?php
 $section = @$_GET['section'];
 if($section){
-    require_once $module->getSafePath("questionnaire/$section.php");
+    require_once $module->framework->getSafePath("questionnaire/$section.php");
     return;
 }
 
