@@ -109,6 +109,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                             })              
                             
                             lastPdfOption.after(newOption)
+                            lastPdfOption = newOption
                         }
                         
                         var projectType = <?=json_encode($this->getProjectType())?>;
@@ -124,12 +125,12 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                             return
                         }
                     
-                        addOption('Send FHIR ' + resourceName + ' to remote FHIR server', 'file-export', function(){
-                            sendRecord(false)
-                        })
-
                         addOption('Open FHIR ' + resourceName, 'file', function(){
                             sendRecord(true)
+                        })
+
+                        addOption('Send FHIR ' + resourceName + ' to remote FHIR server', 'file-export', function(){
+                            sendRecord(false)
                         })
                     })
                 })()
