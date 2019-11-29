@@ -605,16 +605,16 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         ]), $studiesPid, $studyId);
 
         $study->addIdentifier(new FHIRIdentifier([
-            // TODO - where will these values come from?
-            'system' => 'http://ncimeta.nci.nih.gov',
             'type' => [
                 'coding' => [
                     [
-                        'code' => 'C12345',
+                        'system' => 'http://ncimeta.nci.nih.gov',
+                        'code' => 'C2985863',
                         'display' => 'Review Board Approval Number'
                     ]
                 ]
-            ]
+            ],
+            'value' => '123456789' // TODO - where will this value come from?
         ]));
         
         $authorOrganization = $addToBundle($this->getOrganizationFromRecord($authorOrganizationData), $organizationsPid, $authorOrganizationId);
