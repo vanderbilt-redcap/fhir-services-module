@@ -1014,11 +1014,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     function getFHIRResourceForRecord($projectId, $recordId){
         $type = $this->getProjectType($projectId);
         if($type === 'questionnaire'){
-            return $this->buildQuestionnaire($projectId, $recordId);
+            return $this->buildQuestionnaireResponse($projectId, $recordId);
         }
     }
 
-    function buildQuestionnaire($projectId, $recordId){
+    function buildQuestionnaireResponse($projectId, $recordId){
         $data = $this->getData($projectId, $recordId)[0];
         if(empty($data)){
             throw new Exception("A resource with the specified ID does not exist.");
