@@ -52,6 +52,9 @@ try{
             if(!$response){
                 $sendErrorResponse("The specified FHIR URL is not supported for this request type: " . $module->getFHIRUrl());
             }
+            else if($response->_getFHIRTypeName() !== $type){
+                $sendErrorResponse("Expected type $type but found " . $response->_getFHIRTypeName());
+            }
         }
     }
 
