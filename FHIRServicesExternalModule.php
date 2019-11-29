@@ -185,7 +185,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $dictionaryPath = tempnam(sys_get_temp_dir(), 'fhir-questionnaire-data-dictionary-');
         
         try{
-            $csv = $this->questionnaireToDataDictionary($file['tmp_name']);
+            list($csv, $repeatingFormNames) = $this->questionnaireToDataDictionary($file['tmp_name']);
             file_put_contents($dictionaryPath, $csv);
 
             require_once APP_PATH_DOCROOT . '/Design/functions.php';
@@ -243,8 +243,39 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         // Set back to previous value
         db_query("SET AUTOCOMMIT=1");
 
+        $eventId = $this->getEventId();
+        
+        $this->query('delete from redcap_events_repeat where event_id = ?', $eventId);
+        
+        foreach($repeatingFormNames as $formName){
+            $this->query('insert into redcap_events_repeat (event_id, form_name) values (?, ?)', [$eventId, $formName]);
+        }
+
         $edocId = \Files::uploadFile($file, $this->getProjectId());
         $this->setProjectSetting('questionnaire', $edocId);
+    }
+
+    function getEventId($projectId = null){
+        if(!$projectId){
+            $projectId = $this->getProjectId();
+		}
+		
+		$sql = '
+			select event_id
+			from redcap_events_arms a
+			join redcap_events_metadata m
+				on m.arm_id = a.arm_id
+			where project_id = ?
+		';
+
+		$result = $this->query($sql, $projectId);
+		$row = $result->fetch_assoc();
+
+		if($result->fetch_assoc()){
+			throw new Exception("Multiple event IDs found from project $projectId");
+		}
+
+		return $row['event_id'];
     }
 
     function getQuestionnaireEDoc($projectId = null){
@@ -735,14 +766,27 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
         
         $forms = [];
-        $this->walkQuestionnaire($q, function($parents, $item) use (&$forms){
+        $repeatingFormNames = [];
+        $this->walkQuestionnaire($q, function($parents, $item) use (&$forms, &$repeatingFormNames){
             $fieldName = $this->getFieldName($item);
-            $instrumentName = $this->getInstrumentName(end($parents));
+            $parent = end($parents);
+            $instrumentName = $this->getInstrumentName($parent);
             if(empty($instrumentName)){
                 $instrumentName = "top_level_questions";
             }
 
-            $forms[$instrumentName][$fieldName] = [
+            $fields = &$forms[$instrumentName];
+            if(!$fields){
+                $fields = [];
+                $forms[$instrumentName] = &$fields;
+
+                if(self::isRepeating($parent)){
+                    self::checkForNestedRepeatingGroups($parents);
+                    $repeatingFormNames[] = $instrumentName;
+                }                
+            }
+
+            $fields[$fieldName] = [
                 'type' => $this->getType($item),
                 'label' => $this->getText($item),
                 'choices' => $this->getREDCapChoices($item)
@@ -761,7 +805,23 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         rewind($out);
 
-        return stream_get_contents($out);
+        return [
+            stream_get_contents($out),
+            $repeatingFormNames,
+        ];
+    }
+
+    private function checkForNestedRepeatingGroups($groups){
+        $repeatingCount = 0;
+        foreach($groups as $group){
+            if(self::isRepeating($group)){
+                $repeatingCount++;
+            }
+        }
+
+        if($repeatingCount > 1){
+            throw new Exception("Only one level of nested repeating groups is supported currently, but $repeatingCount were found.");
+        }
     }
 
     function getAnswers($item){
