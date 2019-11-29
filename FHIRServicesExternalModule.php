@@ -1006,6 +1006,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
     function buildQuestionnaire($projectId, $recordId){
         $data = $this->getData($projectId, $recordId)[0];
+        if(empty($data)){
+            throw new Exception("A resource with the specified ID does not exist.");
+        }
 
         $edoc = $this->getQuestionnaireEDoc($projectId);
 
