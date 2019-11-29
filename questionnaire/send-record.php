@@ -1,6 +1,14 @@
 <?php
 
-$resource = $module->getFHIRResourceForRecord($_GET['id']);
+$projectId = $module->getProjectId();
+$recordId = $_GET['id'];
+
+if($module->getProjectType() === 'composition'){
+    $resource = $module->buildBundle($projectId, $recordId);
+}
+else{
+    $resource = $module->getFHIRResourceForRecord($projectId, $_GET['id']);
+}
 
 // Remove the ID since it is not allowed because it will be different on the remote system.
 // The 'identifier' will still contain the id from this system.

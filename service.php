@@ -35,15 +35,24 @@ try{
     if($_SERVER['REQUEST_METHOD'] === 'POST'){
         $response = $module->saveResource($type);
     }
-    else if($type === 'Composition' && $urlParts[3] === '$document'){
-        list($projectId, $recordId) = $module->getProjectAndRecordIdsFromFHIRUrl();
-        $response = $module->buildBundle($projectId, $recordId);
-    }
-    else if ($type === 'QuestionnaireResponse'){
-        $response = $module->getQuestionnaireResponse();
-    }
     else{
-        $sendErrorResponse("The specified FHIR URL is not supported for this request type: $fhirUrl");
+        list($projectId, $recordId) = $module->getProjectAndRecordIdsFromFHIRUrl();
+        
+        if($type === 'Composition'){
+            if($urlParts[3] === '$document'){
+                $response = $module->buildBundle($projectId, $recordId);
+            }
+            else{
+                $sendErrorResponse("The only Composition request currently supported is \$document.");
+            }
+        }
+        else{
+            $response = $module->getFHIRResourceForRecord($projectId, $recordId);
+
+            if(!$response){
+                $sendErrorResponse("The specified FHIR URL is not supported for this request type: " . $module->getFHIRUrl());
+            }
+        }
     }
 
     $sendResponse($response);

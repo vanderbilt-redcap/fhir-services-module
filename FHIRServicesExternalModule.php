@@ -41,6 +41,19 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $recordId = $_GET['id'];
             $urlPrefix = $this->getUrl('service.php', true);
             $urlPrefix = str_replace("&pid=$projectId", '', $urlPrefix); 
+
+            $projectType = $this->getProjectType();
+            $resourceName = null;
+            if($projectType === 'composition'){
+                $resourceName ='Bundle';
+            }
+            else if($projectType === 'questionnaire'){
+                $resourceName = 'QuestionnaireResponse';
+            }
+            else{
+                return;
+            }
+
             ?>
             <div id="fhir-services-send-record" class="modal" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
                 <div class="modal-dialog" role="document">
@@ -112,23 +125,21 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                             lastPdfOption = newOption
                         }
                         
-                        var projectType = <?=json_encode($this->getProjectType())?>;
-
-                        var resourceName
-                        if(projectType === 'composition'){
-                            resourceName ='Bundle'
-                        }
-                        else if(projectType === 'questionnaire'){
-                            resourceName = 'QuestionnaireResponse'
+                        var resourceName = <?=json_encode($resourceName)?>;
+                        var openAction
+                        if(resourceName === 'Bundle'){
+                            openAction = function(){
+                                sendRecord(true)
+                            }
                         }
                         else{
-                            return
+                            openAction = function(){
+                                window.open(<?=json_encode("$urlPrefix&fhir-url=/$resourceName/$projectId-$recordId")?>)
+                            }
                         }
-                    
-                        addOption('Open FHIR ' + resourceName, 'file', function(){
-                            sendRecord(true)
-                        })
 
+                        addOption('Open FHIR ' + resourceName, 'file', openAction)
+                    
                         addOption('Send FHIR ' + resourceName + ' to remote FHIR server', 'file-export', function(){
                             sendRecord(false)
                         })
@@ -165,8 +176,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $link;
     }
 
-    function getProjectType(){
-        return $this->getProjectSetting('project-type');
+    function getProjectType($projectId = null){
+        return $this->getProjectSetting('project-type', $projectId);
     }
 
     // This method was mostly copied from data_dictionary_upload.php
@@ -236,8 +247,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $this->setProjectSetting('questionnaire', $edocId);
     }
 
-    function getQuestionnaireEDoc(){
-        $edocId = $this->getProjectSetting('questionnaire');
+    function getQuestionnaireEDoc($projectId = null){
+        $edocId = $this->getProjectSetting('questionnaire', $projectId);
         if(!$edocId){
             return null;
         }
@@ -358,8 +369,12 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return json_decode(REDCap::getData($pid, 'json', $record), true);
     }
 
+    function getFHIRUrl(){
+        return $_GET['fhir-url'];
+    }
+
     function getFHIRUrlParts(){
-        $fhirUrl = $_GET['fhir-url'];
+        $fhirUrl = $this->getFHIRUrl();
 
         if(empty($fhirUrl)){
             throw new Exception("You must specify a 'fhir-url' parameter.");
@@ -982,23 +997,17 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $result->fetch_assoc();
     }
 
-    function getFHIRResourceForRecord($recordId){
-        $type = $this->getProjectType();
+    function getFHIRResourceForRecord($projectId, $recordId){
+        $type = $this->getProjectType($projectId);
         if($type === 'questionnaire'){
-            return $this->buildQuestionnaire($recordId);
-        }
-        else if($type === 'composition'){
-            return $this->buildBundle($this->getProjectId(), $recordId);
+            return $this->buildQuestionnaire($projectId, $recordId);
         }
     }
 
-    function buildQuestionnaire($recordId){
-        $projectId = $this->getProjectId();
-        $recordId = $_GET['id'];
-
+    function buildQuestionnaire($projectId, $recordId){
         $data = $this->getData($projectId, $recordId)[0];
 
-        $edoc = $this->getQuestionnaireEDoc();
+        $edoc = $this->getQuestionnaireEDoc($projectId);
 
         $questionnaire = $this->parse(file_get_contents(EDOC_PATH . $edoc['stored_name']));
 
