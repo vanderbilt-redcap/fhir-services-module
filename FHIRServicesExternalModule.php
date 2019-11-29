@@ -487,9 +487,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         
         $bundle = new FHIRBundle([
             'timestamp' => $this->getInstant(),
-            'type' => new FHIRBundleType([
+            'type' => [
                 'value' => 'document'
-            ])
+            ]
         ]);
 
         $this->addIdentifier($bundle, $compositionsPid, $compositionId);
@@ -577,46 +577,52 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             'date' => $this->getInstant(), // TODO - This should pull the last edit time from the log instead.
             'title' => $compositionData['type'],
             'confidentiality' => 'L', // TODO - Where should this come from?
-            'type' => new FHIRCodeableConcept([
+            'type' => [
                 'text' => $compositionData['type']
-            ])
+            ]
         ]));
 
         $sponsor = $addToBundle($this->getOrganizationFromRecord($sponsorData), $organizationsPid, $sponsorId);
         
         foreach($sponsorContacts as $contact){
             $sponsor->addContact(new FHIROrganizationContact([
-                'name' => new FHIRHumanName([
-                    'given' => $contact['contact_first_name'],
+                'name' => [
+                    'given' => [
+                        $contact['contact_first_name']
+                    ],
                     'family' => $contact['contact_last_name']
-                ]),
-                'telecom' => new FHIRContactPoint([
-                    'system' => new FHIRContactPointSystem([
-                        'value' => 'email'
-                    ]),
-                    'value' => $contact['contact_email']
-                ])
+                ],
+                'telecom' => [
+                    [
+                        'system' => [
+                            'value' => 'email'
+                        ],
+                        'value' => $contact['contact_email']
+                    ]
+                ]
             ]));
         }
         
         $pi = $addToBundle(new FHIRPractitioner([
-            'name' => new FHIRHumanName([
-                'given' => $piData['first_name'],
-                'family' => $piData['last_name']
-            ]),
-            'telecom' => new FHIRContactPoint([
-                'system' => new FHIRContactPointSystem([
-                    'value' => 'email'
-                ]),
-                'value' => $piData['email']
-            ])
+            'name' => [
+                [
+                    'given' => $piData['first_name'],
+                    'family' => $piData['last_name']
+                ]
+            ],
+            'telecom' => [
+                    [
+                    'system' => [
+                        'value' => 'email'
+                    ],
+                    'value' => $piData['email']
+                ]
+            ]
         ]), $practitionersPid, $piId);
         
         $study = $addToBundle(new FHIRResearchStudy([
             'title' => $studyData['title'],
-            'status' => new FHIRResearchStudyStatus([
-                'value' => $studyData['status']
-            ]),
+            'status' => $studyData['status'],
             'principalInvestigator' => $getReference($pi),
             'sponsor' => $getReference($sponsor),
         ]), $studiesPid, $studyId);
@@ -638,26 +644,32 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         // TODO - Combine this and the other FHIRPractitioner above into a getPractitionerFromRecord() method
         $authorPractitioner = $addToBundle(new FHIRPractitioner([
-            'name' => new FHIRHumanName([
-                'given' => $authorPractitionerData['first_name'],
-                'family' => $authorPractitionerData['last_name']
-            ]),
-            'telecom' => new FHIRContactPoint([
-                'system' => new FHIRContactPointSystem([
-                    'value' => 'email'
-                ]),
-                'value' => $authorPractitionerData['email']
-            ])
+            'name' => [
+                [
+                    'given' => $authorPractitionerData['first_name'],
+                    'family' => $authorPractitionerData['last_name']
+                ]
+            ],
+            'telecom' => [
+                [
+                    'system' => 'email',
+                    'value' => $authorPractitionerData['email']
+                ]
+            ]
         ]), $practitionersPid, $authorPractitionerId);
 
         $authorPractitionerRole = $addToBundle(new FHIRPractitionerRole([
             'practitioner' => $getReference($authorPractitioner),
             'organization' => $getReference($authorOrganization),
-            'code' => [new FHIRCodeableConcept([
-                'coding' => new FHIRCoding([
-                    'display' => 'Site Investigator' // TODO - Where should this come from?
-                ])
-            ])]
+            'code' => [
+                [
+                    'coding' => [
+                        [
+                            'display' => 'Site Investigator' // TODO - Where should this come from?
+                        ]
+                    ]
+                ]
+            ]
         ]), $practitionerRolesPid, $authorId);
        
         $composition->addAuthor($getReference($authorPractitionerRole));
@@ -677,11 +689,15 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
     function getOrganizationFromRecord($organization){
         return new FHIROrganization([
-            'type' => [new FHIRCodeableConcept([
-                'coding' => new FHIRCoding([
-                    'code' => 'prov' // TODO - Where should this come from?
-                ])
-            ])],
+            'type' => [
+                [
+                    'coding' => [
+                        [
+                            'code' => 'prov' // TODO - Where should this come from?
+                        ]
+                    ]
+                ]
+            ],
             'name' => $organization['organization_name']
         ]);
     }

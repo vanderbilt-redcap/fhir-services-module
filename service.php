@@ -17,14 +17,16 @@ $sendErrorResponse = function($message, $diagnostics=null) use (&$sendResponse){
     }
 
     $sendResponse(new FHIROperationOutcome([
-        'issue' => new FHIROperationOutcomeIssue([
-            'severity' => 'error',
-            'code' => 'processing',
-            'details' => [
-                'text' => $message
-            ],
-            'diagnostics' => $diagnostics
-        ])
+        'issue' => [
+            [
+                'severity' => 'error',
+                'code' => 'processing',
+                'details' => [
+                    'text' => $message
+                ],
+                'diagnostics' => $diagnostics
+            ]
+        ]
     ]));
 };
 
