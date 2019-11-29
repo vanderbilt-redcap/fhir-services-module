@@ -92,7 +92,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     waitForElement('#recordActionDropdownDiv', function(dropdown){                       
                         var lastPdfOption = $(dropdown.find('a[href*=\\/PDF\\/]').toArray().reverse()[0]).parent()
                         
-                        var addButton = function(text, iconName, action){
+                        var addOption = function(text, iconName, action){
                             var newOption = lastPdfOption.clone()
 
                             var icon = newOption.find('i.fas')[0]
@@ -124,11 +124,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                             return
                         }
                     
-                        addButton('Send FHIR ' + resourceName + ' to remote FHIR server', 'file-export', function(){
+                        addOption('Send FHIR ' + resourceName + ' to remote FHIR server', 'file-export', function(){
                             sendRecord(false)
                         })
 
-                        addButton('Open FHIR ' + resourceName, 'file', function(){
+                        addOption('Open FHIR ' + resourceName, 'file', function(){
                             sendRecord(true)
                         })
                     })
