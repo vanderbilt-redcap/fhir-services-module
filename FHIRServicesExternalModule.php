@@ -603,6 +603,19 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             'principalInvestigator' => $getReference($pi),
             'sponsor' => $getReference($sponsor),
         ]), $studiesPid, $studyId);
+
+        $study->addIdentifier(new FHIRIdentifier([
+            // TODO - where will these values come from?
+            'system' => 'http://ncimeta.nci.nih.gov',
+            'type' => [
+                'coding' => [
+                    [
+                        'code' => 'C12345',
+                        'display' => 'Review Board Approval Number'
+                    ]
+                ]
+            ]
+        ]));
         
         $authorOrganization = $addToBundle($this->getOrganizationFromRecord($authorOrganizationData), $organizationsPid, $authorOrganizationId);
 
