@@ -78,7 +78,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     }
 
                     var sendRecord = function(testing){
-                        var url = <?=json_encode($this->getUrl('questionnaire/send-record.php') . "&id=" . $_GET['id'])?>;
+                        var url = <?=json_encode($this->getUrl('send-record.php') . "&id=" . $_GET['id'])?>;
 
                         if(testing){
                             url = url + '&test'
