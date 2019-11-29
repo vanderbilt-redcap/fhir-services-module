@@ -400,7 +400,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $identifier = $resource->getIdentifier();
         if($identifier){
-            throw new Exception("Cannot add an identifier because one is already set: " . $this->jsonSerialize($identifier));
+            // We serialize the resource instead of the identifier because the latter could be an array (which wouldn't directly serialize).
+            throw new Exception("Cannot add an identifier because one is already set: " . $this->jsonSerialize($resource));
         }
         
         $identifier = new FHIRIdentifier([
