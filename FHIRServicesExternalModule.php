@@ -785,13 +785,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $fieldName = $this->getFieldName($item);
             $parent = end($parents);
 
-            if($this->isRepeating($item)){
-                $instrumentName = $this->getInstrumentName($item);
-            }
-            else{
-                $instrumentName = $this->getInstrumentName($parent); 
-            }
-
+            $instrumentName = $this->getInstrumentName($parent, $item);
             $path = self::getQuestionnairePath($parents, $instrumentName);
             $form = &$forms[$path];
             if(!$form){
@@ -925,18 +919,35 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
     function questionnaireResponseToREDCapExport($path){
         $o = $this->parse(file_get_contents($path));
+        $repeatingForms = array_fill_keys($this->getRepeatingForms(), true);
 
-        $data = ['response_id' => 'TBD'];
+        $fieldNames = [];
+        $data = [];
+        $instanceCount = 0;
 
-        $handleObject = function($parent) use (&$handleObject, &$data){
+        $handleObject = function($parent) use (&$handleObject, &$fieldNames, &$data, &$instanceCount, $repeatingForms){
             foreach($parent->getItem() as $item){
                 $answers = $item->getAnswer();
                 if(empty($answers)){
                     $handleObject($item);
                 }
                 else{
-                    foreach($answers as $answer){
-                        $data[$this->getFieldName($item)] = $this->getAnswerValue($item, $answer);
+                    foreach($answers as $answer){                        
+                        $fieldName = $this->getFieldName($item);
+                        $value = $this->getAnswerValue($item, $answer);
+                        
+                        $formName = $this->getInstrumentName($parent, $item);
+                        $repeatInstrument = '';
+                        if($repeatingForms[$formName]){
+                            $repeatInstrument = $formName;
+                        }
+                        
+                        $fieldNames[$fieldName] = true;
+            
+                        $fieldData = &$data[$repeatInstrument][$fieldName];
+                        $fieldData[] = $value;
+
+                        $instanceCount = max($instanceCount, count($fieldData));
                     }
                 }
             }
@@ -946,12 +957,69 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $out = fopen('php://memory', 'r+');
 
-        fputcsv($out, array_keys($data));
-        fputcsv($out, $data);
+        $fieldNames = array_keys($fieldNames);
+        fputcsv($out, array_merge(
+            [
+                'response_id',
+                'redcap_repeat_instrument',
+                'redcap_repeat_instance'
+            ],
+            $fieldNames
+        ));
+        
+        foreach($data as $repeatInstrument=>$instancesByFieldName){
+            var_dump($repeatInstrument);
+            for($instance=1; $instance <= $instanceCount; $instance++){
+                $row = [
+                    'TBD', // Record ID (response_id)
+                ];
+
+                if(!$repeatInstrument){
+                    $row[] = '';
+                    $row[] = '';
+                }
+                else{
+                    $row[] = $repeatInstrument;
+                    $row[] = $instance;
+                }
+
+                $rowHasValues = false;
+                foreach($fieldNames as $fieldName){
+                    $value = @$instancesByFieldName[$fieldName][$instance-1];
+                    $row[] = $value;
+
+                    if($value !== null){
+                        $rowHasValues = true;
+                    }
+                }
+
+                if($rowHasValues){
+                    fputcsv($out, $row);
+                }
+
+                if(!$repeatInstrument){
+                    break; // No reason to iterate over the other instances
+                }
+            }            
+        }
 
         rewind($out);
 
-        return stream_get_contents($out);
+        $csv = stream_get_contents($out);
+        // var_dump($csv);die();
+
+        return $csv;
+    }
+
+    private function getRepeatingForms(){
+        $result = $this->query('select * from redcap_events_repeat where event_id = ?', $this->getEventId());
+
+        $forms = [];
+        while($row = $result->fetch_assoc()){
+            $forms[] = $row['form_name'];
+        }
+
+        return $forms;
     }
 
     function getAnswerValue($item, $answer){
@@ -1001,7 +1069,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function getLinkId($item){
-        if($item->_getFHIRTypeName() !== 'Questionnaire.Item'){
+        if(!in_array($item->_getFHIRTypeName(), ['Questionnaire.Item', 'QuestionnaireResponse.Item'])){
             return null;
         }
 
@@ -1044,7 +1112,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
     }
 
-    function getInstrumentName($group){
+    function getInstrumentName($group, $item = null){
+        if($item && $this->isRepeating($item)){
+            $group = $item;
+        }
+        
         $text = strtolower($this->getText($group));
         if(empty($text)){
             $text = "top_level_questions";
