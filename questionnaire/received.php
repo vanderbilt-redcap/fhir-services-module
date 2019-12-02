@@ -3,16 +3,29 @@
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRQuestionnaire;
 
 
-$result = $module->getReceivedQuestionnaires();
+$result = $module->getReceivedResources();
 $rows = [];
 while($row = $result->fetch_assoc()){
     $o = $module->parse($row['content']);;
     
-    if($row['type'] === 'Questionnaire'){
+    $type = $row['type'];
+    if($type === 'Questionnaire'){
         $title = $o->getTitle();
     }
-    else{
+    else if($type === 'QuestionnaireResponse'){
         $title = $module->getText($o->getItem()[0]);
+    }
+    else if($type === 'Binary'){
+        $contentType = $module->getValue($o->getContentType());
+        $extension = $module->getExtensionForMIMEType($contentType);
+      
+        if($extension){
+            $title = strtoupper($extension);
+            $row['download'] = true;
+        }
+        else{
+            $title = 'Unknown Content Type: ' . $contentType;
+        }
     }
 
     $row['title'] = $title;
@@ -32,9 +45,7 @@ while($row = $result->fetch_assoc()){
     }
 </style>
 
-<div class="projhdr">Questionnaire Data Dictionary Options</div>
-<br>
-<h5>Received Questionnaires & Responses</h5>
+<div class="projhdr">Received Resources</div>
 <table class='table recevied-questionnaires'>
     <tr>
         <th>ID</th>
@@ -54,9 +65,14 @@ while($row = $result->fetch_assoc()){
             <td><?=$row['title']?></td>
             <td>
                 <button class='details'>Show Details</button>
-                <?php if($type === 'Questionnaire') { ?>
-                    <button class='replace-data-dictionary'>Replace Data Dictionary</button>
-                <?php } ?>
+                <?php
+                if($type === 'Questionnaire') {
+                    ?><button class='replace-data-dictionary'>Replace Data Dictionary</button><?php
+                }
+                else if($type === 'Binary') {
+                    ?><button class='download'>Download</button><?php
+                }
+                ?>
             </td>
         </tr>
         <?php
@@ -94,6 +110,10 @@ while($row = $result->fetch_assoc()){
             $('body').append(form)
             
             form.submit()  
+        })
+
+        table.find('button.download').click(function(){
+            window.open(<?=json_encode($module->getUrl('download-binary-resource.php') . '&log-id=')?> + getLogId(this))
         })
     })
 </script>

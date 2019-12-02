@@ -747,6 +747,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             throw new Exception("Expected a $expectedType but found the following type instead: $type");
         }
 
+        // TODO - Add checks for required data here?  For example, Binary resources required a "contentType".
+
         $logId = $this->log(RESOURCE_RECEIVED, [
             'type' => $type,
             'content' => $input
@@ -1041,20 +1043,30 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $this->getUrl("questionnaire-options.php?section=$section");
     }
 
-    function getReceivedQuestionnaires($whereClause = ''){
+    function getExtensionForMIMEType($contentType){
+        if($contentType === 'application/pdf'){
+            $extension = 'pdf';
+        }
+        else{
+            $extension = null;
+        }
+
+        return $extension;
+    }
+
+    function getReceivedResources($whereClause = ''){
         return $this->queryLogs("
             select log_id, timestamp, type, content
             where project_id is null
             and message = '" . RESOURCE_RECEIVED . "'
-            and type in('Questionnaire', 'QuestionnaireResponse');
             $whereClause
             order by log_id desc
         ");
     }
 
-    function getReceivedQuestionnaire($logId){
+    function getReceivedResource($logId){
         $logId = db_escape($logId);
-        $result = $this->getReceivedQuestionnaires("and log_id = $logId");
+        $result = $this->getReceivedResources("and log_id = $logId");
         return $result->fetch_assoc();
     }
 

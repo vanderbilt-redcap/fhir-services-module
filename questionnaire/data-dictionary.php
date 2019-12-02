@@ -4,7 +4,7 @@
 
 $logId = @$_POST['log-id'];
 if($logId){
-    $log = $module->getReceivedQuestionnaire($logId);
+    $log = $module->getReceivedResource($logId);
 
     $tempFilePath = tempnam(sys_get_temp_dir(), 'received-questionnaire');
     file_put_contents($tempFilePath, $log['content']);
