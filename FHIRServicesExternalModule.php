@@ -199,6 +199,16 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         list ($errors_array, $warnings_array, $dictionary_array) = MetaData::error_checking($dictionary_array);
 
         $checkForErrors = function($errors, $type, $runOnError = null){
+            $errors = array_filter($errors, function($error){
+                global $lang;
+
+                if(strpos($error, $lang['database_mods_30']) === 0){
+                    return false;
+                }
+
+                return true;
+            });
+
             if(empty($errors)){
                 return false;
             }
@@ -774,13 +784,12 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $this->walkQuestionnaire($q, function($parents, $item) use (&$forms, &$repeatingFormNames){
             $fieldName = $this->getFieldName($item);
             $parent = end($parents);
-            $instrumentName = $this->getInstrumentName($parent);
-            if(empty($instrumentName)){
-                $instrumentName = "top_level_questions";
-            }
 
             if($this->isRepeating($item)){
-                $instrumentName .= '_' . $this->getInstrumentName($item);
+                $instrumentName = $this->getInstrumentName($item);
+            }
+            else{
+                $instrumentName = $this->getInstrumentName($parent); 
             }
 
             $path = self::getQuestionnairePath($parents, $instrumentName);
@@ -1032,12 +1041,19 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function getInstrumentName($group){
-        $name = strtolower($this->getText($group));
+        $text = strtolower($this->getText($group));
+        if(empty($text)){
+            $text = "top_level_questions";
+        }
+
+        $name = 'q' . $this->getLinkId($group) . '_' . $text;
         $name = str_replace(' ', '_', $name);
+        $name = str_replace('.', '_', $name);
         $name = str_replace('(', '', $name);
         $name = str_replace(')', '', $name);
         $name = str_replace(':', '', $name);
         $name = str_replace('?', '', $name);
+        $name = substr($name, 0, 64);
 
         return $name;
     }
