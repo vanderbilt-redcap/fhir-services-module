@@ -834,8 +834,12 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         rewind($out);
 
+        $csv = stream_get_contents($out);
+
+        //var_dump($csv);
+
         return [
-            stream_get_contents($out),
+            $csv,
             $repeatingFormNames,
         ];
     }
