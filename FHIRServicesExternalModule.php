@@ -779,6 +779,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 $instrumentName = "top_level_questions";
             }
 
+            if($this->isRepeating($item)){
+                $instrumentName .= '_' . $this->getInstrumentName($item);
+            }
+
             $path = self::getQuestionnairePath($parents, $instrumentName);
             $form = &$forms[$path];
             if(!$form){
@@ -969,10 +973,6 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 self::walkQuestionnaire($newParents, $fieldAction);
             }
             else{
-                if($this->isRepeating($item)){
-                    throw new Exception("The following field repeats, which is only supported for groups currently: $id");
-                }
-
                 $fieldAction($parents, $item);
             } 
         }
@@ -1011,6 +1011,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 }
                 else if($type === 'boolean'){
                     return 'yesno';
+                }
+                else if($type === 'attachment'){
+                    return 'file';
                 }
                 else{
                     throw new Exception("Type not supported: $type");
