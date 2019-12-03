@@ -475,8 +475,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $resource;
     }
 
-    function getInstant(){
-        return date('Y-m-d\TH:i:sP');
+    function formatTimestamp($timestamp){
+        return date('Y-m-d\TH:i:sP', $timestamp);
     }
 
     function buildBundle($compositionsPid, $compositionId){
@@ -526,7 +526,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
         
         $bundle = new FHIRBundle([
-            'timestamp' => $this->getInstant(),
+            'timestamp' => $this->formatTimestamp(time()),
             'type' => [
                 'value' => 'document'
             ]
@@ -614,7 +614,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $composition = $addToBundle(new FHIRComposition([
             'status' => 'preliminary',
-            'date' => $this->getInstant(), // TODO - This should pull the last edit time from the log instead.
+            'date' => $this->formatTimestamp(time()), // TODO - This should pull the last edit time from the log instead.
             'title' => $compositionData['type'],
             'confidentiality' => 'L', // TODO - Where should this come from?
             'type' => [
@@ -1024,9 +1024,26 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
     function getAnswerValue($item, $answer){
         $v = $this->getValue($answer->getValueString());
+        
+        if(empty($v)){
+            $v = $this->getValue($answer->getValueDateTime());
 
-        if($this->getText($item) === 'Last Updated at:'){
-            $v = DateTime::createFromFormat('F j, Y \a\t g:i A e', $v)->format('Y-m-d H:i');
+            if(!empty($v)){
+                var_dump($v);die();
+                $v = (new DateTime($v))->format('Y-m-d H:i');
+            }
+        }
+
+        if(empty($v)){
+            $v = $this->getValue($answer->getValueInteger());
+        }
+
+        if(empty($v)){
+            $v = $this->getValue($answer->getValueDecimal());
+        }
+
+        if(empty($v) && $answer->getValueCoding()){
+            $v = $answer->getValueCoding()->getCode();
         }
 
         return $v;
@@ -1261,6 +1278,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 }
                 else if($type === 'decimal'){
                     $answerData = ['valueDecimal' => $value];
+                }
+                else if($type === 'dateTime'){
+                    $answerData = ['valueDateTime' => $this->formatTimestamp(strtotime("$value UTC"))];
                 }
                 else if(in_array($type, ['choice', 'open-choice'])){
                     $answerData = [
