@@ -969,7 +969,6 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         ));
         
         foreach($data as $repeatInstrument=>$instancesByFieldName){
-            var_dump($repeatInstrument);
             for($instance=1; $instance <= $instanceCount; $instance++){
                 $row = [
                     'TBD', // Record ID (response_id)
@@ -1030,7 +1029,6 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $v = $this->getValue($answer->getValueDateTime());
 
             if(!empty($v)){
-                var_dump($v);die();
                 $v = (new DateTime($v))->format('Y-m-d H:i');
             }
         }
