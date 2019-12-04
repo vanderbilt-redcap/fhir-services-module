@@ -68,16 +68,13 @@ while($row = $result->fetch_assoc()){
             <td><?=$type?></td>
             <td><?=$row['title']?></td>
             <td>
-                <button class='details'>Show Details</button>
+                <button class='download'>Download</button>
                 <?php
                 if($type === 'Questionnaire') {
                     ?><button class='replace-data-dictionary'>Replace Data Dictionary</button><?php
                 }
                 else if($type === 'QuestionnaireResponse') {
                     ?><button class='import-record'>Import as Record</button><?php
-                }
-                else if($type === 'Binary') {
-                    ?><button class='download'>Download</button><?php
                 }
                 ?>
             </td>
@@ -96,16 +93,6 @@ while($row = $result->fetch_assoc()){
         var getLogId = function(element){
             return $(element).closest('tr').data('log-id')
         }
-
-        table.find('button.details').click(function(){
-            var logId = getLogId(this)
-
-            var width = window.innerWidth - 100;
-            var height = window.innerHeight - 200;
-            var content = '<pre style="max-height: ' + height + 'px">' + data[logId]['content'] + '</pre>'
-
-            simpleDialog(content, 'Details', null, width)
-        })
         
         table.find('button.replace-data-dictionary').click(function(){
             var logId = getLogId(this)
@@ -124,7 +111,7 @@ while($row = $result->fetch_assoc()){
         })
 
         table.find('button.download').click(function(){
-            window.open(<?=json_encode($module->getUrl('download-binary-resource.php') . '&log-id=')?> + getLogId(this))
+            window.open(<?=json_encode($module->getUrl('download-resource.php') . '&log-id=')?> + getLogId(this))
         })
     })
 </script>
