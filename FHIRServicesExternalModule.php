@@ -91,7 +91,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
                         $.post(url).always(function(response){
                             if(response.status === 'success'){
-                                alert('The data was successfully sent to the remote FHIR server.')
+                                alert('The remote FHIR server has confirmed that the data has been successfully received.')
                                 console.log('Remote Response: ' + response['remote-response'])
                             }
                             else{
