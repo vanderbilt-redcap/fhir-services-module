@@ -904,6 +904,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $n = $item->getLinkId()->getValue()->getValue();
         $n = strtolower($n);
         $n = ltrim($n, '/');
+        $n = str_replace('-', '_', $n);
         $n = str_replace('/', '_', $n);
         $n = str_replace('.', '_', $n);
         $n = str_replace('[', '', $n);
@@ -1142,6 +1143,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $name = 'q' . $this->getLinkId($group) . '_' . $text;
         $name = str_replace(' ', '_', $name);
         $name = str_replace('.', '_', $name);
+        $name = str_replace(',', '_', $name);
+        $name = str_replace('/', '_', $name);
+        $name = str_replace('-', '_', $name);
+        $name = str_replace('\'', '_', $name);
         $name = str_replace('(', '', $name);
         $name = str_replace(')', '', $name);
         $name = str_replace(':', '', $name);
