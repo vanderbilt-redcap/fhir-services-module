@@ -1289,8 +1289,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     $answerData = [
                         'valueCoding' => new FHIRCoding([
                             'code' => $value,
-                            'display' => $this->getAnswers($item)[$value],
-                            'system' => 'Custom'
+                            'display' => $this->getAnswers($item)[$value]
                         ])
                     ];
                 }
