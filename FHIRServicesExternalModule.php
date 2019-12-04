@@ -1025,7 +1025,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     function getAnswerValue($item, $answer){
         $v = $this->getValue($answer->getValueString());
         
-        if(empty($v)){
+        if($v === null){
             $v = $this->getValue($answer->getValueDateTime());
 
             if(!empty($v)){
@@ -1033,15 +1033,19 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             }
         }
 
-        if(empty($v)){
+        if($v === null){
             $v = $this->getValue($answer->getValueInteger());
         }
 
-        if(empty($v)){
+        if($v === null){
             $v = $this->getValue($answer->getValueDecimal());
         }
 
-        if(empty($v) && $answer->getValueCoding()){
+        if($v === null){
+            $v = $this->getValue($answer->getValueBoolean());
+        }
+
+        if($v === null && $answer->getValueCoding()){
             $v = $answer->getValueCoding()->getCode();
         }
 
@@ -1281,6 +1285,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 }
                 else if($type === 'decimal'){
                     $answerData = ['valueDecimal' => $value];
+                }
+                else if($type === 'boolean'){
+                    $answerData = ['valueBoolean' => $value === '1'];
                 }
                 else if($type === 'dateTime'){
                     $answerData = ['valueDateTime' => $this->formatTimestamp(strtotime("$value UTC"))];
