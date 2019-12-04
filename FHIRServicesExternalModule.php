@@ -1215,7 +1215,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             unset($instanceData['redcap_repeat_instance']);
 
             foreach($instanceData as $fieldName=>$value){
-                if($value){
+                if($value !== ''){
                     if(isset($data[$fieldName][$instance])){
                         throw new Exception("A value is already set for instance $instance of the $fieldName field!");
                     }
