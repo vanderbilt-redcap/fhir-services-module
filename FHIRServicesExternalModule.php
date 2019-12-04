@@ -918,8 +918,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $n;
     }
 
-    function questionnaireResponseToREDCapExport($path){
-        $o = $this->parse(file_get_contents($path));
+    function questionnaireResponseToREDCapExport($jsonOrXml){
+        $o = $this->parse($jsonOrXml);
         $repeatingForms = array_fill_keys($this->getRepeatingForms(), true);
 
         $fieldNames = [];

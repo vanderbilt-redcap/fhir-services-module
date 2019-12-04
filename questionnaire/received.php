@@ -73,6 +73,9 @@ while($row = $result->fetch_assoc()){
                 if($type === 'Questionnaire') {
                     ?><button class='replace-data-dictionary'>Replace Data Dictionary</button><?php
                 }
+                else if($type === 'QuestionnaireResponse') {
+                    ?><button class='import-record'>Import as Record</button><?php
+                }
                 else if($type === 'Binary') {
                     ?><button class='download'>Download</button><?php
                 }
@@ -114,6 +117,10 @@ while($row = $result->fetch_assoc()){
             $('body').append(form)
             
             form.submit()  
+        })
+
+        table.find('button.import-record').click(function(){
+            window.open(<?=json_encode($module->getUrl('questionnaire/import-response.php') . '&log-id=')?> + getLogId(this))
         })
 
         table.find('button.download').click(function(){

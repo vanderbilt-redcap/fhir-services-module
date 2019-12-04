@@ -1,5 +1,15 @@
 <?php
-$csv = $module->questionnaireResponseToREDCapExport($_FILES['import']['tmp_name']);
+
+$logId = @$_GET['log-id'];
+if($logId){
+    $log = $module->getReceivedResource($logId);
+    $resource = $log['content'];
+}
+else{
+    $resource = file_get_contents($_FILES['import']['tmp_name']);
+}
+
+$csv = $module->questionnaireResponseToREDCapExport($resource);
 $postUrl = APP_PATH_WEBROOT . "/index.php?pid=" . $module->getProjectId() . "&route=DataImportController:index";
 ?>
 
