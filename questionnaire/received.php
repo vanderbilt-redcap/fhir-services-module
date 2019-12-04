@@ -43,6 +43,10 @@ while($row = $result->fetch_assoc()){
     table.recevied-questionnaires th{
         font-weight: bold;
     }
+
+    table.recevied-questionnaires button{
+        margin-bottom: 3px;
+    }
 </style>
 
 <div class="projhdr">Received Resources</div>
