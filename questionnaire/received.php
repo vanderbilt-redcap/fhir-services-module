@@ -10,25 +10,33 @@ while($row = $result->fetch_assoc()){
     
     $type = $row['type'];
     if($type === 'Questionnaire'){
-        $title = $o->getTitle();
+        $subType = $o->getTitle();
     }
     else if($type === 'QuestionnaireResponse'){
-        $title = $module->getText($o->getItem()[0]);
+        if($o->getMeta() && !empty($o->getMeta()->getTag())){
+            $subType = $o->getMeta()->getTag()[0]->getCode();
+        }
+        else{
+            $subType = $module->getText($o->getItem()[0]);
+        }
     }
     else if($type === 'Binary'){
         $contentType = $module->getValue($o->getContentType());
         $extension = $module->getExtensionForMIMEType($contentType);
       
         if($extension){
-            $title = strtoupper($extension);
+            $subType = strtoupper($extension);
             $row['download'] = true;
         }
         else{
-            $title = 'Unknown Content Type: ' . $contentType;
+            $subType = 'Unknown Content Type: ' . $contentType;
         }
     }
+    else{
+        $subType = '';
+    }
 
-    $row['title'] = $title;
+    $row['subType'] = $subType;
 
     $rows[$row['log_id']] = $row;
 }
@@ -54,8 +62,8 @@ while($row = $result->fetch_assoc()){
     <tr>
         <th>ID</th>
         <th>Date/Time</th>
-        <th>Type</th>
-        <th>Title</th>
+        <th>Resource Type</th>
+        <th>Sub-Type</th>
         <th style='min-width: 300px'></th>
     </tr>
     <?php
@@ -66,7 +74,7 @@ while($row = $result->fetch_assoc()){
             <td><?=$logId?></td>
             <td><?=$row['timestamp']?></td>
             <td><?=$type?></td>
-            <td><?=$row['title']?></td>
+            <td><?=$row['subType']?></td>
             <td>
                 <button class='download'>Download</button>
                 <?php
