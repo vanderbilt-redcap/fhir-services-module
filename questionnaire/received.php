@@ -56,7 +56,7 @@ while($row = $result->fetch_assoc()){
         <th>Date/Time</th>
         <th>Type</th>
         <th>Title</th>
-        <th></th>
+        <th style='min-width: 300px'></th>
     </tr>
     <?php
     foreach($rows as $logId=>$row){
