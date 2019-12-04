@@ -6,6 +6,8 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIROperationOu
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIROperationOutcome\FHIROperationOutcomeIssue;
 
 $sendResponse = function($o) use ($module){
+    // $o = $module->parse(file_get_contents('C:/Users/mceverm/Downloads/20191203_Protocol_v2/Protocol Questionnaire Response 12-03-19.json'));
+
     header('Content-type: application/fhir+json'); 
     echo $module->jsonSerialize($o);
     exit();
