@@ -314,40 +314,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $a = json_decode(json_encode($a), true);
         
         $handle = function(&$a) use (&$handle){
-            $fixContact = function(&$contact){
-                foreach($contact['telecom'] as &$telecom){
-                    $telecom['system'] = $telecom['system']['value'];
-                }
-            };
-
-            $type = $a['resourceType'];
-            if($type === 'Organization'){
-                $contacts = $a['contact'];
-                if(!empty($contacts)){
-                    foreach($a['contact'] as &$contact){
-                        $fixContact($contact);
-                    }
-                }
-            }
-            else if($type === 'Practitioner'){
-                $fixContact($a);
-            }
-            else if($type === 'Bundle'){
-                $a['type'] = $a['type']['value'];
-            }
-            else if($type === 'Composition'){
-                $a['confidentiality'] = $a['confidentiality']['value'];
-                $a['status'] = $a['status']['value'];
-
-                foreach($a['section'] as &$section){
-                    $section['text']['status'] = $section['text']['status']['value'];
-                }
-            }
-            else if(in_array($type, ['QuestionnaireResponse', 'ResearchStudy'])){
-                $a['status'] = $a['status']['value'];
-            }
-
-            foreach($a as $key=>&$value){
+           foreach($a as $key=>&$value){
                 if($key[0] === '_'){
                     // TODO - Contribute this change back.
                     unset($a[$key]);
@@ -1068,7 +1035,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         foreach($group->getItem() as $item){
             $id = $item->getLinkId()->getValue()->getValue();
-            if(in_array($item->getType()->getValue()->getValue()->getValue(), ['group', 'display'])){
+
+            $type = $this->getValue($item->getType());
+            if(in_array($type, ['group', 'display'])){
                 $newParents = $parents;
                 $newParents[] = $item;
                 self::walkQuestionnaire($newParents, $fieldAction);
@@ -1098,9 +1067,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
     function getType($item){
         if($item->_getFHIRTypeName() === 'Questionnaire.Item'){
-            $type = $item->getType();
+            $type = $this->getValue($item->getType());
             if($type){
-                $type = $type->getValue()->getValue()->getValue();
                 if(in_array($type, ['string', 'integer', 'decimal', 'dateTime'])){
                     $type = 'text';
                 }

@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "99805598ac85658aa1d68f6fbd24eb99",
+    "content-hash": "f247543af4a1adfcdb1e80ac45dd62a2",
     "packages": [
         {
             "name": "dcarbone/php-fhir-generated",
-            "version": "v1.0.4",
+            "version": "v2.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/dcarbone/php-fhir-generated.git",
-                "reference": "914e4607f105a8d4f86a72b331bb017d2f3fc6f6"
+                "reference": "2846bfe41da3675f8ad322ecbb53d3c882255107"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dcarbone/php-fhir-generated/zipball/914e4607f105a8d4f86a72b331bb017d2f3fc6f6",
-                "reference": "914e4607f105a8d4f86a72b331bb017d2f3fc6f6",
+                "url": "https://api.github.com/repos/dcarbone/php-fhir-generated/zipball/2846bfe41da3675f8ad322ecbb53d3c882255107",
+                "reference": "2846bfe41da3675f8ad322ecbb53d3c882255107",
                 "shasum": ""
             },
             "require": {
@@ -58,7 +58,7 @@
                 "php",
                 "php-fhir"
             ],
-            "time": "2019-11-10T18:14:27+00:00"
+            "time": "2019-11-30T23:42:16+00:00"
         }
     ],
     "packages-dev": [],
