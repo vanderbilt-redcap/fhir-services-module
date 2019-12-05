@@ -777,7 +777,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
             $form['fields'][$fieldName] = [
                 'type' => $this->getType($item),
-                'label' => $this->getLinkId($item) . ' - ' . $this->getText($item),
+                'label' => $this->getText($item),
                 'choices' => $this->getREDCapChoices($item)
             ];
         });
