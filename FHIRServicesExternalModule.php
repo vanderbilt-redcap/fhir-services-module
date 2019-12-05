@@ -186,7 +186,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $dictionaryPath = tempnam(sys_get_temp_dir(), 'fhir-questionnaire-data-dictionary-');
         
         try{
-            list($csv, $repeatingFormNames) = $this->questionnaireToDataDictionary($file['tmp_name']);
+            list($csv, $formDisplayNames, $repeatingFormNames) = $this->questionnaireToDataDictionary($file['tmp_name']);
             file_put_contents($dictionaryPath, $csv);
 
             require_once APP_PATH_DOCROOT . '/Design/functions.php';
@@ -254,6 +254,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         // Set back to previous value
         db_query("SET AUTOCOMMIT=1");
 
+        foreach($formDisplayNames as $formName=>$formDisplayName){
+            $this->setFormName($this->getProjectId(), $formName, $formDisplayName);
+        }
+
         $eventId = $this->getEventId();
         
         $this->query('delete from redcap_events_repeat where event_id = ?', $eventId);
@@ -265,6 +269,132 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $edocId = \Files::uploadFile($file, $this->getProjectId());
         $this->setProjectSetting('questionnaire', $edocId);
     }
+
+    private function getProjectStatus($project_id){
+		$result = db_query("select status from redcap_projects where project_id = '" . db_escape($project_id) . "'");
+		
+		$row = $result->fetch_assoc();
+		if(!$row){
+			throw new Exception("Could not find status for project: $project_id");
+		}
+
+		return (int) $row['status'];
+	}
+
+    private function setFormName($project_id, $form_name, $new_form_name){
+		$status = self::getProjectStatus($project_id);
+		
+		//If project is in production, do not allow instant editing (draft the changes using metadata_temp table instead)
+		$metadata_table = ($status > 0) ? "redcap_metadata_temp" : "redcap_metadata";
+
+		## Set the new form menu name
+		$menu_description = strip_tags(label_decode($new_form_name));
+		// First set all form_menu_description as null
+		$sql = "update $metadata_table set form_menu_description = null where form_name = '".db_escape($form_name)."' and project_id = $project_id";
+		$q1 = db_query($sql);
+		// Get lowest field_order in form
+		$sql = "select field_name from $metadata_table where form_name = '".db_escape($form_name)."' and project_id = $project_id order by field_order limit 1";
+		$q1 = db_query($sql);
+		$min_field_order_var = db_result($q1, 0);
+		// Now add the new form menu label
+		$sql = "update $metadata_table set form_menu_description = '".db_escape($menu_description)."'
+				where field_name = '$min_field_order_var' and project_id = $project_id";
+		$q1 = db_query($sql);
+
+		// As a default, the form_name stays the same value
+		$new_form_name = $form_name;
+
+		## If in DEVELOPMENT ONLY, change the back-end form name value based upon the form menu name and ensure uniqueness
+		// Cannot do this in production because of issues with form name being tied to Form Status field)
+		if ($status < 1)
+		{
+			$new_form_name = preg_replace("/[^a-z0-9_]/", "", str_replace(" ", "_", strtolower(html_entity_decode($menu_description, ENT_QUOTES))));
+			// Remove any double underscores, beginning numerals, and beginning/ending underscores
+			while (strpos($new_form_name, "__") !== false) 		$new_form_name = str_replace("__", "_", $new_form_name);
+			while (substr($new_form_name, 0, 1) == "_") 		$new_form_name = substr($new_form_name, 1);
+			while (substr($new_form_name, -1) == "_") 			$new_form_name = substr($new_form_name, 0, -1);
+			while (is_numeric(substr($new_form_name, 0, 1))) 	$new_form_name = substr($new_form_name, 1);
+			while (substr($new_form_name, 0, 1) == "_") 		$new_form_name = substr($new_form_name, 1);
+			// Cannot begin with numeral and cannot be blank
+			if (is_numeric(substr($new_form_name, 0, 1)) || $new_form_name == "") {
+				$new_form_name = substr(preg_replace("/[0-9]/", "", md5($new_form_name)), 0, 4) . $new_form_name;
+			}
+			// Make sure it's less than 50 characters long
+			$new_form_name = substr($new_form_name, 0, 50);
+			while (substr($new_form_name, -1) == "_") $new_form_name = substr($new_form_name, 0, -1);
+			// Make sure this form value doesn't already exist
+			if ($new_form_name != $form_name) {
+				$formExists = ($status > 0) ? isset($Proj->forms_temp[$new_form_name]) : isset($Proj->forms[$new_form_name]);
+				while ($formExists) {
+					// Make sure it's less than 64 characters long
+					$new_form_name = substr($new_form_name, 0, 45);
+					// Append random value to form_name to prevent duplication
+					$new_form_name .= "_" . substr(sha1(rand()), 0, 4);
+					// Try again
+					$formExists = ($status > 0) ? isset($Proj->forms_temp[$new_form_name]) : isset($Proj->forms[$new_form_name]);
+				}
+			}
+			// Change back-end form name in metadata table
+			$sql = "update $metadata_table set form_name = '".db_escape($new_form_name)."' where form_name = '".db_escape($form_name)."' and project_id = $project_id";
+			db_query($sql);
+			// Get event_ids
+			$eventIds = pre_query("select m.event_id from redcap_events_arms a, redcap_events_metadata m where a.arm_id = m.arm_id and a.project_id = $project_id");
+			// Change back-end form name in event_forms table
+			$sql = "update redcap_events_forms set form_name = '".db_escape($new_form_name)."' where form_name = '".db_escape($form_name)."'
+					and event_id in ($eventIds)";
+			db_query($sql);
+			// Change back-end form name in redcap_events_repeat table
+			$sql = "update redcap_events_repeat set form_name = '".db_escape($new_form_name)."' where form_name = '".db_escape($form_name)."'
+					and event_id in ($eventIds)";
+			db_query($sql);
+			// Change back-end form name in user_rights table
+			$sql = "update redcap_user_rights set data_entry = replace(data_entry, '[{$form_name},', '[$new_form_name,')
+					where project_id = $project_id";
+			db_query($sql);
+			// Change back-end form name in library_map table
+			$sql = "update redcap_library_map set form_name = '".db_escape($new_form_name)."' where project_id = $project_id and form_name = '".db_escape($form_name)."'";
+			db_query($sql);
+			// Change back-end form name in locking tables
+			$sql = "update redcap_locking_labels set form_name = '".db_escape($new_form_name)."' where project_id = $project_id and form_name = '".db_escape($form_name)."'";
+			db_query($sql);
+			$sql = "update redcap_locking_data set form_name = '".db_escape($new_form_name)."' where project_id = $project_id and form_name = '".db_escape($form_name)."'";
+			db_query($sql);
+			$sql = "update redcap_esignatures set form_name = '".db_escape($new_form_name)."' where project_id = $project_id and form_name = '".db_escape($form_name)."'";
+			db_query($sql);
+			// Change back-end form name in survey table
+			$sql = "update redcap_surveys set form_name = '".db_escape($new_form_name)."' where project_id = $project_id and form_name = '".db_escape($form_name)."'";
+			db_query($sql);
+			// Change variable name of the form's Form Status field
+			$sql = "update $metadata_table set field_name = '{$new_form_name}_complete' where field_name = '{$form_name}_complete' and project_id = $project_id";
+			db_query($sql);
+			// Change actual data table field_names to reflect the changed Form Status field
+			$sql = "update redcap_data set field_name = '{$new_form_name}_complete' where field_name = '{$form_name}_complete' and project_id = $project_id";
+			db_query($sql);
+			// Change alerts tables
+			$alertIds = pre_query("select alert_id from redcap_alerts where project_id = $project_id and form_name = '".db_escape($form_name)."'");
+			$sql = "update redcap_alerts set form_name = '".db_escape($new_form_name)."' where project_id = $project_id and form_name = '".db_escape($form_name)."'";
+			db_query($sql);
+			$sql = "update redcap_alerts_recurrence set instrument = '".db_escape($new_form_name)."' where alert_id in ($alertIds) and instrument = '".db_escape($form_name)."'";
+			db_query($sql);
+			$sql = "update redcap_alerts_sent set instrument = '".db_escape($new_form_name)."' where alert_id in ($alertIds) and instrument = '".db_escape($form_name)."'";
+			db_query($sql);
+		}
+
+		// Get survey title, if enabled as a survey
+		$surveyTitle = "";
+		if ($surveys_enabled) {
+			$sql = "select title from redcap_surveys where project_id = $project_id and form_name = '".db_escape($new_form_name)."' limit 1";
+			$q = db_query($sql);
+			if (db_num_rows($q)) {
+				$surveyTitle = strip_tags(label_decode(db_result($q, 0)));
+			}
+		}
+
+		// Logging
+		if ($q1) \Logging::logEvent("",$metadata_table,"MANAGE",$form_name,"form_name = '".db_escape($form_name)."'","Rename data collection instrument");
+
+		return [$new_form_name, $menu_description, $surveyTitle];
+	}
 
     function getEventId($projectId = null){
         if(!$projectId){
@@ -746,9 +876,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
         
         $forms = [];
-        $formNames = [];
+        $formDisplayNames = [];
         $repeatingFormNames = [];
-        $this->walkQuestionnaire($q, function($parents, $item) use (&$forms, &$repeatingFormNames){
+        $this->walkQuestionnaire($q, function($parents, $item) use (&$forms, &$formDisplayNames, &$repeatingFormNames){
             $fieldName = $this->getFieldName($item);
             $parent = end($parents);
 
@@ -756,11 +886,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $path = self::getQuestionnairePath($parents, $instrumentName);
             $form = &$forms[$path];
             if(!$form){
-                if($formNames[$instrumentName]){
+                if($formDisplayNames[$instrumentName]){
                    throw new Exception("Two forms exist with the following name: $instrumentName");
                 }
                 
-                $formNames[$instrumentName] = true;
+                $formDisplayNames[$instrumentName] = $this->getInstrumentName($parent, $item, true);
 
                 $form = [
                     'fields' => [],
@@ -801,6 +931,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         return [
             $csv,
+            $formDisplayNames,
             $repeatingFormNames,
         ];
     }
@@ -1100,17 +1231,29 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
     }
 
-    function getInstrumentName($group, $item = null){
+    function getInstrumentName($group, $item = null, $displayName = false){
         if($item && $this->isRepeating($item)){
             $group = $item;
         }
+
+        $name = $this->getText($group);
+        $linkId = null;
+        if(empty($name)){
+            $name = "Top Level Questions";
+        }
+        else{
+            $linkId = $this->getLinkId($group);
+        }
         
-        $text = strtolower($this->getText($group));
-        if(empty($text)){
-            $text = "top_level_questions";
+        if($displayName){
+            return strtoupper($name);
         }
 
-        $name = 'q' . $this->getLinkId($group) . '_' . $text;
+        if($linkId){
+            $name .= "_$linkId";
+        }
+        
+        $name = strtolower($name);
         $name = str_replace(' ', '_', $name);
         $name = str_replace('.', '_', $name);
         $name = str_replace(',', '_', $name);
