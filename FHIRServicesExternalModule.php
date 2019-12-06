@@ -536,7 +536,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             ||
             empty($recordId)
         ){
-            $sendErrorResponse("The resource ID specified is not valid: $resourceId");
+            throw new Exception("The resource ID specified is not valid: $resourceId");
         }
 
         return [$projectId, $recordId]; 
