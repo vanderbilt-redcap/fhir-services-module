@@ -4,7 +4,7 @@ $log = $module->getReceivedResource($_GET['log-id']);
 $content = $log['content'];
 $resource = $module->parse($content);
 
-if($resource->_getFHIRTypeName() === 'Binary'){
+if(isset($_GET['binary'])){
     $contentType = $module->getValue($resource->getContentType());
     $extension = $module->getExtensionForMIMEType($contentType);
 

@@ -84,6 +84,9 @@ while($row = $result->fetch_assoc()){
                 else if($type === 'QuestionnaireResponse') {
                     ?><button class='import-record'>Import as Record</button><?php
                 }
+                else if($type === 'Binary') {
+                    ?><button class='binary-download'>Download Binary File</button><?php
+                }
                 ?>
             </td>
         </tr>
@@ -118,8 +121,16 @@ while($row = $result->fetch_assoc()){
             window.open(<?=json_encode($module->getUrl('questionnaire/import-response.php') . '&log-id=')?> + getLogId(this))
         })
 
+        var download = function(button, additionalParameters){
+            window.open(<?=json_encode($module->getUrl('download-resource.php') . '&log-id=')?> + getLogId(button) + '&' + additionalParameters)
+        }
+
         table.find('button.download').click(function(){
-            window.open(<?=json_encode($module->getUrl('download-resource.php') . '&log-id=')?> + getLogId(this))
+            download(this, '')
+        })
+
+        table.find('button.binary-download').click(function(){
+            download(this, 'binary')
         })
     })
 </script>
