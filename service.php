@@ -36,10 +36,11 @@ $urlParts = $module->getFHIRUrlParts();
 $type = $urlParts[1];
 
 try{
-    if($_SERVER['REQUEST_METHOD'] === 'POST'){
+    $method = $_SERVER['REQUEST_METHOD'];
+    if($method === 'POST'){
         $response = $module->saveResource($type);
     }
-    else{
+    else if($method === 'GET'){
         list($projectId, $recordId) = $module->getProjectAndRecordIdsFromFHIRUrl();
         
         if($type === 'Composition'){
@@ -60,6 +61,9 @@ try{
                 $sendErrorResponse("Expected type $type but found " . $response->_getFHIRTypeName());
             }
         }
+    }
+    else{
+        throw new Exception("Request method not support: $method");
     }
 
     $sendResponse($response);
