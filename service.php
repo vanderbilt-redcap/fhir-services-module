@@ -63,7 +63,7 @@ try{
         }
     }
     else{
-        throw new Exception("Request method not support: $method");
+        throw new Exception("Request method not supported: $method");
     }
 
     $sendResponse($response);
