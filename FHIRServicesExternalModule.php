@@ -1257,16 +1257,19 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
         else{
             $linkId = $this->getLinkId($group);
+
+            // Make our instrument name match the one REDCap will generate from the display name.
+            $linkId = str_replace('.', '_', $linkId);
+        }
+     
+        if($linkId){
+            $name .= " ($linkId)";
         }
 
         if($displayName){
             return $name;
         }
 
-        if($linkId){
-            $name .= "_$linkId";
-        }
-        
         $name = strtolower($name);
         $name = str_replace(' ', '_', $name);
         $name = str_replace('.', '_', $name);
