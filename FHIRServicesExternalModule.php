@@ -1258,9 +1258,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         else{
             $linkId = $this->getLinkId($group);
         }
-        
+
         if($displayName){
-            return strtoupper($name);
+            return $name;
         }
 
         if($linkId){
