@@ -626,6 +626,20 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             'timestamp' => $this->formatTimestamp(time()),
             'type' => [
                 'value' => 'document'
+            ],
+            'meta' => [
+                'tag' => [
+                    [
+                        'system' => 'https://clara.uams.edu/irb_num',
+                        'code' => '220742', // TODO - Where does this value come from?
+                        'display' => 'IRB Number'
+                    ],
+                    [
+                        'system' => 'https://clara.uams.edu/doc_type',
+                        'code' => 'Determination',
+                        'display' => 'Document Type'
+                    ]
+                ]
             ]
         ]);
 
