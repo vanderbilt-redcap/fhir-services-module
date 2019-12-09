@@ -627,20 +627,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             'type' => [
                 'value' => 'document'
             ],
-            'meta' => [
-                'tag' => [
-                    [
-                        'system' => 'https://clara.uams.edu/irb_num',
-                        'code' => '220742', // TODO - Where does this value come from?
-                        'display' => 'IRB Number'
-                    ],
-                    [
-                        'system' => 'https://clara.uams.edu/doc_type',
-                        'code' => 'Determination',
-                        'display' => 'Document Type'
-                    ]
-                ]
-            ]
+            'meta' => self::createMeta('Determination')
         ]);
 
         $this->addIdentifier($bundle, $compositionsPid, $compositionId);
@@ -1324,6 +1311,23 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
     }
 
+    private function createMeta($docType){
+        return [
+            'tag' => [
+                [
+                    'system' => 'https://clara.uams.edu/irb_num',
+                    'code' => '220742', // TODO - Where does this value come from?
+                    'display' => 'IRB Number'
+                ],
+                [
+                    'system' => 'https://clara.uams.edu/doc_type',
+                    'code' => $docType,
+                    'display' => 'Document Type'
+                ]
+            ]
+        ];
+    }
+
     function buildQuestionnaireResponse($projectId, $recordId){
         $instances = $this->getData($projectId, $recordId);
         if(empty($instances)){
@@ -1362,7 +1366,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $questionnaire = $this->parse(file_get_contents(EDOC_PATH . $edoc['stored_name']));
 
         $questionnaireResponse = new FHIRQuestionnaireResponse([
-            'status' => 'completed'
+            'status' => 'completed',
+            'meta' => self::createMeta($questionnaire->getMeta()->getTag()[0]->getCode())
         ]);
 
         $questionnaireResponse = $this->addIdentifier($questionnaireResponse, $projectId, $recordId);
