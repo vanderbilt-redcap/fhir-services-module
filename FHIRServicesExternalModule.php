@@ -576,6 +576,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return date('Y-m-d\TH:i:sP', $timestamp);
     }
 
+    function isFHIRResource($o){
+        return $o instanceof FHIRResource;
+    }
+
     function buildBundle($compositionsPid, $compositionId){
         $practitionerRolesPid = $this->getPidFromSqlField($compositionsPid, 'author_id');
         $practitionersPid = $this->getPidFromSqlField($practitionerRolesPid, 'practitioner_id');
@@ -633,6 +637,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $this->addIdentifier($bundle, $compositionsPid, $compositionId);
 
         $getReferenceString = function($resource){
+            if(!$this->isFHIRResource($resource)){
+                throw new Exception('The object specified was not a FHIR resource: ' . json_encode($resource));
+            }
+
             $id = $resource->getId();
             if(empty($id)){
                 throw new Exception('A reference cannot be created for an object without an id: ' . $this->jsonSerialize($resource));
@@ -692,7 +700,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             ]);
     
             foreach($params as $param){
-                $section->addEntry($getReference($param));
+                if($this->isFHIRResource($param)){
+                    $section->addEntry($getReference($param));
+                }
             }
     
             return $section;
@@ -812,7 +822,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
        
         $composition->addAuthor($getReference($authorPractitionerRole));
         $composition->setSubject($getReference($study));
-        $composition->addSection($getCompositionSection('title'));
+        $composition->addSection($getCompositionSection('title', [
+            'irexLogoUrl' => $this->getUrl('irex_logo.svg')
+        ]));
         $composition->addSection($getCompositionSection('information', [
             'relyingOrg' => $authorOrganization,
             'study' => $study,
