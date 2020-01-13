@@ -36,119 +36,135 @@ const RESOURCE_RECEIVED = 'Resource Received';
 
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
     function redcap_every_page_top(){
-        if(strpos($_SERVER['REQUEST_URI'], APP_PATH_WEBROOT . 'DataEntry/record_home.php') === 0){
-            $projectId = $this->getProjectId();
-            $recordId = $_GET['id'];
-            $urlPrefix = $this->getUrl('service.php', true);
-            $urlPrefix = str_replace("&pid=$projectId", '', $urlPrefix); 
+        if($this->isPage('DataEntry/record_home.php')){
+            $this->hookRecordHome();
+        }
+        else if($this->isPage('Design/online_designer.php')){
+            $this->hookOnlineDesigner();
+        }
+    }
 
-            $projectType = $this->getProjectType();
-            $resourceName = null;
-            if($projectType === 'composition'){
-                $resourceName ='Bundle';
-            }
-            else if($projectType === 'questionnaire'){
-                $resourceName = 'QuestionnaireResponse';
-            }
-            else{
-                return;
-            }
+    private function isPage($path){
+        $path = APP_PATH_WEBROOT . $path;
+        return strpos($_SERVER['REQUEST_URI'], $path) === 0;
+    }
 
-            ?>
-            <div id="fhir-services-send-record" class="modal" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
-                <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                        <div class="modal-body">
-                            <p>Sending record to remote FHIR server...</p>
-                        </div>
+    private function hookOnlineDesigner(){
+
+    }
+
+    private function hookRecordHome(){
+        $projectId = $this->getProjectId();
+        $recordId = $_GET['id'];
+        $urlPrefix = $this->getUrl('service.php', true);
+        $urlPrefix = str_replace("&pid=$projectId", '', $urlPrefix); 
+
+        $projectType = $this->getProjectType();
+        $resourceName = null;
+        if($projectType === 'composition'){
+            $resourceName ='Bundle';
+        }
+        else if($projectType === 'questionnaire'){
+            $resourceName = 'QuestionnaireResponse';
+        }
+        else{
+            return;
+        }
+
+        ?>
+        <div id="fhir-services-send-record" class="modal" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <p>Sending record to remote FHIR server...</p>
                     </div>
                 </div>
             </div>
-            <script>
-                (function(){
-                    var waitForElement = function(selector, callback) {
-                        var element = $(selector)
-                        if (element.length) {
-                            callback(element);
-                        } else {
-                            setTimeout(function() {
-                                waitForElement(selector, callback);
-                            }, 100);
-                        }
+        </div>
+        <script>
+            (function(){
+                var waitForElement = function(selector, callback) {
+                    var element = $(selector)
+                    if (element.length) {
+                        callback(element);
+                    } else {
+                        setTimeout(function() {
+                            waitForElement(selector, callback);
+                        }, 100);
                     }
+                }
 
-                    var sendRecord = function(testing){
-                        var url = <?=json_encode($this->getUrl('send-record.php') . "&id=" . $_GET['id'])?>;
+                var sendRecord = function(testing){
+                    var url = <?=json_encode($this->getUrl('send-record.php') . "&id=" . $_GET['id'])?>;
 
-                        if(testing){
-                            url = url + '&test'
-                            window.open(url)
-                            return
-                        }
-                       
-                        var dialog = $('#fhir-services-send-record')
-                        dialog.modal('show')
-
-                        $.post(url).always(function(response){
-                            if(response.status === 'success'){
-                                alert('The remote FHIR server has confirmed that the data has been successfully received.')
-                                console.log('Remote Response: ' + response['remote-response'])
-                            }
-                            else{
-                                alert('An error ocurred.  See the browser log for details.')
-                                console.log(response)
-                            }
-
-                            dialog.modal('hide')
-                        })
+                    if(testing){
+                        url = url + '&test'
+                        window.open(url)
+                        return
                     }
+                    
+                    var dialog = $('#fhir-services-send-record')
+                    dialog.modal('show')
 
-                    waitForElement('#recordActionDropdownDiv', function(dropdown){                       
-                        var lastPdfOption = $(dropdown.find('a[href*=\\/PDF\\/]').toArray().reverse()[0]).parent()
-                        
-                        var addOption = function(text, iconName, action){
-                            var newOption = lastPdfOption.clone()
-
-                            var icon = newOption.find('i.fas')[0]
-                            icon.className = 'fas fa-' + iconName
-                            icon.nextSibling.textContent = ' ' + text             
-
-                            var a = newOption.find('a')
-                            a.removeAttr('target')
-                            
-                            newOption.click(function(e){
-                                e.preventDefault()
-                                dropdown.hide()
-                                action()
-                            })              
-                            
-                            lastPdfOption.after(newOption)
-                            lastPdfOption = newOption
-                        }
-                        
-                        var resourceName = <?=json_encode($resourceName)?>;
-                        var openAction
-                        if(resourceName === 'Bundle'){
-                            openAction = function(){
-                                sendRecord(true)
-                            }
+                    $.post(url).always(function(response){
+                        if(response.status === 'success'){
+                            alert('The remote FHIR server has confirmed that the data has been successfully received.')
+                            console.log('Remote Response: ' + response['remote-response'])
                         }
                         else{
-                            openAction = function(){
-                                window.open(<?=json_encode("$urlPrefix&fhir-url=/$resourceName/$projectId-$recordId")?>)
-                            }
+                            alert('An error ocurred.  See the browser log for details.')
+                            console.log(response)
                         }
 
-                        addOption('Open FHIR ' + resourceName, 'file', openAction)
-                    
-                        addOption('Send FHIR ' + resourceName + ' to remote FHIR server', 'file-export', function(){
-                            sendRecord(false)
-                        })
+                        dialog.modal('hide')
                     })
-                })()
-            </script>
-            <?php
-        }
+                }
+
+                waitForElement('#recordActionDropdownDiv', function(dropdown){                       
+                    var lastPdfOption = $(dropdown.find('a[href*=\\/PDF\\/]').toArray().reverse()[0]).parent()
+                    
+                    var addOption = function(text, iconName, action){
+                        var newOption = lastPdfOption.clone()
+
+                        var icon = newOption.find('i.fas')[0]
+                        icon.className = 'fas fa-' + iconName
+                        icon.nextSibling.textContent = ' ' + text             
+
+                        var a = newOption.find('a')
+                        a.removeAttr('target')
+                        
+                        newOption.click(function(e){
+                            e.preventDefault()
+                            dropdown.hide()
+                            action()
+                        })              
+                        
+                        lastPdfOption.after(newOption)
+                        lastPdfOption = newOption
+                    }
+                    
+                    var resourceName = <?=json_encode($resourceName)?>;
+                    var openAction
+                    if(resourceName === 'Bundle'){
+                        openAction = function(){
+                            sendRecord(true)
+                        }
+                    }
+                    else{
+                        openAction = function(){
+                            window.open(<?=json_encode("$urlPrefix&fhir-url=/$resourceName/$projectId-$recordId")?>)
+                        }
+                    }
+
+                    addOption('Open FHIR ' + resourceName, 'file', openAction)
+                
+                    addOption('Send FHIR ' + resourceName + ' to remote FHIR server', 'file-export', function(){
+                        sendRecord(false)
+                    })
+                })
+            })()
+        </script>
+        <?php
     }
 
     function onDataDictionaryUploadPage(){
