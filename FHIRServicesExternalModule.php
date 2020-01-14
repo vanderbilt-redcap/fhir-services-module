@@ -1366,9 +1366,6 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         else if($type === 'checkbox'){
             return 'boolean';
         }
-        else if(in_array($type, ['yesno', 'truefalse'])){
-            // not currently supported
-        }
         else if($type === 'file' && $validation === ''){
             return 'attachment';
         }
