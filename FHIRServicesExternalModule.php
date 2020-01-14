@@ -1034,14 +1034,14 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function parseREDCapChoices($redcapField){
-        $choices = explode(' | ', $redcapField['select_choices_or_calculations']);
+        $choices = explode('|', $redcapField['select_choices_or_calculations']);
         $valueMap = [];
         foreach($choices as $choice){
-            $separator = ', ';
+            $separator = ',';
             $separatorIndex = strpos($choice, $separator);
 
-            $code = substr($choice, 0, $separatorIndex);
-            $display = substr($choice, $separatorIndex+strlen($separator));
+            $code = trim(substr($choice, 0, $separatorIndex));
+            $display = trim(substr($choice, $separatorIndex+strlen($separator)));
 
             $valueMap[$code] = $display;
         }
