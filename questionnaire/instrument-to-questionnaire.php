@@ -7,10 +7,11 @@ $pid = $_GET['pid'];
 $fields = REDCap::getDataDictionary($pid, 'array');
 $formName = $_GET['form'];
 $formDisplayNames = REDCap::getInstrumentNames();
+$formDisplayName = $formDisplayNames[$formName];
 
 $questionnaire = new FHIRQuestionnaire([
     'name' => $formName,
-    'title' => $formDisplayNames[$formName],
+    'title' => $formDisplayName,
     'status' => 'draft',
     'url' => APP_PATH_WEBROOT_FULL . ltrim(APP_PATH_WEBROOT, '/') . "Design/online_designer.php?pid=$pid&page=$formName"
 ]);
@@ -25,7 +26,7 @@ foreach($fields as $field){
         $choices = $module->parseREDCapChoices($field);
         foreach($choices as $key=>$value){
             $item = $module->createQuestionnaireItem($field);
-            $item['linkId'] .= "_$key";
+            $item['linkId'] .= "___$key";
             $item['text'] .= " - $value";
             $items[] = $item;
         }
@@ -39,4 +40,5 @@ foreach($fields as $field){
     }
 }
 
+header("Content-Disposition: attachment; filename=\"$formDisplayName.json\"");
 $module->sendJSONResponse($questionnaire);
