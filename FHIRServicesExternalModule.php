@@ -62,7 +62,22 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 newItem.find('a')[0].onclick = function(){
                     var url = <?=json_encode($this->getUrl('questionnaire/instrument-to-questionnaire.php'))?>;
                     url += '&form=' + $('#ActionCurrentForm').val()
+
+                    // Download the file before displaying the alert.
+                    // The browser may consider the download a popup and block it if the user takes too long to dismiss the alert.
                     window.open(url);
+
+                    $.get(url + '&return-skipped-fields', function(fieldNames){
+                        if(fieldNames.length > 0){
+                            var message = 'The following fields were excluded from the downloaded Questionnaire because their type and/or validation settings are not yet supported:\n'
+                            
+                            fieldNames.forEach(function(fieldName){
+                                message += '\n        ' + fieldName
+                            })
+
+                            alert(message)
+                        }
+                    })
                 }
                 
                 newItem.insertAfter(zipDownloadItem)
@@ -1364,7 +1379,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             return 'display';
         }
 
-        throw new Exception("REDCap field type ($type) not supported with validation ($validation).");
+        return null;
     }
 
     function getText($item){
@@ -1602,10 +1617,15 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function createQuestionnaireItem($redcapField){
+        $fieldName = $redcapField['field_name'];
+
         $fhirType = $this->getFHIRType($redcapField);
+        if($fhirType === null){
+            throw new Exception("The type or validation for the $fieldName field is not currently supported.");
+        }
 
         $item = [
-            'linkId' => $redcapField['field_name'],
+            'linkId' => $fieldName,
             'text' => $redcapField['field_label'],
             'type' => $fhirType
         ];

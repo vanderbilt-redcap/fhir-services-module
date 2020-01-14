@@ -16,8 +16,15 @@ $questionnaire = new FHIRQuestionnaire([
     'url' => APP_PATH_WEBROOT_FULL . ltrim(APP_PATH_WEBROOT, '/') . "Design/online_designer.php?pid=$pid&page=$formName"
 ]);
 
+$skippedFields = [];
 foreach($fields as $field){
     if($field['form_name'] !== $formName){
+        continue;
+    }
+
+    $fhirType = $module->getFHIRType($field);
+    if($fhirType === null){
+        $skippedFields[] = $field['field_name'];
         continue;
     }
 
@@ -38,6 +45,12 @@ foreach($fields as $field){
     foreach($items as $item){
         $questionnaire->addItem(new FHIRQuestionnaireItem($item));
     }
+}
+
+if(isset($_GET['return-skipped-fields'])){
+    header('Content-type: application/fhir+json'); 
+    echo json_encode($skippedFields);
+    return;
 }
 
 header("Content-Disposition: attachment; filename=\"$formDisplayName.json\"");
