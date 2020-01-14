@@ -1033,6 +1033,22 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return implode('|', $choices);
     }
 
+    function parseREDCapChoices($redcapField){
+        $choices = explode(' | ', $redcapField['select_choices_or_calculations']);
+        $valueMap = [];
+        foreach($choices as $choice){
+            $separator = ', ';
+            $separatorIndex = strpos($choice, $separator);
+
+            $code = substr($choice, 0, $separatorIndex);
+            $display = substr($choice, $separatorIndex+strlen($separator));
+
+            $valueMap[$code] = $display;
+        }
+
+        return $valueMap;
+    }
+
     function getFHIRAnswerOptions($redcapField){
         $type = $redcapField['field_type'];
         $valueMap = [];
@@ -1045,17 +1061,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $valueMap['0'] = 'False';
         }
         else{
-            $choices = explode(' | ', $redcapField['select_choices_or_calculations']);
-            $answerOptions = [];
-            foreach($choices as $choice){
-                $separator = ', ';
-                $separatorIndex = strpos($choice, $separator);
-    
-                $code = substr($choice, 0, $separatorIndex);
-                $display = substr($choice, $separatorIndex+strlen($separator));
-    
-                $valueMap[$code] = $display;
-            }
+            $valueMap = $this->parseREDCapChoices($redcapField);
         }
 
         $answerOptions = [];
@@ -1343,7 +1349,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             return 'choice';
         }
         else if($type === 'checkbox'){
-            // not currently supported
+            return 'boolean';
         }
         else if(in_array($type, ['yesno', 'truefalse'])){
             // not currently supported
@@ -1593,5 +1599,25 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         header('Content-type: application/fhir+json'); 
         echo $this->jsonSerialize($o);
         exit();
+    }
+
+    function createQuestionnaireItem($redcapField){
+        $fhirType = $this->getFHIRType($redcapField);
+
+        $item = [
+            'linkId' => $redcapField['field_name'],
+            'text' => $redcapField['field_label'],
+            'type' => $fhirType
+        ];
+    
+        if($redcapField['required_field'] === 'y'){
+            $item['required'] = true;
+        }
+    
+        if($fhirType === 'choice'){
+            $item['answerOption'] = $this->getFHIRAnswerOptions($redcapField);
+        }
+
+        return $item;
     }
 }

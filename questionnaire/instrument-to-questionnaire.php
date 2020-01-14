@@ -20,23 +20,23 @@ foreach($fields as $field){
         continue;
     }
 
-    $fhirType = $module->getFHIRType($field);
-
-    $item = [
-        'linkId' => $field['field_name'],
-        'text' => $field['field_label'],
-        'type' => $fhirType
-    ];
-
-    if($field['required_field'] === 'y'){
-        $item['required'] = true;
+    $items = [];
+    if($field['field_type'] === 'checkbox'){
+        $choices = $module->parseREDCapChoices($field);
+        foreach($choices as $key=>$value){
+            $item = $module->createQuestionnaireItem($field);
+            $item['linkId'] .= "_$key";
+            $item['text'] .= " - $value";
+            $items[] = $item;
+        }
+    }
+    else{
+        $items[] = $module->createQuestionnaireItem($field);
     }
 
-    if($fhirType === 'choice'){
-        $item['answerOption'] = $module->getFHIRAnswerOptions($field);
+    foreach($items as $item){
+        $questionnaire->addItem(new FHIRQuestionnaireItem($item));
     }
-
-    $questionnaire->addItem(new FHIRQuestionnaireItem($item));
 }
 
 $module->sendJSONResponse($questionnaire);
