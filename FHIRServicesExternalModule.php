@@ -1375,6 +1375,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         else if($type === 'descriptive'){
             return 'display';
         }
+        else if($type === 'sql'){
+            // not currently supported
+        }
 
         return null;
     }
