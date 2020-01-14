@@ -50,7 +50,25 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     private function hookOnlineDesigner(){
-
+        ?>
+        <script>
+            $(function(){
+                var menu = $('#formActionDropdown')
+                var zipDownloadItem = menu.find('li:last-child')[0]
+                
+                var newItem = $(zipDownloadItem).clone()
+                newItem.removeAttr('id')
+                newItem.find('span').html('Download instrument as FHIR Questionnaire')                
+                newItem.find('a')[0].onclick = function(){
+                    var url = <?=json_encode($this->getUrl('questionnaire/instrument-to-questionnaire.php'))?>;
+                    url += '&form=' + $('#ActionCurrentForm').val()
+                    window.open(url);
+                }
+                
+                newItem.insertAfter(zipDownloadItem)
+            })
+        </script>
+        <?php
     }
 
     private function hookRecordHome(){
@@ -1015,6 +1033,44 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return implode('|', $choices);
     }
 
+    function getFHIRAnswerOptions($redcapField){
+        $type = $redcapField['field_type'];
+        $valueMap = [];
+        if($type === 'yesno'){
+            $valueMap['1'] = 'Yes';
+            $valueMap['0'] = 'No';
+        }
+        else if($type === 'truefalse'){
+            $valueMap['1'] = 'True';
+            $valueMap['0'] = 'False';
+        }
+        else{
+            $choices = explode(' | ', $redcapField['select_choices_or_calculations']);
+            $answerOptions = [];
+            foreach($choices as $choice){
+                $separator = ', ';
+                $separatorIndex = strpos($choice, $separator);
+    
+                $code = substr($choice, 0, $separatorIndex);
+                $display = substr($choice, $separatorIndex+strlen($separator));
+    
+                $valueMap[$code] = $display;
+            }
+        }
+
+        $answerOptions = [];
+        foreach($valueMap as $code=>$display){
+            $answerOptions[] = [
+                'valueCoding' => [
+                    'code' => strval($code),
+                    'display' => $display,
+                ]
+            ];
+        }
+
+        return $answerOptions;
+    }
+
     function getValue($o){
         if($o === null){
             return null;
@@ -1245,12 +1301,64 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     return 'file';
                 }
                 else{
-                    throw new Exception("Type not supported: $type");
+                    throw new Exception("FHIR Questionnaire Item type not supported: $type");
                 }
 
                 return $type;
             }
         }
+    }
+
+    function getFHIRType($redcapField){
+        $type = $redcapField['field_type'];
+        $validation = $redcapField['text_validation_type_or_show_slider_number'];
+
+        if($type === 'text'){
+            if($validation === ''){
+                return 'string';
+            }
+            else if(strpos($validation, 'date_') === 0){
+                return 'date';
+            }
+            else if(strpos($validation, 'datetime_') === 0){
+                return 'dateTime';
+            }
+            else if($validation === 'integer'){
+                return 'integer';
+            }
+            else if($validation === 'number'){
+                return 'decimal';
+            }
+            else if($validation === 'time'){
+                return 'time';
+            }
+        }
+        else if($type === 'notes'){ // textarea
+            return 'text';
+        }
+        else if($type === 'calc'){
+            // not currently supported
+        }
+        else if(in_array($type, ['dropdown', 'radio', 'yesno', 'truefalse'])){
+            return 'choice';
+        }
+        else if($type === 'checkbox'){
+            // not currently supported
+        }
+        else if(in_array($type, ['yesno', 'truefalse'])){
+            // not currently supported
+        }
+        else if($type === 'file' && $validation === ''){
+            return 'attachment';
+        }
+        else if($type === 'slider'){
+            // not currently supported
+        }
+        else if($type === 'descriptive'){
+            return 'display';
+        }
+
+        throw new Exception("REDCap field type ($type) not supported with validation ($validation).");
     }
 
     function getText($item){
@@ -1479,5 +1587,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
 
         return $url;
+    }
+
+    function sendJSONResponse($o){
+        header('Content-type: application/fhir+json'); 
+        echo $this->jsonSerialize($o);
+        exit();
     }
 }

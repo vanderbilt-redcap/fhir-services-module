@@ -5,20 +5,12 @@ use Exception;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIROperationOutcome;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIROperationOutcome\FHIROperationOutcomeIssue;
 
-$sendResponse = function($o) use ($module){
-    // $o = $module->parse(file_get_contents('C:/Users/mceverm/Downloads/20191203_Protocol_v2/Protocol Questionnaire Response 12-03-19.json'));
-
-    header('Content-type: application/fhir+json'); 
-    echo $module->jsonSerialize($o);
-    exit();
-};
-
-$sendErrorResponse = function($message, $diagnostics=null) use (&$sendResponse){
+$sendErrorResponse = function($message, $diagnostics=null) use ($module){
     if(strpos($_SERVER['HTTP_ACCEPT'], 'text/html') === 0){
         echo "A browser was detected.  The OperationOutcome will be prefixed with a human readable version of the error details:\n\n$message\n\n$diagnostics\n\n";
     }
 
-    $sendResponse(new FHIROperationOutcome([
+    $module->sendJSONResponse(new FHIROperationOutcome([
         'issue' => [
             [
                 'severity' => 'error',
@@ -66,7 +58,7 @@ try{
         throw new Exception("Request method not supported: $method");
     }
 
-    $sendResponse($response);
+    $module->sendJSONResponse($response);
 }
 catch(Exception $e){
     $sendErrorResponse("Exception: " . $e->getMessage(), $e->getTraceAsString());
