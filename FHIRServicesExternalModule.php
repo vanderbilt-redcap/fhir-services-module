@@ -33,6 +33,7 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnai
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaireResponse\FHIRQuestionnaireResponseAnswer;
 
 const RESOURCE_RECEIVED = 'Resource Received';
+const FHIR_GROUP = 'fhir-group';
 
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
     function redcap_every_page_top(){
@@ -1378,6 +1379,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         else if($type === 'sql'){
             // not currently supported
         }
+        else if($type === FHIR_GROUP){
+            // This is not a real REDCap field type, but we use it for convenience within this module.
+            return FHIR_GROUP;
+        }
 
         return null;
     }
@@ -1621,7 +1626,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $fhirType = $this->getFHIRType($redcapField);
         if($fhirType === null){
-            throw new Exception("The type or validation for the $fieldName field is not currently supported.");
+            throw new Exception("The type or validation for the following field is not currently supported: " . json_encode($redcapField, JSON_PRETTY_PRINT));
         }
 
         $item = [

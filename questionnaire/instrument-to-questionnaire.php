@@ -1,7 +1,8 @@
-<?php
+<?php namespace Vanderbilt\FHIRServicesExternalModule;
 
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRQuestionnaire;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaire\FHIRQuestionnaireItem;
+use REDCap;
 
 $pid = $_GET['pid'];
 $fields = REDCap::getDataDictionary($pid, 'array');
@@ -17,6 +18,7 @@ $questionnaire = new FHIRQuestionnaire([
 ]);
 
 $skippedFields = [];
+$group = $questionnaire;
 foreach($fields as $field){
     if($field['form_name'] !== $formName){
         continue;
@@ -26,6 +28,17 @@ foreach($fields as $field){
     if($fhirType === null){
         $skippedFields[] = $field['field_name'];
         continue;
+    }
+
+    $sectionHeader = @$field['section_header'];
+    if(!empty($sectionHeader)){
+        $group = new FHIRQuestionnaireItem($module->createQuestionnaireItem([
+           'field_name' => $field['field_name'] . "___section_header",
+           'field_label' => $sectionHeader, 
+           'field_type' => FHIR_GROUP,
+        ]));
+
+        $questionnaire->addItem($group);
     }
 
     $items = [];
@@ -43,7 +56,7 @@ foreach($fields as $field){
     }
 
     foreach($items as $item){
-        $questionnaire->addItem(new FHIRQuestionnaireItem($item));
+        $group->addItem(new FHIRQuestionnaireItem($item));
     }
 }
 
