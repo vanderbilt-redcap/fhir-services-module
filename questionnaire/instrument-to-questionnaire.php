@@ -5,10 +5,19 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnai
 use REDCap;
 
 $pid = $_GET['pid'];
-$fields = REDCap::getDataDictionary($pid, 'array');
 $formName = $_GET['form'];
 $formDisplayNames = REDCap::getInstrumentNames();
 $formDisplayName = $formDisplayNames[$formName];
+
+$result = $module->query('
+    select *
+    from redcap_metadata
+    where 
+        project_id = ?
+        and form_name = ?
+        and field_name != concat(form_name, \'_complete\')
+    order by field_order
+', [$pid, $formName]);
 
 $questionnaire = new FHIRQuestionnaire([
     'name' => $formName,
@@ -19,30 +28,26 @@ $questionnaire = new FHIRQuestionnaire([
 
 $skippedFields = [];
 $group = $questionnaire;
-foreach($fields as $field){
-    if($field['form_name'] !== $formName){
-        continue;
-    }
-
+while($field = $result->fetch_assoc()){
     $fhirType = $module->getFHIRType($field);
     if($fhirType === null){
         $skippedFields[] = $field['field_name'];
         continue;
     }
 
-    $sectionHeader = @$field['section_header'];
+    $sectionHeader = @$field['element_preceding_header'];
     if(!empty($sectionHeader)){
         $group = new FHIRQuestionnaireItem($module->createQuestionnaireItem([
            'field_name' => $field['field_name'] . "___section_header",
-           'field_label' => $sectionHeader, 
-           'field_type' => FHIR_GROUP,
+           'element_label' => $sectionHeader, 
+           'element_type' => FHIR_GROUP,
         ]));
 
         $questionnaire->addItem($group);
     }
 
     $items = [];
-    if($field['field_type'] === 'checkbox'){
+    if($field['element_type'] === 'checkbox'){
         $choices = $module->parseREDCapChoices($field);
         foreach($choices as $key=>$value){
             $item = $module->createQuestionnaireItem($field);

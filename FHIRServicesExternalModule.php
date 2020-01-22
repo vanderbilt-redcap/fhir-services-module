@@ -1050,7 +1050,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function parseREDCapChoices($redcapField){
-        $choices = explode('|', $redcapField['select_choices_or_calculations']);
+        $choices = explode("\\n", $redcapField['element_enum']);
         $valueMap = [];
         foreach($choices as $choice){
             $separator = ',';
@@ -1066,7 +1066,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function getFHIRAnswerOptions($redcapField){
-        $type = $redcapField['field_type'];
+        $type = $redcapField['element_type'];
         $valueMap = [];
         if($type === 'yesno'){
             $valueMap['1'] = 'Yes';
@@ -1332,11 +1332,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function getFHIRType($redcapField){
-        $type = $redcapField['field_type'];
-        $validation = $redcapField['text_validation_type_or_show_slider_number'];
+        $type = $redcapField['element_type'];
+        $validation = $redcapField['element_validation_type'];
 
         if($type === 'text'){
-            if($validation === ''){
+            if(empty($validation)){
                 return 'string';
             }
             else if(strpos($validation, 'date_') === 0){
@@ -1345,29 +1345,29 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             else if(strpos($validation, 'datetime_') === 0){
                 return 'dateTime';
             }
-            else if($validation === 'integer'){
+            else if($validation === 'int'){
                 return 'integer';
             }
-            else if($validation === 'number'){
+            else if($validation === 'float'){
                 return 'decimal';
             }
             else if($validation === 'time'){
                 return 'time';
             }
         }
-        else if($type === 'notes'){ // textarea
+        else if($type === 'textarea'){
             return 'text';
         }
         else if($type === 'calc'){
             // not currently supported
         }
-        else if(in_array($type, ['dropdown', 'radio', 'yesno', 'truefalse'])){
+        else if(in_array($type, ['select', 'radio', 'yesno', 'truefalse'])){
             return 'choice';
         }
         else if($type === 'checkbox'){
             return 'boolean';
         }
-        else if($type === 'file' && $validation === ''){
+        else if($type === 'file' && empty($validation)){
             return 'attachment';
         }
         else if($type === 'slider'){
@@ -1631,11 +1631,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $item = [
             'linkId' => $fieldName,
-            'text' => $redcapField['field_label'],
+            'text' => $redcapField['element_label'],
             'type' => $fhirType
         ];
     
-        if($redcapField['required_field'] === 'y'){
+        if($redcapField['field_req'] === 1){
             $item['required'] = true;
         }
     
