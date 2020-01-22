@@ -23,12 +23,14 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRResearchStudyStatus;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRComposition;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIROrganization;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRPractitioner;
+use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRQuestionnaire;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRResearchStudy;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRPractitionerRole;
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRQuestionnaireResponse;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRBundle\FHIRBundleEntry;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRComposition\FHIRCompositionSection;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIROrganization\FHIROrganizationContact;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaire\FHIRQuestionnaireItem;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaireResponse\FHIRQuestionnaireResponseItem;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaireResponse\FHIRQuestionnaireResponseAnswer;
 
@@ -1644,5 +1646,55 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
 
         return $item;
+    }
+
+    function createQuestionnaire($pid, $formName, $formDisplayName, $fields){
+        $questionnaire = new FHIRQuestionnaire([
+            'name' => $formName,
+            'title' => $formDisplayName,
+            'status' => 'draft',
+            'url' => APP_PATH_WEBROOT_FULL . ltrim(APP_PATH_WEBROOT, '/') . "Design/online_designer.php?pid=$pid&page=$formName"
+        ]);        
+
+        $skippedFields = [];
+        $group = $questionnaire;
+        foreach($fields as $field){
+            $fhirType = $this->getFHIRType($field);
+            if($fhirType === null){
+                $skippedFields[] = $field['field_name'];
+                continue;
+            }
+
+            $sectionHeader = @$field['element_preceding_header'];
+            if(!empty($sectionHeader)){
+                $group = new FHIRQuestionnaireItem($this->createQuestionnaireItem([
+                'field_name' => $field['field_name'] . "___section_header",
+                'element_label' => $sectionHeader, 
+                'element_type' => FHIR_GROUP,
+                ]));
+
+                $questionnaire->addItem($group);
+            }
+
+            $items = [];
+            if($field['element_type'] === 'checkbox'){
+                $choices = $this->parseREDCapChoices($field);
+                foreach($choices as $key=>$value){
+                    $item = $this->createQuestionnaireItem($field);
+                    $item['linkId'] .= "___$key";
+                    $item['text'] .= " - $value";
+                    $items[] = $item;
+                }
+            }
+            else{
+                $items[] = $this->createQuestionnaireItem($field);
+            }
+
+            foreach($items as $item){
+                $group->addItem(new FHIRQuestionnaireItem($item));
+            }
+        }
+
+        return [$questionnaire, $skippedFields];
     }
 }

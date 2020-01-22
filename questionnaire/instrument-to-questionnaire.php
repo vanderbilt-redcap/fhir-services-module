@@ -1,8 +1,10 @@
 <?php namespace Vanderbilt\FHIRServicesExternalModule;
 
-use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRQuestionnaire;
-use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaire\FHIRQuestionnaireItem;
+require_once __DIR__ . '/../tests/QuestionnaireExportTest.php';
+
 use REDCap;
+
+QuestionnaireExportTest::run($module);
 
 $pid = $_GET['pid'];
 $formName = $_GET['form'];
@@ -19,51 +21,15 @@ $result = $module->query('
     order by field_order
 ', [$pid, $formName]);
 
-$questionnaire = new FHIRQuestionnaire([
-    'name' => $formName,
-    'title' => $formDisplayName,
-    'status' => 'draft',
-    'url' => APP_PATH_WEBROOT_FULL . ltrim(APP_PATH_WEBROOT, '/') . "Design/online_designer.php?pid=$pid&page=$formName"
-]);
-
-$skippedFields = [];
-$group = $questionnaire;
+$fields = [];
 while($field = $result->fetch_assoc()){
-    $fhirType = $module->getFHIRType($field);
-    if($fhirType === null){
-        $skippedFields[] = $field['field_name'];
-        continue;
-    }
-
-    $sectionHeader = @$field['element_preceding_header'];
-    if(!empty($sectionHeader)){
-        $group = new FHIRQuestionnaireItem($module->createQuestionnaireItem([
-           'field_name' => $field['field_name'] . "___section_header",
-           'element_label' => $sectionHeader, 
-           'element_type' => FHIR_GROUP,
-        ]));
-
-        $questionnaire->addItem($group);
-    }
-
-    $items = [];
-    if($field['element_type'] === 'checkbox'){
-        $choices = $module->parseREDCapChoices($field);
-        foreach($choices as $key=>$value){
-            $item = $module->createQuestionnaireItem($field);
-            $item['linkId'] .= "___$key";
-            $item['text'] .= " - $value";
-            $items[] = $item;
-        }
-    }
-    else{
-        $items[] = $module->createQuestionnaireItem($field);
-    }
-
-    foreach($items as $item){
-        $group->addItem(new FHIRQuestionnaireItem($item));
-    }
+    $fields[] = $field;
 }
+
+// Used to generated the fields.json test file.
+// echo json_encode($fields, JSON_PRETTY_PRINT);die();
+
+list($questionnaire, $skippedFields) = $module->createQuestionnaire($pid, $formName, $formDisplayName, $fields);
 
 if(isset($_GET['return-skipped-fields'])){
     header('Content-type: application/fhir+json'); 
