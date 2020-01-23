@@ -1648,12 +1648,16 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $item;
     }
 
+    function getREDCapVersionDirURL(){
+        return APP_PATH_WEBROOT_FULL . ltrim(APP_PATH_WEBROOT, '/');
+    }
+
     function createQuestionnaire($pid, $formName, $formDisplayName, $fields){
         $questionnaire = new FHIRQuestionnaire([
             'name' => $formName,
             'title' => $formDisplayName,
             'status' => 'draft',
-            'url' => APP_PATH_WEBROOT_FULL . ltrim(APP_PATH_WEBROOT, '/') . "Design/online_designer.php?pid=$pid&page=$formName"
+            'url' => $this->getREDCapVersionDirURL() . "Design/online_designer.php?pid=$pid&page=$formName"
         ]);        
 
         $skippedFields = [];

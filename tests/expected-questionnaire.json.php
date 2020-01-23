@@ -178,5 +178,5 @@
     "name": "all_field_type_examples",
     "status": "draft",
     "title": "All Field Type Examples",
-    "url": "http://localhost/redcap_v9.4.1/Design/online_designer.php?pid=116&page=all_field_type_examples"
+    "url": "<?=$this->getREDCapVersionDirURL()?>Design/online_designer.php?pid=116&page=all_field_type_examples"
 }
