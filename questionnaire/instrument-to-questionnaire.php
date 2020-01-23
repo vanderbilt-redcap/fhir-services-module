@@ -1,10 +1,6 @@
 <?php namespace Vanderbilt\FHIRServicesExternalModule;
 
-require_once __DIR__ . '/../tests/QuestionnaireExportTest.php';
-
 use REDCap;
-
-QuestionnaireExportTest::run($module);
 
 $pid = $_GET['pid'];
 $formName = $_GET['form'];

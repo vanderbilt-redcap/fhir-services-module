@@ -1,5 +1,8 @@
 {
     "require": {
         "dcarbone/php-fhir-generated": "^2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^8.5"
     }
 }
