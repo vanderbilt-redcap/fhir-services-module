@@ -1640,6 +1640,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         if($redcapField['field_req'] === 1){
             $item['required'] = true;
         }
+
+        if($redcapField['element_type'] === 'descriptive'){
+            $videoUrl = $redcapField['video_url'];
+            if(!empty($videoUrl)){
+                $item['text'] = $this->getDescriptiveVideoHTML($item['text'], $videoUrl);
+            }
+        }
     
         if($fhirType === 'choice'){
             $item['answerOption'] = $this->getFHIRAnswerOptions($redcapField);
@@ -1691,7 +1698,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 }
             }
             else{
-                $items[] = $this->createQuestionnaireItem($field);
+                $items[] = $this->createQuestionnaireItem($field);;
             }
 
             foreach($items as $item){
@@ -1700,5 +1707,50 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
 
         return [$questionnaire, $skippedFields];
+    }
+
+    function getDescriptiveVideoHTML($text, $url){
+        $url = $this->getVideoEmbedURL($url);
+        return "
+            <p>$text</p>
+            <div style='max-width: 600px'   >
+                <div style='
+                    position: relative;
+                    padding-bottom: 56.25%; /* 16:9 */
+                    height: 0;
+                '>
+                    <iframe 
+                        style='
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                        '
+                        src='$url'>
+                    </iframe>
+                </div>
+            </div>
+        ";
+    }
+
+    // The contents of this function were copied from REDCap core.
+    private function getVideoEmbedURL($video_url){
+       // Default values
+        $unknown_video_service = '1';
+        $video_url_formatted = $video_url;
+        // Vimeo URL
+        if (stripos($video_url, 'vimeo.com') !== false
+            && preg_match("/https?:\/\/(?:www\.|player\.)?vimeo.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|video\/|)(\d+)(?:$|\/|\?)/", $video_url, $matches)) {
+            $unknown_video_service = '0';
+            $video_url_formatted = 'https://player.vimeo.com/video/' . $matches[3];
+        }
+        // Youtube URL
+        elseif ((stripos($video_url, 'youtube.com') !== false || stripos($video_url, 'youtu.be') !== false)
+                && preg_match("/\s*[a-zA-Z\/\/:\.]*youtu(be.com\/watch\?v=|.be\/)([a-zA-Z0-9\-_]+)([a-zA-Z0-9\/\*\-\_\?\&\;\%\=\.]*)/i", $video_url, $matches)) {
+            $unknown_video_service = '0';
+            $video_url_formatted = 'https://www.youtube.com/embed/' . $matches[2] . '?wmode=transparent&rel=0';
+        }
+        return $video_url_formatted;
     }
 }

@@ -160,8 +160,8 @@
                     "type": "attachment"
                 },
                 {
-                    "linkId": "descriptive_video",
-                    "text": "This is a descriptive field with a video.",
+                    "linkId": "descriptive",
+                    "text": "This is a descriptive field.",
                     "type": "display"
                 },
                 {

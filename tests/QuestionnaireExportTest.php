@@ -15,5 +15,23 @@ class QuestionnaireExportTest extends \ExternalModules\ModuleBaseTest{
         $this->assertSame($expected, $actual);
     }
 
+    function testCreateQuestionnaireItem_descriptive(){
+        $fieldLabel = 'Hey partner!';
+
+        $assert = function($videoUrl, $expectedText) use ($fieldLabel){
+            $item = $this->createQuestionnaireItem([
+                'element_label' => $fieldLabel,
+                'element_type' => 'descriptive',
+                'video_url' => $videoUrl
+            ]);
+
+            $this->assertSame($expectedText, $item['text']);
+        };     
+
+        $assert(null, $fieldLabel);
+        
+        //assertXmlStringEqualsXmlString
+        $videoUrl = 'https://www.youtube.com/watch?v=FavUpD_IjVY';
+        $assert($videoUrl, $this->getDescriptiveVideoHTML($fieldLabel, $videoUrl));
     }
 }
