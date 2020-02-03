@@ -2,6 +2,8 @@
 
 require_once __DIR__ . '/../../../redcap_connect.php';
 
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaire\FHIRQuestionnaireItem;
+
 class QuestionnaireExportTest extends \ExternalModules\ModuleBaseTest{
     function testCreateQuestionnaire(){
         $fields = json_decode(file_get_contents(__DIR__ . '/fields.json'), true);
@@ -33,5 +35,22 @@ class QuestionnaireExportTest extends \ExternalModules\ModuleBaseTest{
         //assertXmlStringEqualsXmlString
         $videoUrl = 'https://www.youtube.com/watch?v=FavUpD_IjVY';
         $assert($videoUrl, $this->getDescriptiveVideoHTML($fieldLabel, $videoUrl));
+    }
+
+    function testHandleAnnotations_charLimit(){
+        $charLimit=rand();
+
+        $field = [
+            'misc' => "@SOME-TAG @CHARLIMIT=$charLimit @SOME-OTHER-TAG"
+        ];
+
+        $item = [];
+
+        $this->module->handleAnnotations($field, $item);
+        
+        $item = new FHIRQuestionnaireItem($item);
+
+
+        $this->assertSame($charLimit, $this->getValue($item->getMaxLength()));
     }
 }

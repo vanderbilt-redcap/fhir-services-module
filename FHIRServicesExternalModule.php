@@ -1652,7 +1652,23 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $item['answerOption'] = $this->getFHIRAnswerOptions($redcapField);
         }
 
+        $this->handleAnnotations($redcapField, $item);
+
         return $item;
+    }
+
+    function handleAnnotations($redcapField, &$item){
+        $actionTags = $action_tags_array = explode(' ', $redcapField['misc']);
+
+        foreach($actionTags as $tag){
+            $parts = explode('=', $tag);
+            $name = $parts[0];
+            $value = @$parts[1];
+            
+            if($name === '@CHARLIMIT'){
+                $item['maxLength'] = $value;
+            }
+        }
     }
 
     function getREDCapVersionDirURL(){
