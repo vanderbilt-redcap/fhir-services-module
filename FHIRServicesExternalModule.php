@@ -1617,7 +1617,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $url;
     }
 
-    function sendJSONResponse($o){
+    function sendRespondAndExit($o){
         header('Content-type: application/fhir+json'); 
         echo $this->jsonSerialize($o);
         exit();

@@ -10,7 +10,7 @@ $sendErrorResponse = function($message, $diagnostics=null) use ($module){
         echo "A browser was detected.  The OperationOutcome will be prefixed with a human readable version of the error details:\n\n$message\n\n$diagnostics\n\n";
     }
 
-    $module->sendJSONResponse(new FHIROperationOutcome([
+    $module->sendRespondAndExit(new FHIROperationOutcome([
         'issue' => [
             [
                 'severity' => 'error',
@@ -58,7 +58,7 @@ try{
         throw new Exception("Request method not supported: $method");
     }
 
-    $module->sendJSONResponse($response);
+    $module->sendRespondAndExit($response);
 }
 catch(Exception $e){
     $sendErrorResponse("Exception: " . $e->getMessage(), $e->getTraceAsString());
