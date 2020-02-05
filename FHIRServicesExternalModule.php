@@ -1618,7 +1618,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function sendRespondAndExit($o){
-        header('Content-type: application/fhir+json'); 
+        header('Content-type: application/fhir+json');
         echo $this->jsonSerialize($o);
         exit();
     }
@@ -1681,10 +1681,20 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             'title' => $formDisplayName,
             'status' => 'draft',
             'url' => $this->getREDCapVersionDirURL() . "Design/online_designer.php?pid=$pid&page=$formName"
-        ]);        
+        ]);
+
+        $repeatingForms = array_flip($this->framework->getRepeatingForms());
+
+        $formGroup = new FHIRQuestionnaireItem([
+            'linkId' => "form___$formName",
+            'type' => 'group',
+            'repeats' => isset($repeatingForms[$formName])
+        ]);
+
+        $questionnaire->addItem($formGroup);
 
         $skippedFields = [];
-        $group = $questionnaire;
+        $group = $formGroup;
         foreach($fields as $field){
             $fhirType = $this->getFHIRType($field);
             if($fhirType === null){
@@ -1700,7 +1710,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     'element_type' => FHIR_GROUP,
                 ]));
 
-                $questionnaire->addItem($group);
+                $formGroup->addItem($group);
             }
 
             $items = [];

@@ -33,5 +33,8 @@ if(isset($_GET['return-skipped-fields'])){
     return;
 }
 
-header("Content-Disposition: attachment; filename=\"$formDisplayName.json\"");
+if(!isset($_GET['no-download'])){
+    header("Content-Disposition: attachment; filename=\"$formDisplayName.json\"");
+}
+
 $module->sendRespondAndExit($questionnaire);
