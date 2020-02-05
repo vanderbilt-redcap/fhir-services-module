@@ -1695,9 +1695,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $sectionHeader = @$field['element_preceding_header'];
             if(!empty($sectionHeader)){
                 $group = new FHIRQuestionnaireItem($this->createQuestionnaireItem([
-                'field_name' => $field['field_name'] . "___section_header",
+                    'field_name' => $field['field_name'] . "___section_header",
+                    'element_label' => $sectionHeader,
                 'element_label' => $sectionHeader, 
-                'element_type' => FHIR_GROUP,
+                    'element_label' => $sectionHeader,
+                    'element_type' => FHIR_GROUP,
                 ]));
 
                 $questionnaire->addItem($group);
