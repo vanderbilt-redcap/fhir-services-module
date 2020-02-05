@@ -5,9 +5,18 @@ require_once __DIR__ . '/../../../redcap_connect.php';
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaire\FHIRQuestionnaireItem;
 
 class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
-    function testCreateQuestionnaire(){
+    private function getFormName(){
+        return 'all_field_type_examples';
+    }
+    
+    private function createQuestionnaire($repeatingForms = []){
         $fields = json_decode(file_get_contents(__DIR__ . '/fields.json'), true);
-        list($questionnaire, $skippedFields) = $this->createQuestionnaire(116, 'all_field_type_examples', 'All Field Type Examples', $fields, []);
+        list($questionnaire, $skippedFields) = $this->module->createQuestionnaire(116, $this->getFormName(), 'All Field Type Examples', $fields, $repeatingForms);
+        return $questionnaire;
+    }
+
+    function testCreateQuestionnaire(){
+        $questionnaire = $this->createQuestionnaire();
         $actual = trim($this->jsonSerialize($questionnaire));
 
         ob_start();
@@ -52,5 +61,21 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
 
 
         $this->assertSame($charLimit, $this->getValue($item->getMaxLength()));
+    }
+
+    function testRepeatingForms(){
+        $assert = function($isRepeating){
+            $repeatingForms = [];
+            if($isRepeating){
+                $repeatingForms[] = $this->getFormName();
+            }
+
+            $questionnaire = $this->createQuestionnaire($repeatingForms);
+            $value = $this->module->getValue($questionnaire->getItem()[0]->getRepeats());
+            $this->assertSame($isRepeating, $value);
+        };
+
+        $assert(true);
+        $assert(false);
     }
 }
