@@ -1219,7 +1219,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $csv;
     }
 
-    private function getRepeatingForms(){
+    function getRepeatingForms(){
         $result = $this->query('select * from redcap_events_repeat where event_id = ?', $this->getEventId());
 
         $forms = [];
