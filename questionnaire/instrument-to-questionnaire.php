@@ -37,4 +37,4 @@ if(!isset($_GET['no-download'])){
     header("Content-Disposition: attachment; filename=\"$formDisplayName.json\"");
 }
 
-$module->sendRespondAndExit($questionnaire);
+$module->respondAndExit($questionnaire);
