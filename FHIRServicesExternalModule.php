@@ -6,6 +6,7 @@ use REDCap;
 use DateTime;
 use MetaData;
 use Exception;
+use Form;
 
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource;
 use DCarbone\PHPFHIRGenerated\R4\PHPFHIRResponseParser;
@@ -1658,16 +1659,15 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function handleAnnotations($redcapField, &$item){
-        $actionTags = $action_tags_array = explode(' ', $redcapField['misc']);
+        $actionTags = $redcapField['misc'];
 
-        foreach($actionTags as $tag){
-            $parts = explode('=', $tag);
-            $name = $parts[0];
-            $value = @$parts[1];
-            
-            if($name === '@CHARLIMIT'){
-                $item['maxLength'] = $value;
-            }
+        $getValue = function($tagName) use ($redcapField){
+            return Form::getValueInActionTag($redcapField['misc'], $tagName);
+        };
+
+        $charLimit = $getValue('@CHARLIMIT');
+        if($charLimit){
+            $item['maxLength'] = $charLimit;
         }
     }
 
