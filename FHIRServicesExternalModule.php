@@ -1675,15 +1675,15 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return APP_PATH_WEBROOT_FULL . ltrim(APP_PATH_WEBROOT, '/');
     }
 
-    function createQuestionnaire($pid, $formName, $formDisplayName, $fields){
+    function createQuestionnaire($pid, $formName, $formDisplayName, $fields, $repeatingForms){
+        $repeatingForms = array_flip($repeatingForms);
+
         $questionnaire = new FHIRQuestionnaire([
             'name' => $formName,
             'title' => $formDisplayName,
             'status' => 'draft',
             'url' => $this->getREDCapVersionDirURL() . "Design/online_designer.php?pid=$pid&page=$formName"
         ]);
-
-        $repeatingForms = array_flip($this->framework->getRepeatingForms());
 
         $formGroup = new FHIRQuestionnaireItem([
             'linkId' => "form___$formName",

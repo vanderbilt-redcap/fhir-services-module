@@ -25,7 +25,9 @@ while($field = $result->fetch_assoc()){
 // Used to generated the fields.json test file.
 // echo json_encode($fields, JSON_PRETTY_PRINT);die();
 
-list($questionnaire, $skippedFields) = $module->createQuestionnaire($pid, $formName, $formDisplayName, $fields);
+$repeatingForms = $module->getRepeatingForms();
+
+list($questionnaire, $skippedFields) = $module->createQuestionnaire($pid, $formName, $formDisplayName, $fields, $repeatingForms);
 
 if(isset($_GET['return-skipped-fields'])){
     header('Content-type: application/fhir+json'); 

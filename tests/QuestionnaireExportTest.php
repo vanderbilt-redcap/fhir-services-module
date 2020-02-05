@@ -7,7 +7,7 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnai
 class QuestionnaireExportTest extends \ExternalModules\ModuleBaseTest{
     function testCreateQuestionnaire(){
         $fields = json_decode(file_get_contents(__DIR__ . '/fields.json'), true);
-        list($questionnaire, $skippedFields) = $this->createQuestionnaire(116, 'all_field_type_examples', 'All Field Type Examples', $fields);
+        list($questionnaire, $skippedFields) = $this->createQuestionnaire(116, 'all_field_type_examples', 'All Field Type Examples', $fields, []);
         $actual = trim($this->jsonSerialize($questionnaire));
 
         ob_start();
