@@ -19,7 +19,7 @@
 			{
 				"name": "Questionnaire Options",
                 "url": "questionnaire-options.php",
-                "icon": "cog_go",
+                "icon": "fas fa-clipboard-check",
                 "show-header-and-footer": true
 			}
 		]
