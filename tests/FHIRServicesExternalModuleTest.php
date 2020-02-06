@@ -46,7 +46,7 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $assert($videoUrl, $this->getDescriptiveVideoHTML($fieldLabel, $videoUrl));
     }
 
-    function testHandleAnnotations_charLimit(){
+    function testHandleActionTags_charLimit(){
         $charLimit=rand();
 
         $field = [
@@ -55,7 +55,7 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
 
         $item = [];
 
-        $this->module->handleAnnotations($field, $item);
+        $this->module->handleActionTags($field, $item);
         
         $item = new FHIRQuestionnaireItem($item);
 

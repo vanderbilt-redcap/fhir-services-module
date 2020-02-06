@@ -1653,12 +1653,12 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $item['answerOption'] = $this->getFHIRAnswerOptions($redcapField);
         }
 
-        $this->handleAnnotations($redcapField, $item);
+        $this->handleActionTags($redcapField, $item);
 
         return $item;
     }
 
-    function handleAnnotations($redcapField, &$item){
+    function handleActionTags($redcapField, &$item){
         $actionTags = $redcapField['misc'];
 
         $getValue = function($tagName) use ($redcapField){
