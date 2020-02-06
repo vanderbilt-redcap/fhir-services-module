@@ -625,8 +625,19 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $resource;
     }
 
-    function formatTimestamp($timestamp){
+    function formatFHIRTimestamp($timestamp){
         return date('Y-m-d\TH:i:sP', $timestamp);
+    }
+
+    function formatREDCapTimestamp($mixed){
+        if(gettype($mixed) === 'string'){
+            $d = new DateTime($mixed);
+        }
+        else{
+            $d = $mixed;
+        }
+
+        return $d->format('Y-m-d H:i');
     }
 
     function isFHIRResource($o){
@@ -680,7 +691,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
         
         $bundle = new FHIRBundle([
-            'timestamp' => $this->formatTimestamp(time()),
+            'timestamp' => $this->formatFHIRTimestamp(time()),
             'type' => [
                 'value' => 'document'
             ],
@@ -775,7 +786,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $composition = $addToBundle(new FHIRComposition([
             'status' => 'preliminary',
-            'date' => $this->formatTimestamp(time()), // TODO - This should pull the last edit time from the log instead.
+            'date' => $this->formatFHIRTimestamp(time()), // TODO - This should pull the last edit time from the log instead.
             'title' => $compositionData['type'],
             'confidentiality' => 'L', // TODO - Where should this come from?
             'type' => [
@@ -1237,7 +1248,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $v = $this->getValue($answer->getValueDateTime());
 
             if(!empty($v)){
-                $v = (new DateTime($v))->format('Y-m-d H:i');
+                $v = $this->formatREDCapTimestamp($v);
             }
         }
 
@@ -1574,39 +1585,44 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     $lastResponseItem = $responseItem;
                 }
 
-                $type = $this->getValue($item->getType());
-                if(in_array($type, ['string', 'text'])){
-                    $answerData = ['valueString' => $value];
-                }
-                else if($type === 'integer'){
-                    $answerData = ['valueInteger' => $value];
-                }
-                else if($type === 'decimal'){
-                    $answerData = ['valueDecimal' => $value];
-                }
-                else if($type === 'boolean'){
-                    $answerData = ['valueBoolean' => $value === '1'];
-                }
-                else if($type === 'dateTime'){
-                    $answerData = ['valueDateTime' => $this->formatTimestamp(strtotime("$value UTC"))];
-                }
-                else if(in_array($type, ['choice', 'open-choice'])){
-                    $answerData = [
-                        'valueCoding' => new FHIRCoding([
-                            'code' => $value,
-                            'display' => $this->getAnswers($item)[$value]
-                        ])
-                    ];
-                }
-                else{
-                    throw new Exception("Type not supported: $type");
-                }
-
-                $responseItem->addAnswer(new FHIRQuestionnaireResponseAnswer($answerData));
+                $answer = $this->createQuestionnaireAnswer($item, $value);
+                $responseItem->addAnswer($answer);
             }
         });
 
         return $questionnaireResponse;
+    }
+
+    function createQuestionnaireAnswer($item, $value){
+        $type = $this->getValue($item->getType());
+        if(in_array($type, ['string', 'text'])){
+            $answerData = ['valueString' => $value];
+        }
+        else if($type === 'integer'){
+            $answerData = ['valueInteger' => $value];
+        }
+        else if($type === 'decimal'){
+            $answerData = ['valueDecimal' => $value];
+        }
+        else if($type === 'boolean'){
+            $answerData = ['valueBoolean' => $value === '1'];
+        }
+        else if($type === 'dateTime'){
+            $answerData = ['valueDateTime' => $this->formatFHIRTimestamp(strtotime("$value UTC"))];
+        }
+        else if(in_array($type, ['choice', 'open-choice'])){
+            $answerData = [
+                'valueCoding' => new FHIRCoding([
+                    'code' => $value,
+                    'display' => $this->getAnswers($item)[$value]
+                ])
+            ];
+        }
+        else{
+            throw new Exception("Type not supported: $type");
+        }
+
+        return new FHIRQuestionnaireResponseAnswer($answerData);
     }
 
     function getRemoteFHIRServerUrl(){

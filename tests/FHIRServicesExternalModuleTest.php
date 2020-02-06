@@ -2,7 +2,10 @@
 
 require_once __DIR__ . '/../../../redcap_connect.php';
 
+use DateTime;
+use DateTimeZone;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaire\FHIRQuestionnaireItem;
+use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRCode;
 
 class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
     private function getFormName(){
@@ -79,5 +82,37 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $assert(false);
     }
 
-    
+    function testGetAnswerValue(){
+        $assert = function($value, $type){
+            $item = new FHIRQuestionnaireItem([
+                'type' => $type
+            ]);
+
+            $answer = $this->createQuestionnaireAnswer($item, $value);
+            if($type === 'boolean' && $value === '1'){
+                $value = true;
+            }
+            else if($type === 'dateTime'){
+                $d = new DateTime($value, new DateTimeZone('UTC'));
+                $d->setTimezone(new DateTimeZone(date_default_timezone_get()));
+                $value = $this->formatREDCapTimestamp($d);
+            }
+
+            $actualValue = $this->module->getAnswerValue($item, $answer);
+            if(in_array($type, ['choice', 'open-choice'])){
+                $actualValue = $this->getValue($actualValue);
+            }
+
+            $this->assertSame($value, $actualValue);
+        };
+
+        $assert('abc', 'string');
+        $assert('def', 'text');
+        $assert('ghi', 'choice');
+        $assert(1, 'integer');
+        $assert(1.1, 'decimal');
+        $assert('1', 'boolean');
+        $assert('2020-02-06 12:00', 'dateTime');
+        $assert('whatever', 'open-choice');
+    }
 }
