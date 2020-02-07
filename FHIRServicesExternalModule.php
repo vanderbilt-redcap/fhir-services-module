@@ -625,19 +625,37 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $resource;
     }
 
-    function formatFHIRTimestamp($timestamp){
-        return date('Y-m-d\TH:i:sP', $timestamp);
+    function formatFHIRDateTime($timestamp){
+        return $this->getDateTime($timestamp)->format('Y-m-d\TH:i:sP');
     }
 
-    function formatREDCapTimestamp($mixed){
-        if(gettype($mixed) === 'string'){
-            $d = new DateTime($mixed);
+    function formatFHIRTime($timestamp){
+        return $this->getDateTime($timestamp)->format('H:i:s');
+    }
+
+    function formatREDCapDateTime($mixed){
+        return $this->getDateTime($mixed)->format('Y-m-d H:i');
+    }
+
+    function formatREDCapTime($mixed){
+        return $this->getDateTime($mixed)->format('H:i');
+    }
+
+    private function getDateTime($mixed){
+        $type = gettype($mixed);
+
+        if($type === 'string'){
+            return new DateTime($mixed);
+        }
+        else if($type === 'integer'){
+            $d = new DateTime();
+            $d->setTimestamp($mixed);
+            return $d;
         }
         else{
-            $d = $mixed;
+            // Assume this is already a DateTime object.
+            return $mixed;
         }
-
-        return $d->format('Y-m-d H:i');
     }
 
     function isFHIRResource($o){
@@ -691,7 +709,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
         
         $bundle = new FHIRBundle([
-            'timestamp' => $this->formatFHIRTimestamp(time()),
+            'timestamp' => $this->formatFHIRDateTime(time()),
             'type' => [
                 'value' => 'document'
             ],
@@ -786,7 +804,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $composition = $addToBundle(new FHIRComposition([
             'status' => 'preliminary',
-            'date' => $this->formatFHIRTimestamp(time()), // TODO - This should pull the last edit time from the log instead.
+            'date' => $this->formatFHIRDateTime(time()), // TODO - This should pull the last edit time from the log instead.
             'title' => $compositionData['type'],
             'confidentiality' => 'L', // TODO - Where should this come from?
             'type' => [
@@ -1248,8 +1266,20 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $v = $this->getValue($answer->getValueDateTime());
 
             if(!empty($v)){
-                $v = $this->formatREDCapTimestamp($v);
+                $v = $this->formatREDCapDateTime($v);
             }
+        }
+
+        if($v === null){
+            $v = $this->getValue($answer->getValueTime());
+
+            if(!empty($v)){
+                $v = $this->formatREDCapTime($v);
+            }
+        }
+
+        if($v === null){
+            $v = $this->getValue($answer->getValueDate());
         }
 
         if($v === null){
@@ -1608,7 +1638,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $answerData = ['valueBoolean' => $value === '1'];
         }
         else if($type === 'dateTime'){
-            $answerData = ['valueDateTime' => $this->formatFHIRTimestamp(strtotime("$value UTC"))];
+            $answerData = ['valueDateTime' => $this->formatFHIRDateTime(strtotime("$value UTC"))];
+        }
+        else if($type === 'date'){
+            $answerData = ['valueDate' => $value];
+        }
+        else if($type === 'time'){
+            $answerData = ['valueTime' => "$value:00"];
         }
         else if(in_array($type, ['choice', 'open-choice'])){
             $answerData = [
@@ -1675,16 +1711,55 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function handleActionTags($redcapField, &$item){
-        $actionTags = $redcapField['misc'];
-
         $getValue = function($tagName) use ($redcapField){
             return Form::getValueInActionTag($redcapField['misc'], $tagName);
         };
+
+        $default = $getValue('@DEFAULT');
+        if($default){
+            $item['initial'] = $this->getInitialValue($redcapField, $item, $default);
+        }
 
         $charLimit = $getValue('@CHARLIMIT');
         if($charLimit){
             $item['maxLength'] = $charLimit;
         }
+    }
+
+    private function getInitialValue($redcapField, $item, $value){
+        $fhirType = $this->getFHIRType($redcapField);
+        $methodNameSuffix = ucfirst($fhirType);
+        
+        if($fhirType === 'dateTime'){
+            $value = $this->formatFHIRDateTime($value);
+        }
+        else if($fhirType === 'time'){
+            $value = $this->formatFHIRTime($value);
+        }
+        else if(in_array($fhirType, ['text', 'textarea'])){
+            $methodNameSuffix = 'String';
+        }
+        else if($fhirType === 'choice'){
+            $value = $this->findCoding($item, $value);
+            $methodNameSuffix = 'Coding';
+        }
+
+        return [
+            'value' => [
+                "value$methodNameSuffix" => $value
+            ]
+        ];
+    }
+
+    private function findCoding($item, $value){
+        foreach($item['answerOption'] as $option){
+            $coding = $option['valueCoding'];
+            if($value === $coding['code']){
+                return $coding;
+            }
+        }
+
+        return null;
     }
 
     function getREDCapVersionDirURL(){
