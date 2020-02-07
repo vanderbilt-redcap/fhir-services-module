@@ -98,7 +98,7 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
                 $value = $this->formatREDCapTimestamp($d);
             }
 
-            $actualValue = $this->module->getAnswerValue($item, $answer);
+            $actualValue = $this->module->getAnswerValue($answer);
             if(in_array($type, ['choice', 'open-choice'])){
                 $actualValue = $this->getValue($actualValue);
             }

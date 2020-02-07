@@ -1154,7 +1154,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 else{
                     foreach($answers as $answer){                        
                         $fieldName = $this->getFieldName($item);
-                        $value = $this->getAnswerValue($item, $answer);
+                        $value = $this->getAnswerValue($answer);
                         
                         $formName = $this->getInstrumentName($parent, $item);
                         $repeatInstrument = '';
@@ -1241,7 +1241,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $forms;
     }
 
-    function getAnswerValue($item, $answer){
+    function getAnswerValue($answer){
         $v = $this->getValue($answer->getValueString());
         
         if($v === null){
