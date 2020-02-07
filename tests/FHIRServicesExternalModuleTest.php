@@ -84,28 +84,19 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
     }
 
     private function createQuestionnaireItem($item){
+        $item = array_merge($item, [
+            'element_type' => 'text'
+        ]);
+
         return new FHIRQuestionnaireItem($this->module->createQuestionnaireItem($item));
     }
 
     function testHandleActionTags_charLimit(){
-        // refactor this test?
         $charLimit=rand();
 
-        $field = [
-            'misc' => "@SOME-TAG @CHARLIMIT=$charLimit @SOME-OTHER-TAG"
-        ];
-
-        $item = [];
-
-        $this->module->handleActionTags($field, $item);
-        
-        $item['initial'] = [
-            'value' => [
-                'valueInteger' => 1
-            ]
-        ];
-
-        $item = new FHIRQuestionnaireItem($item);
+        $item = $this->createQuestionnaireItem([
+            'misc' => "@CHARLIMIT=$charLimit"
+        ]);
 
         $this->assertSame($charLimit, $this->getValue($item->getMaxLength()));
     }
