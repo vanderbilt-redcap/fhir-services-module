@@ -280,7 +280,7 @@
         "element_preceding_header": null,
         "element_type": "select",
         "element_label": "Dropdown",
-        "element_enum": "1, a \\n 2, b \\n 3, c",
+        "element_enum": "1, a \\n 2, b \\n 3, c \\n 4, d \\n 5, e",
         "element_note": null,
         "element_validation_type": null,
         "element_validation_min": null,
@@ -295,7 +295,7 @@
         "question_num": null,
         "grid_name": null,
         "grid_rank": 0,
-        "misc": null,
+        "misc": "@HIDECHOICE='4,5'",
         "video_url": null,
         "video_display_inline": 0
     },

@@ -1731,9 +1731,28 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $item['maxLength'] = $charLimit;
         }
 
+        $hiddenChoices = $getValue('@HIDECHOICE');
+        if($hiddenChoices){
+            $this->removeChoices($item, explode(',', $hiddenChoices));
+        }
+
         if($isTagPresent('@READONLY')){
             $item['readOnly'] = true;
         }
+    }
+
+    private function removeChoices(&$item, $hiddenChoices){
+        $hiddenChoices = array_flip($hiddenChoices);
+
+        $newAnswerOptions = [];
+        foreach($item['answerOption'] as $option){
+            $code = $option['valueCoding']['code'];
+            if(!isset($hiddenChoices[$code])){
+                $newAnswerOptions[] = $option;
+            }
+        }
+
+        $item['answerOption'] = $newAnswerOptions;
     }
 
     function hasActionTag($redcapField, $tagName){
