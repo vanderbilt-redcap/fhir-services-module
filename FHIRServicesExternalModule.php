@@ -1736,6 +1736,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
     }
 
+    function hasActionTag($redcapField, $tagName){
+        $actionTagsArray = array_flip(explode(' ', $redcapField['misc']));
+        return isset($actionTagsArray[$tagName]);
+    }
+
     private function getInitialValue($redcapField, $item, $value){
         $fhirType = $this->getFHIRType($redcapField);
         $methodNameSuffix = ucfirst($fhirType);
@@ -1812,6 +1817,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 ]));
 
                 $formGroup->addItem($group);
+            }
+
+            if($this->hasActionTag($field, '@HIDDEN')){
+                // Just exclude this field for now.
+                // In the future we may want to implement the following extension instead:
+                // https://www.hl7.org/fhir/extension-questionnaire-hidden.html
+                continue;
             }
 
             $items = [];
