@@ -1711,8 +1711,14 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function handleActionTags($redcapField, &$item){
-        $getValue = function($tagName) use ($redcapField){
-            return Form::getValueInActionTag($redcapField['misc'], $tagName);
+        $actionTags = $redcapField['misc'];
+        $getValue = function($tagName) use ($actionTags){
+            return Form::getValueInActionTag($actionTags, $tagName);
+        };
+        
+        $actionTagsArray = array_flip(explode(' ', $actionTags));
+        $isTagPresent = function($tagName) use ($actionTagsArray){
+            return isset($actionTagsArray[$tagName]);
         };
 
         $default = $getValue('@DEFAULT');
@@ -1723,6 +1729,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $charLimit = $getValue('@CHARLIMIT');
         if($charLimit){
             $item['maxLength'] = $charLimit;
+        }
+
+        if($isTagPresent('@READONLY')){
+            $item['readOnly'] = true;
         }
     }
 

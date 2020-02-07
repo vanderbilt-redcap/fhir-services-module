@@ -101,6 +101,19 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $this->assertSame($charLimit, $this->getValue($item->getMaxLength()));
     }
 
+    function testHandleActionTags_readonly(){
+        $assert = function($expected, $actionTags){
+            $item = $this->createQuestionnaireItem([
+                'misc' => $actionTags
+            ]);
+
+            $this->assertSame($expected, $this->getValue($item->getReadOnly()));
+        };
+
+        $assert(null, '');
+        $assert(true, '@READONLY');
+    }
+
     function testRepeatingForms(){
         $assert = function($isRepeating){
             $repeatingForms = [];
