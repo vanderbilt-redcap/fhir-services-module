@@ -82,7 +82,7 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $assert(false);
     }
 
-    function testGetAnswerValue(){
+    function testGetTypedValue(){
         $assert = function($value, $type){
             $item = new FHIRQuestionnaireItem([
                 'type' => $type
@@ -98,7 +98,7 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
                 $value = $this->formatREDCapTimestamp($d);
             }
 
-            $actualValue = $this->module->getAnswerValue($answer);
+            $actualValue = $this->module->getTypedValue($answer);
             if(in_array($type, ['choice', 'open-choice'])){
                 $actualValue = $this->getValue($actualValue);
             }
