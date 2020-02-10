@@ -27,11 +27,11 @@ while($field = $result->fetch_assoc()){
 
 $repeatingForms = $module->getRepeatingForms();
 
-list($questionnaire, $skippedFields) = $module->createQuestionnaire($pid, $formName, $formDisplayName, $fields, $repeatingForms);
+list($questionnaire, $warnings) = $module->createQuestionnaire($pid, $formName, $formDisplayName, $fields, $repeatingForms);
 
-if(isset($_GET['return-skipped-fields'])){
+if(isset($_GET['return-warnings'])){
     header('Content-type: application/fhir+json'); 
-    echo json_encode($skippedFields);
+    echo json_encode($warnings);
     return;
 }
 

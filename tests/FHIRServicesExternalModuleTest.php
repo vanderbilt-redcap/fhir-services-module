@@ -15,7 +15,17 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
     
     private function createQuestionnaire($repeatingForms = []){
         $fields = json_decode(file_get_contents(__DIR__ . '/fields.json'), true);
-        list($questionnaire, $skippedFields) = $this->module->createQuestionnaire(116, $this->getFormName(), 'All Field Type Examples', $fields, $repeatingForms);
+        list($questionnaire, $warnings) = $this->module->createQuestionnaire(116, $this->getFormName(), 'All Field Type Examples', $fields, $repeatingForms);
+
+        $this->assertSame([
+            'calculated',
+            'signature',
+            'slider',
+            'sql',
+        ], $warnings['skippedFields']);
+
+        $this->assertSame(['@SOME-UNSUPPORTED-TAG'], $warnings['unsupportedActionTags']);
+
         return $questionnaire;
     }
 

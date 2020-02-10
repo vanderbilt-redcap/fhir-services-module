@@ -37,6 +37,13 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnai
 
 const RESOURCE_RECEIVED = 'Resource Received';
 const FHIR_GROUP = 'fhir-group';
+const SUPPORTED_ACTION_TAGS = [
+    '@DEFAULT',
+    '@CHARLIMIT',
+    '@HIDECHOICE',
+    '@READONLY',
+    '@HIDDEN'
+];
 
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
     function redcap_every_page_top(){
@@ -71,14 +78,24 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     // The browser may consider the download a popup and block it if the user takes too long to dismiss the alert.
                     window.open(url);
 
-                    $.get(url + '&return-skipped-fields', function(fieldNames){
-                        if(fieldNames.length > 0){
-                            var message = 'The following fields were excluded from the downloaded Questionnaire because their type and/or validation settings are not yet supported:\n'
-                            
-                            fieldNames.forEach(function(fieldName){
-                                message += '\n        ' + fieldName
-                            })
+                    $.get(url + '&return-warnings', function(warnings){
+                        var message = ''
 
+                        var handleWarnings = function(items, itemMessage){
+                            var separator = '\n        '
+                            if(items.length === 0){
+                                return
+                            }
+
+                            message += itemMessage + ':\n'
+                            message += separator + items.join(separator)
+                            message += '\n\n'
+                        }
+
+                        handleWarnings(warnings.skippedFields, 'The following fields were excluded from the downloaded Questionnaire because their type and/or validation settings are not yet supported')
+                        handleWarnings(warnings.unsupportedActionTags, 'The following action tags were ignored because they are not currently supported')
+
+                        if(message.length > 0){
                             alert(message)
                         }
                     })
@@ -1710,8 +1727,15 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $item;
     }
 
+    private function checkForUnsupportedActionTag($tagName){
+        if(!in_array($tagName, SUPPORTED_ACTION_TAGS)){
+            throw new Exception("The following action tag must be added to the supported tags constant: $tagName");
+        }
+    }
+
     function handleActionTags($redcapField, &$item){
         $getValue = function($tagName) use ($redcapField){
+            $this->checkForUnsupportedActionTag($tagName);
             return @$redcapField['action_tags'][$tagName];
         };
         
@@ -1754,6 +1778,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     private function hasActionTag($redcapField, $tagName){
+        $this->checkForUnsupportedActionTag($tagName);
         return isset($redcapField['action_tags'][$tagName]);
     }
 
@@ -1835,9 +1860,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $questionnaire->addItem($formGroup);
 
         $skippedFields = [];
+        $unsupportedActionTags = [];
         $group = $formGroup;
         foreach($fields as $field){
             $field['action_tags'] = $this->parseActionTags($field);
+            $unsupportedActionTags = array_merge($unsupportedActionTags, $this->getUnsupportedActionTags($field));
 
             $fhirType = $this->getFHIRType($field);
             if($fhirType === null){
@@ -1884,7 +1911,24 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             }
         }
 
-        return [$questionnaire, $skippedFields];
+        return [
+            $questionnaire,
+            [
+                'skippedFields' => $skippedFields,
+                'unsupportedActionTags' => array_keys($unsupportedActionTags)
+            ]
+        ];
+    }
+
+    private function getUnsupportedActionTags($redcapField){
+        $unsupportedActionTags = [];
+        foreach($redcapField['action_tags'] as $tagName=>$value){
+            if(!in_array($tagName, SUPPORTED_ACTION_TAGS)){
+                $unsupportedActionTags[$tagName] = true;
+            }
+        }
+
+        return $unsupportedActionTags;
     }
 
     function getDescriptiveVideoHTML($text, $url){
