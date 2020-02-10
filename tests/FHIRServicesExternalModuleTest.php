@@ -34,11 +34,13 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $fieldLabel = 'Hey partner!';
 
         $assert = function($videoUrl, $expectedText) use ($fieldLabel){
-            $item = $this->module->createQuestionnaireItem([
+            $redcapField = [
                 'element_label' => $fieldLabel,
                 'element_type' => 'descriptive',
                 'video_url' => $videoUrl
-            ]);
+            ];
+
+            $item = $this->module->createQuestionnaireItem($redcapField);
 
             $this->assertSame($expectedText, $item['text']);
         };     

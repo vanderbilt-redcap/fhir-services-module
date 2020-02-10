@@ -1676,7 +1676,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         exit();
     }
 
-    function createQuestionnaireItem($redcapField){
+    function createQuestionnaireItem(&$redcapField){
         $fieldName = $redcapField['field_name'];
 
         $fhirType = $this->getFHIRType($redcapField);
@@ -1710,15 +1710,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $item;
     }
 
-    function handleActionTags($redcapField, &$item){
-        $actionTags = $redcapField['misc'];
-        $getValue = function($tagName) use ($actionTags){
-            return Form::getValueInActionTag($actionTags, $tagName);
+    function handleActionTags(&$redcapField, &$item){
+        $getValue = function($tagName) use ($redcapField){
+            return @$this->getActionTags($redcapField)[$tagName];
         };
         
-        $actionTagsArray = array_flip(explode(' ', $actionTags));
-        $isTagPresent = function($tagName) use ($actionTagsArray){
-            return isset($actionTagsArray[$tagName]);
+        $isTagPresent = function($tagName) use ($redcapField){
+            return $this->hasActionTag($redcapField, $tagName);
         };
 
         $default = $getValue('@DEFAULT');
@@ -1755,9 +1753,35 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $item['answerOption'] = $newAnswerOptions;
     }
 
-    function hasActionTag($redcapField, $tagName){
-        $actionTagsArray = array_flip(explode(' ', $redcapField['misc']));
-        return isset($actionTagsArray[$tagName]);
+    private function hasActionTag(&$redcapField, $tagName){
+        return isset($this->getActionTags($redcapField)[$tagName]);
+    }
+
+    private function getActionTags(&$redcapField){
+        if(!isset($redcapField['action_tags'])){
+            $redcapField['action_tags'] = $this->parseActionTags($redcapField);
+        }
+
+        return $redcapField['action_tags'];
+    }
+
+    private function parseActionTags($redcapField){
+        $misc = $redcapField['misc'];
+        $actionTags = explode(' ', $misc);
+
+        $parsed = [];
+        foreach($actionTags as $tag){
+            if(strpos($tag, '@') !== 0){
+                // We must be inside a quoted string value that contains spaces.  Skip this one.
+                continue;
+            }
+
+            $parts = explode('=', $tag);
+            $tagName = $parts[0];
+            $parsed[$tagName] = Form::getValueInActionTag($misc, $tagName);
+        }
+
+        return $parsed;
     }
 
     private function getInitialValue($redcapField, $item, $value){
@@ -1829,11 +1853,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
             $sectionHeader = @$field['element_preceding_header'];
             if(!empty($sectionHeader)){
-                $group = new FHIRQuestionnaireItem($this->createQuestionnaireItem([
+                $fakeSectionField = [
                     'field_name' => $field['field_name'] . "___section_header",
                     'element_label' => $sectionHeader,
                     'element_type' => FHIR_GROUP,
-                ]));
+                ];
+
+                $group = new FHIRQuestionnaireItem($this->createQuestionnaireItem($fakeSectionField));
 
                 $formGroup->addItem($group);
             }
