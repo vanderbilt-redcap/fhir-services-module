@@ -1676,7 +1676,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         exit();
     }
 
-    function createQuestionnaireItem(&$redcapField){
+    function createQuestionnaireItem($redcapField){
         $fieldName = $redcapField['field_name'];
 
         $fhirType = $this->getFHIRType($redcapField);
@@ -1710,9 +1710,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $item;
     }
 
-    function handleActionTags(&$redcapField, &$item){
+    function handleActionTags($redcapField, &$item){
         $getValue = function($tagName) use ($redcapField){
-            return @$this->getActionTags($redcapField)[$tagName];
+            return @$redcapField['action_tags'][$tagName];
         };
         
         $isTagPresent = function($tagName) use ($redcapField){
@@ -1753,19 +1753,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $item['answerOption'] = $newAnswerOptions;
     }
 
-    private function hasActionTag(&$redcapField, $tagName){
-        return isset($this->getActionTags($redcapField)[$tagName]);
+    private function hasActionTag($redcapField, $tagName){
+        return isset($redcapField['action_tags'][$tagName]);
     }
 
-    private function getActionTags(&$redcapField){
-        if(!isset($redcapField['action_tags'])){
-            $redcapField['action_tags'] = $this->parseActionTags($redcapField);
-        }
-
-        return $redcapField['action_tags'];
-    }
-
-    private function parseActionTags($redcapField){
+    function parseActionTags($redcapField){
         $misc = $redcapField['misc'];
         $actionTags = explode(' ', $misc);
 
@@ -1845,6 +1837,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $skippedFields = [];
         $group = $formGroup;
         foreach($fields as $field){
+            $field['action_tags'] = $this->parseActionTags($field);
+
             $fhirType = $this->getFHIRType($field);
             if($fhirType === null){
                 $skippedFields[] = $field['field_name'];

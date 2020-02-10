@@ -85,12 +85,13 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         }
     }
 
-    private function createQuestionnaireItem($item){
-        $item = array_merge($item, [
-            'element_type' => 'text'
+    private function createQuestionnaireItem($redcapField){
+        $redcapField = array_merge($redcapField, [
+            'element_type' => 'text',
+            'action_tags' => $this->parseActionTags($redcapField)
         ]);
 
-        return new FHIRQuestionnaireItem($this->module->createQuestionnaireItem($item));
+        return new FHIRQuestionnaireItem($this->module->createQuestionnaireItem($redcapField));
     }
 
     function testHandleActionTags_charLimit(){
