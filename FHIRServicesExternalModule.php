@@ -1276,11 +1276,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $forms;
     }
 
-    function getTypedValue($answer){
-        $v = $this->getValue($answer->getValueString());
+    function getTypedValue($mixed){
+        $v = $this->getValue($mixed->getValueString());
         
         if($v === null){
-            $v = $this->getValue($answer->getValueDateTime());
+            $v = $this->getValue($mixed->getValueDateTime());
 
             if(!empty($v)){
                 $v = $this->formatREDCapDateTime($v);
@@ -1288,7 +1288,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
 
         if($v === null){
-            $v = $this->getValue($answer->getValueTime());
+            $v = $this->getValue($mixed->getValueTime());
 
             if(!empty($v)){
                 $v = $this->formatREDCapTime($v);
@@ -1296,23 +1296,23 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
 
         if($v === null){
-            $v = $this->getValue($answer->getValueDate());
+            $v = $this->getValue($mixed->getValueDate());
         }
 
         if($v === null){
-            $v = $this->getValue($answer->getValueInteger());
+            $v = $this->getValue($mixed->getValueInteger());
         }
 
         if($v === null){
-            $v = $this->getValue($answer->getValueDecimal());
+            $v = $this->getValue($mixed->getValueDecimal());
         }
 
         if($v === null){
-            $v = $this->getValue($answer->getValueBoolean());
+            $v = $this->getValue($mixed->getValueBoolean());
         }
 
-        if($v === null && $answer->getValueCoding()){
-            $v = $answer->getValueCoding()->getCode();
+        if($v === null && $mixed->getValueCoding()){
+            $v = $mixed->getValueCoding()->getCode();
         }
 
         return $v;
