@@ -48,5 +48,8 @@
             "name": "Remote FHIR Server URL",
             "type": "text"
         }
-    ]
+    ],
+    "compatibility": {
+        "redcap-version-min": "9.7.8"
+    }
 }
