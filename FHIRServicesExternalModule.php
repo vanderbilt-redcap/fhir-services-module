@@ -175,7 +175,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 }
 
                 waitForElement('#recordActionDropdownDiv', function(dropdown){                       
-                    var lastPdfOption = $(dropdown.find('a[href*=\\/PDF\\/]').toArray().reverse()[0]).parent()
+                    var lastPdfOption = $(dropdown.find('a:contains("Download PDF")').toArray().reverse()[0]).parent()
                     
                     var addOption = function(text, iconName, action){
                         var newOption = lastPdfOption.clone()
