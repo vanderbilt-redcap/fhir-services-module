@@ -2,7 +2,7 @@
     "name": "FHIR Services",
     "namespace": "Vanderbilt\\FHIRServicesExternalModule",
     "framework-version": 3,
-    "description": "TBD",
+    "description": "An experimental module prototyping multiple FHIR features (see the README documentation for details).",
     "authors": [
         {
             "name": "Mark McEver",
