@@ -41,6 +41,9 @@ while($row = $result->fetch_assoc()){
     $rows[$row['log_id']] = $row;
 }
 
+$baseUrl = $module->getUrl('services.php', true) . '&fhir-url=/';
+$baseUrl = str_replace('&pid=' . $module->getProjectId(), '', $baseUrl);
+
 ?>
 
 <style>
@@ -56,6 +59,16 @@ while($row = $result->fetch_assoc()){
         margin-bottom: 3px;
     }
 </style>
+
+<p>The <?=$module->getModuleName()?> module allows REDCap to receive resources like any FHIR server, after which they will appear in the list below.  Posted resources are currently shared between ALL REDCap projects (though this may change in the future).  Resources may be posted using the following URL format:</p>
+<pre><?=$baseUrl?>{your-resource-name}</pre>
+<p>Here are examples of a few actual URLs for posting specific resource types:</p>
+<pre>
+<?=$baseUrl?>Questionnaire
+<?=$baseUrl?>QuestiionnaireResponse
+<?=$baseUrl?>Binary
+</pre>
+<br>
 
 <div class="projhdr">Received Resources</div>
 <table class='table recevied-questionnaires'>
