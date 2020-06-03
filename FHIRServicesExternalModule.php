@@ -65,6 +65,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         <script>
             $(function(){
                 var menu = $('#formActionDropdown')
+                if(menu.length === 0){
+                    // We're not on the main online designer page.
+                    return
+                }
+
                 var zipDownloadItem = menu.find('li:last-child')[0]
                 
                 var newItem = $(zipDownloadItem).clone()
