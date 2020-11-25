@@ -71,7 +71,7 @@ $(function(){
             return typeahead
         },
         initResourceTypeahead: function(elementTypeahead){
-            return module.initTypeahead({
+            var resourceTypeAhead = module.initTypeahead({
                 placeholder: 'Type or select a Resource',
                 blur: function(typeahead){
                     var elements = module.schema[typeahead.val()]
@@ -97,6 +97,42 @@ $(function(){
                     }
                 }
             })
+
+            elementTypeahead.blur(function(){
+                var resource = resourceTypeAhead.val()
+                var element = elementTypeahead.val()
+
+                var textarea = $('#div_parent_field_annotation textarea')
+                var tags = textarea.val()
+
+                var tagPrefix = "@FHIR-ELEMENT='"
+                var tagStartIndex = tags.indexOf(tagPrefix)
+                if(tagStartIndex === -1){
+                    tagStartIndex = tags.length
+                }
+
+                var tagSuffix = "'"
+                var tagEndIndex = tags.indexOf(tagSuffix, tagStartIndex+tagPrefix.length)
+                if(tagEndIndex === -1){
+                    tagEndIndex = tags.length
+                }
+                else{
+                    tagEndIndex++ // put it past the end of the tag
+                }
+
+                var newTag = ''
+                if(resource != '' && element != ''){
+                    newTag = tagPrefix + resource + '/' + element + tagSuffix
+                }
+
+                if(tagStartIndex > 0 && tags[tagStartIndex-1] !== ' '){
+                    newTag = ' ' + newTag
+                }
+
+                textarea.val(tags.substring(0, tagStartIndex) + newTag + tags.substring(tagEndIndex))
+            })
+
+            return resourceTypeAhead
         },
         initAutocomplete: function(typeahead, options){
             options.minLength = 0
