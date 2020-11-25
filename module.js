@@ -2,26 +2,45 @@ $(function(){
     var module = $.extend(FHIRServicesExternalModule, {
         init: function(){
             var elementTypeahead = module.initTypeahead({placeholder: 'Type or select an Element'})
-            elementTypeahead.hide()
-
             var resourceTypeahead = module.initResourceTypeahead(elementTypeahead)
+
+            module.RESOURCE_TYPEAHEAD = resourceTypeahead
+            module.ELEMENT_TYPEAHEAD = elementTypeahead
 
             var typeaheadContainer = $('<div />')
             typeaheadContainer.append(resourceTypeahead)
             typeaheadContainer.append(elementTypeahead)
-            typeaheadContainer.hide()
 
             var validationTypeSelect = module.getOntologySelect()
             validationTypeSelect.parent().append(typeaheadContainer)
-            
-            var fhirElement = 'FHIR-ELEMENT'
-            validationTypeSelect.append("<option value='" + fhirElement + "'>FHIR Resource/Element</option>")
-            validationTypeSelect.change(function(){
-                if(validationTypeSelect.val() === fhirElement){
-                    module.initAutocomplete(resourceTypeahead, {
-                        source: Object.keys(module.schema)
-                    })
 
+            var ontologySelectValue = 'FHIR-ELEMENT'
+            var openAddQuesFormVisible = window.openAddQuesFormVisible
+            window.openAddQuesFormVisible = function(){
+                openAddQuesFormVisible.apply(null, arguments);
+
+                var details = module.getExistingActionTagDetails()
+                
+                if(details.value === ''){
+                    resourceTypeahead.val('')
+                    elementTypeahead.val('')
+                    typeaheadContainer.hide()
+                    elementTypeahead.hide()
+                }
+                else{
+                    var parts = details.value.split('/')
+                    module.getOntologySelect().val(ontologySelectValue)
+                    resourceTypeahead.val(parts.shift())
+                    elementTypeahead.val(parts.join('/'))
+
+                    typeaheadContainer.show()
+                    module.initElementAutocomplete()
+                }
+            }
+            
+            validationTypeSelect.append("<option value='" + ontologySelectValue + "'>FHIR Resource/Element</option>")
+            validationTypeSelect.change(function(){
+                if(validationTypeSelect.val() === ontologySelectValue){
                     typeaheadContainer.show()
                     
                     if(resourceTypeahead.val() === ''){
@@ -38,6 +57,7 @@ $(function(){
         },
         initTypeahead: function(options){
             options = $.extend({
+                source: [],
                 focus: function(){},
                 blur: function(){}
             }, options)
@@ -68,28 +88,37 @@ $(function(){
                 }
             })
 
+            typeahead.autocomplete({
+                appendTo: '#div_add_field', // required for z-index to work properly
+                source: options.source,
+                minLength: 0,
+                select: function(e, result){
+                    typeahead.val(result.item.value)
+                    typeahead.blur()
+                }
+            })
+            .autocomplete( "instance" )._renderItem = function( ul, item ){
+                var label = item.label
+
+                if(item.description){
+                    label = "<b>" + item.label + "</b><br>" + item.description
+                }
+
+                return $( "<li />" )
+                    .append('<div>' + label + '</div>')
+                    .appendTo( ul );
+            }
+
             return typeahead
         },
         initResourceTypeahead: function(elementTypeahead){
             var resourceTypeAhead = module.initTypeahead({
+                source: Object.keys(module.schema),
                 placeholder: 'Type or select a Resource',
                 blur: function(typeahead){
-                    var elements = module.schema[typeahead.val()]
+                    var elements = module.getElementsForResource()
                     if(elements){
-                        var options = []
-                        for(var path in elements){
-                            options.push({
-                                label: path,
-                                value: path,
-                                description: elements[path].description
-                            })
-                        }
-
-                        module.initAutocomplete(elementTypeahead, {
-                            source: options
-                        })
-
-                        elementTypeahead.show()
+                        module.initElementAutocomplete()
                         elementTypeahead.focus()
                     }
                     else{
@@ -99,30 +128,19 @@ $(function(){
             })
 
             elementTypeahead.blur(function(){
+                var textarea = module.getActionTagTextArea()
+                var tags = textarea.val()
+
+                var details = module.getExistingActionTagDetails()
+                var tagStartIndex = details.tagStartIndex
+                var tagEndIndex = details.tagEndIndex
+
                 var resource = resourceTypeAhead.val()
                 var element = elementTypeahead.val()
 
-                var textarea = $('#div_parent_field_annotation textarea')
-                var tags = textarea.val()
-
-                var tagPrefix = "@FHIR-ELEMENT='"
-                var tagStartIndex = tags.indexOf(tagPrefix)
-                if(tagStartIndex === -1){
-                    tagStartIndex = tags.length
-                }
-
-                var tagSuffix = "'"
-                var tagEndIndex = tags.indexOf(tagSuffix, tagStartIndex+tagPrefix.length)
-                if(tagEndIndex === -1){
-                    tagEndIndex = tags.length
-                }
-                else{
-                    tagEndIndex++ // put it past the end of the tag
-                }
-
                 var newTag = ''
                 if(resource != '' && element != ''){
-                    newTag = tagPrefix + resource + '/' + element + tagSuffix
+                    newTag = module.ACTION_TAG_PREFIX + resource + '/' + element + module.ACTION_TAG_SUFFIX
                 }
 
                 if(tagStartIndex > 0 && tags[tagStartIndex-1] !== ' '){
@@ -134,24 +152,52 @@ $(function(){
 
             return resourceTypeAhead
         },
-        initAutocomplete: function(typeahead, options){
-            options.minLength = 0
-            options.select = function(e, result){
-                typeahead.val(result.item.value)
-                typeahead.blur()
+        initElementAutocomplete: function(){
+            var elements = module.getElementsForResource()
+
+            var options = []
+            for(var path in elements){
+                options.push({
+                    label: path,
+                    value: path,
+                    description: elements[path].description
+                })
             }
-            
-            typeahead.autocomplete(options)
-            .autocomplete( "instance" )._renderItem = function( ul, item ){
-                var label = item.label
 
-                if(item.description){
-                    label = "<b>" + item.label + "</b><br>" + item.description
-                }
+            module.ELEMENT_TYPEAHEAD.autocomplete('option', 'source', options)
+            module.ELEMENT_TYPEAHEAD.show()
+        },
+        getElementsForResource: function(){
+            return module.schema[module.RESOURCE_TYPEAHEAD.val()]
+        },
+        ACTION_TAG_PREFIX: "@FHIR-ELEMENT='",
+        ACTION_TAG_SUFFIX: "'",
+        getActionTagTextArea: function(){
+            return $('#div_field_annotation textarea')
+        },
+        getExistingActionTagDetails(){
+            var textarea = module.getActionTagTextArea()
+            var tags = textarea.val()
 
-                return $( "<li />" )
-                    .append('<div>' + label + '</div>')
-                    .appendTo( ul );
+            var tagPrefix = module.ACTION_TAG_PREFIX
+            var tagStartIndex = tags.indexOf(tagPrefix)
+            if(tagStartIndex === -1){
+                tagStartIndex = tags.length
+            }
+
+            var tagSuffix = module.ACTION_TAG_SUFFIX
+            var tagEndIndex = tags.indexOf(tagSuffix, tagStartIndex+tagPrefix.length)
+            if(tagEndIndex === -1){
+                tagEndIndex = tags.length
+            }
+            else{
+                tagEndIndex++ // put it past the end of the tag
+            }
+
+            return {
+                tagStartIndex: tagStartIndex,
+                tagEndIndex: tagEndIndex,
+                value: tags.substring(tagStartIndex + tagPrefix.length, tagEndIndex-1)
             }
         }
     })
