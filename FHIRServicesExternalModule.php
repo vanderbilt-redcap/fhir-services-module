@@ -1,6 +1,7 @@
 <?php namespace Vanderbilt\FHIRServicesExternalModule;
 
 require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/SchemaParser.php';
 
 use REDCap;
 use DateTime;
@@ -61,6 +62,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     private function hookOnlineDesigner(){
+        $this->getEditFieldModifications();
         ?>
         <script>
             $(function(){
@@ -109,6 +111,17 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 newItem.insertAfter(zipDownloadItem)
             })
         </script>
+        <?php
+    }
+
+    private function getEditFieldModifications(){
+        ?>
+        <script>
+            var FHIRServicesExternalModule = {
+                schema: <?=json_encode(SchemaParser::parse())?>,
+            }
+        </script>
+        <script src="<?=$this->getUrl('module.js')?>" />
         <?php
     }
 
