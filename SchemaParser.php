@@ -55,12 +55,23 @@ class SchemaParser{
                 self::handleProperty($parts, $property);
             }
             else{
-                self::handleProperties($parts, $subProperties);
+                if($refDefinitionName === 'ContactPoint'){
+                    $systemCodes = $subProperties['system']['enum'];
+                    unset($subProperties['system']);
+                    foreach($systemCodes as $code){
+                        self::handleProperties(array_merge($parts, [$code]), $subProperties);
+                    }
+        
+                    return;
+                }
+                else{
+                    self::handleProperties($parts, $subProperties);
+                }
             }
         }
     }
 
-    private function handleProperty($parts, $property){
+    private static function handleProperty($parts, $property){
         $resourceName = array_shift($parts);
         self::$result[$resourceName][implode('/', $parts)] = $property;
     }
