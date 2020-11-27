@@ -88,6 +88,14 @@ $(function(){
                 }
             })
 
+            typeahead.keypress(function(e) {
+                var code = (e.keyCode ? e.keyCode : e.which);
+                if(code == 13) { //Enter keycode
+                    // Ignore it
+                    return false;
+                }
+            });
+
             typeahead.autocomplete({
                 appendTo: '#div_add_field', // required for z-index to work properly
                 source: options.source,
