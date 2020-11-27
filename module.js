@@ -22,10 +22,12 @@ $(function(){
                 var details = module.getExistingActionTagDetails()
                 
                 if(details.value === ''){
-                    resourceTypeahead.val('')
+                    /**
+                     * The previously selected resource is intentionally left in place to make it
+                     * easy to map several fields for the same resource in a row.
+                     */
                     elementTypeahead.val('')
                     typeaheadContainer.hide()
-                    elementTypeahead.hide()
                 }
                 else{
                     var parts = details.value.split('/')
@@ -44,7 +46,11 @@ $(function(){
                     typeaheadContainer.show()
                     
                     if(resourceTypeahead.val() === ''){
+                        elementTypeahead.hide()
                         resourceTypeahead.focus()
+                    }
+                    else if(elementTypeahead.val() === ''){
+                        elementTypeahead.focus()
                     }
                 }
                 else{
