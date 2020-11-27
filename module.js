@@ -92,6 +92,9 @@ $(function(){
                 appendTo: '#div_add_field', // required for z-index to work properly
                 source: options.source,
                 minLength: 0,
+                classes: {
+                    'ui-autocomplete': 'fhir-services-module'
+                },
                 select: function(e, result){
                     typeahead.val(result.item.value)
                     typeahead.blur()

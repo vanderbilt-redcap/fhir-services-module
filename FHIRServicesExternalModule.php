@@ -116,6 +116,14 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
     private function getEditFieldModifications(){
         ?>
+        <style>
+            .ui-autocomplete.fhir-services-module{
+                max-width: 330px;
+            }
+            .ui-autocomplete.fhir-services-module li{
+                white-space: normal !important;
+            }
+        </style>
         <script>
             var FHIRServicesExternalModule = {
                 schema: <?=json_encode(SchemaParser::parse())?>,
