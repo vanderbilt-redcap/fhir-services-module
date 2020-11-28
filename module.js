@@ -24,6 +24,10 @@ $(function(){
                 openAddQuesFormVisible.apply(null, arguments);
 
                 var details = module.getExistingActionTagDetails()
+                if(!details){
+                    // A error must have occurred.
+                    return
+                }
                 
                 if(details.value === ''){
                     /**
@@ -134,6 +138,11 @@ $(function(){
                 var tags = textarea.val()
 
                 var details = module.getExistingActionTagDetails()
+                if(!details){
+                    // A error must have occurred.
+                    return
+                }
+
                 var tagStartIndex = details.tagStartIndex
                 var tagEndIndex = details.tagEndIndex
 
@@ -185,15 +194,17 @@ $(function(){
             var tagStartIndex = tags.indexOf(tagPrefix)
             if(tagStartIndex === -1){
                 tagStartIndex = tags.length
-            }
-
-            var tagSuffix = module.ACTION_TAG_SUFFIX
-            var tagEndIndex = tags.indexOf(tagSuffix, tagStartIndex+tagPrefix.length)
-            if(tagEndIndex === -1){
                 tagEndIndex = tags.length
             }
             else{
-                tagEndIndex++ // put it past the end of the tag
+                var tagEndIndex = tags.indexOf(module.ACTION_TAG_SUFFIX, tagStartIndex+tagPrefix.length)
+                if(tagEndIndex === -1){
+                    alert("Corrupt action tag detected.  Please remove what's left of the " + module.ACTION_TAG_PREFIX + module.ACTION_TAG_SUFFIX + " action tag.")
+                    return false
+                }
+                else{
+                    tagEndIndex++ // put it past the end of the tag
+                }
             }
 
             return {
