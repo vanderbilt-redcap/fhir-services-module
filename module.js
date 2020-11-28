@@ -1,20 +1,24 @@
 $(function(){
     var module = $.extend(FHIRServicesExternalModule, {
         init: function(){
-            var elementTypeahead = module.initTypeahead({placeholder: 'Type or select an Element'})
+            var elementTypeahead = module.initTypeahead({})
             var resourceTypeahead = module.initResourceTypeahead(elementTypeahead)
 
             module.RESOURCE_TYPEAHEAD = resourceTypeahead
             module.ELEMENT_TYPEAHEAD = elementTypeahead
 
-            var typeaheadContainer = $('<div />')
-            typeaheadContainer.append(resourceTypeahead)
-            typeaheadContainer.append(elementTypeahead)
+            var addRow = function(label, field){
+                var row = $('<div />')
+                row.append('<label>' + label + ':</label>')
+                row.append(field)
 
-            var validationTypeSelect = module.getOntologySelect()
-            validationTypeSelect.parent().append(typeaheadContainer)
+                typeaheadContainer.append(row)
+            }
 
-            var ontologySelectValue = 'FHIR-ELEMENT'
+            var typeaheadContainer = $('<div id="fhir-services-mapping-field-settings" style="border: 1px solid rgb(211, 211, 211); padding: 4px 8px; margin-top: 5px; display: block;"><b>FHIR Mapping</b></div>')
+            addRow('Resource', resourceTypeahead)
+            addRow('Element', elementTypeahead)
+
             var openAddQuesFormVisible = window.openAddQuesFormVisible
             window.openAddQuesFormVisible = function(){
                 openAddQuesFormVisible.apply(null, arguments);
@@ -27,39 +31,22 @@ $(function(){
                      * easy to map several fields for the same resource in a row.
                      */
                     elementTypeahead.val('')
-                    typeaheadContainer.hide()
+                    elementTypeahead.parent().hide()
                 }
                 else{
                     var parts = details.value.split('/')
-                    module.getOntologySelect().val(ontologySelectValue)
                     resourceTypeahead.val(parts.shift())
                     elementTypeahead.val(parts.join('/'))
 
-                    typeaheadContainer.show()
                     module.initElementAutocomplete()
                 }
+
+                if(resourceTypeahead.val() !== ''){
+                    elementTypeahead.parent().show()
+                }
             }
-            
-            validationTypeSelect.append("<option value='" + ontologySelectValue + "'>FHIR Resource/Element</option>")
-            validationTypeSelect.change(function(){
-                if(validationTypeSelect.val() === ontologySelectValue){
-                    typeaheadContainer.show()
-                    
-                    if(resourceTypeahead.val() === ''){
-                        elementTypeahead.hide()
-                        resourceTypeahead.focus()
-                    }
-                    else if(elementTypeahead.val() === ''){
-                        elementTypeahead.focus()
-                    }
-                }
-                else{
-                    typeaheadContainer.hide()
-                }
-            })
-        },
-        getOntologySelect: function(){
-            return $('#ontology_service_select')
+
+            $('#div_field_req').before(typeaheadContainer)
         },
         initTypeahead: function(options){
             options = $.extend({
@@ -68,8 +55,7 @@ $(function(){
                 blur: function(){}
             }, options)
 
-            var typeahead = $('<input class="x-form-text x-form-field" placeholder="' + options.placeholder + '" style="margin-top: 3px">')
-            typeahead[0].style.width = module.getOntologySelect()[0].style.width
+            var typeahead = $('<input class="x-form-text x-form-field">')
 
             typeahead.focus(function(){
                 options.focus(typeahead)
@@ -131,7 +117,6 @@ $(function(){
         initResourceTypeahead: function(elementTypeahead){
             var resourceTypeAhead = module.initTypeahead({
                 source: Object.keys(module.schema),
-                placeholder: 'Type or select a Resource',
                 blur: function(typeahead){
                     var elements = module.getElementsForResource()
                     if(elements){
@@ -139,7 +124,7 @@ $(function(){
                         elementTypeahead.focus()
                     }
                     else{
-                        elementTypeahead.hide()
+                        elementTypeahead.parent().hide()
                     }
                 }
             })
@@ -182,7 +167,7 @@ $(function(){
             }
 
             module.ELEMENT_TYPEAHEAD.autocomplete('option', 'source', options)
-            module.ELEMENT_TYPEAHEAD.show()
+            module.ELEMENT_TYPEAHEAD.parent().show()
         },
         getElementsForResource: function(){
             return module.schema[module.RESOURCE_TYPEAHEAD.val()]

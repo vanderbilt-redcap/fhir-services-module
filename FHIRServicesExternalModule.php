@@ -118,10 +118,25 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         ?>
         <style>
             .ui-autocomplete.fhir-services-module{
-                max-width: 330px;
+                max-width: 298px;
+                max-height: 208px;  
             }
             .ui-autocomplete.fhir-services-module li{
                 white-space: normal !important;
+            }
+            #fhir-services-mapping-field-settings > b{
+                margin-bottom: 5px;
+                display: block;
+            }
+            #fhir-services-mapping-field-settings label{
+                font-weight: bold;
+                margin-right: 3px;
+                min-width: 19%;
+                vertical-align: -2px;
+                text-align: right;
+            }
+            #fhir-services-mapping-field-settings input{
+                width: 78%;
             }
         </style>
         <script>
