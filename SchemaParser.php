@@ -61,8 +61,6 @@ class SchemaParser{
                     foreach($systemCodes as $code){
                         self::handleProperties(array_merge($parts, [$code]), $subProperties);
                     }
-        
-                    return;
                 }
                 else{
                     self::handleProperties($parts, $subProperties);
