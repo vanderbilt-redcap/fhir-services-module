@@ -172,7 +172,7 @@ $(function(){
         getElementsForResource: function(){
             return module.schema[module.RESOURCE_TYPEAHEAD.val()]
         },
-        ACTION_TAG_PREFIX: "@FHIR-ELEMENT='",
+        ACTION_TAG_PREFIX: "@FHIR-MAPPING='",
         ACTION_TAG_SUFFIX: "'",
         getActionTagTextArea: function(){
             return $('#div_field_annotation textarea')
