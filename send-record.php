@@ -8,8 +8,13 @@ $recordId = $_GET['id'];
 if($module->getProjectType() === 'composition'){
     $resource = $module->buildBundle($projectId, $recordId);
 }
-else{
+else if($module->getProjectType() === 'questionnaire'){
     $resource = $module->getFHIRResourceForRecord($projectId, $_GET['id']);
+}
+else{
+    // This feature likely won't live here long term, but this is a good place for testing.
+    echo $module->getMappedFieldJSON($projectId, $recordId);
+    die();
 }
 
 // Remove the ID since it is not allowed because it will be different on the remote system.

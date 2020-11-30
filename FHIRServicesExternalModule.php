@@ -46,6 +46,9 @@ const SUPPORTED_ACTION_TAGS = [
     '@HIDDEN'
 ];
 
+const ACTION_TAG_PREFIX = "@FHIR-MAPPING='";
+const ACTION_TAG_SUFFIX = "'";
+
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
     function redcap_every_page_top(){
         if($this->isPage('DataEntry/record_home.php')){
@@ -140,9 +143,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             }
         </style>
         <script>
-            var FHIRServicesExternalModule = {
-                schema: <?=json_encode(SchemaParser::parse())?>,
-            }
+            var FHIRServicesExternalModule = <?=json_encode([
+                'schema' => SchemaParser::parse(),
+                'ACTION_TAG_PREFIX' => ACTION_TAG_PREFIX,
+                'ACTION_TAG_SUFFIX' => ACTION_TAG_SUFFIX,
+            ])?>
         </script>
         <script src="<?=$this->getUrl('module.js')?>" />
         <?php
@@ -156,14 +161,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $projectType = $this->getProjectType();
         $resourceName = null;
-        if($projectType === 'composition'){
-            $resourceName ='Bundle';
-        }
-        else if($projectType === 'questionnaire'){
+        if($projectType === 'questionnaire'){
             $resourceName = 'QuestionnaireResponse';
         }
         else{
-            return;
+            $resourceName ='Bundle';
         }
 
         ?>
@@ -253,9 +255,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
                     addOption('Open FHIR ' + resourceName, 'file', openAction)
                 
-                    addOption('Send FHIR ' + resourceName + ' to remote FHIR server', 'file-export', function(){
-                        sendRecord(false)
-                    })
+                    var projectType = <?=json_encode($projectType)?>;
+                    if(projectType){
+                        // This is one of the projects used by the SIRB features/demo.
+                        addOption('Send FHIR ' + resourceName + ' to remote FHIR server', 'file-export', function(){
+                            sendRecord(false)
+                        })
+                    }
                 })
             })()
         </script>
@@ -2015,5 +2021,38 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $video_url_formatted = 'https://www.youtube.com/embed/' . $matches[2] . '?wmode=transparent&rel=0';
         }
         return $video_url_formatted;
+    }
+
+    function getMappedFieldJSON($projectId, $recordId){
+        $metadata = REDCap::getDataDictionary($projectId, 'array');
+        $mappings = [];
+        foreach($metadata as $fieldName=>$details){
+            $pattern = '/.*' . ACTION_TAG_PREFIX . '(.*)' . ACTION_TAG_SUFFIX . '.*/';
+            preg_match($pattern, $details['field_annotation'], $matches);
+            if(!empty($matches)){
+                $parts = explode('/', $matches[1]);
+                $mappings[$fieldName] = [
+                    'resource' => array_shift($parts),
+                    'elementName' => array_pop($parts),
+                    'elementParents' => $parts
+                ];        
+            }
+        }
+
+        $data = json_decode(REDCap::getData($projectId, 'json', $recordId, array_keys($mappings)), true)[0];
+        $result = [];
+        foreach($data as $fieldName=>$value){
+            $mapping = $mappings[$fieldName];
+            $result['resourceType'] = $mapping['resource'];
+            
+            $subPath = &$result;
+            foreach($mapping['elementParents'] as $parentName){
+                $subPath = &$subPath[$parentName];
+            }
+
+            $subPath[$mapping['elementName']] = $value;
+        }
+
+        return json_encode($result, JSON_PRETTY_PRINT);
     }
 }
