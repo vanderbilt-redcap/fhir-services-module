@@ -2039,20 +2039,138 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             }
         }
 
+        $schemaJSON = file_get_contents(__DIR__ . '/fhir.schema.json');
+        $schema = json_decode($schemaJSON, true);
         $data = json_decode(REDCap::getData($projectId, 'json', $recordId, array_keys($mappings)), true)[0];
-        $result = [];
+        $resources = [];
+        $contactPoints = [];
         foreach($data as $fieldName=>$value){
             $mapping = $mappings[$fieldName];
-            $result['resourceType'] = $mapping['resource'];
-            
-            $subPath = &$result;
-            foreach($mapping['elementParents'] as $parentName){
-                $subPath = &$subPath[$parentName];
+            $resourceName = $mapping['resource'];
+            $elementName = $mapping['elementName'];
+
+            if(!isset($resources[$resourceName])){
+                $resources[$resourceName] = [
+                    'resourceType' => $resourceName
+                ];
             }
 
-            $subPath[$mapping['elementName']] = $value;
+            $resource = &$resources[$resourceName];
+            
+            $subPath = &$resource;
+            $parentProperty = [
+                'type' => null
+            ];
+            $parentDefinition = $schema['definitions'][$resourceName];
+
+            foreach($mapping['elementParents'] as $parentName){
+                $subPath = &$subPath[$parentName];
+                $parentProperty = $parentDefinition['properties'][$parentName];
+                $subResourceName = SchemaParser::getResourceNameFromRef($parentProperty);
+                $parentDefinition = $schema['definitions'][$subResourceName];
+
+                if($subResourceName === 'ContactPoint'){
+                    $contactPoints[] = &$subPath;
+                }
+            }
+
+            if($parentProperty['type'] === 'array'){
+                $i=-1;
+                do{
+                    $i++;
+                    $arraySubPath = &$subPath[$i];
+                }while(isset($arraySubPath[$elementName]));
+
+                $subPath = &$arraySubPath;
+            }
+
+            $elementProperty = $parentDefinition['properties'][$elementName];
+            if($elementProperty['type'] === 'array'){
+                $value = [$value];
+            }
+            
+            if(isset($subPath[$elementName])){
+                throw new Exception("The following element is currently mapped to multiple fields, which is not supported: " . json_encode($mapping, JSON_PRETTY_PRINT));
+            }
+
+            $subPath[$elementName] = $value;
         }
 
-        return json_encode($result, JSON_PRETTY_PRINT);
+        $this->formatContactPoints($contactPoints);
+
+        $bundle = [
+            'resourceType' => 'Bundle',
+            'type' => 'collection',
+        ];
+
+        foreach($resources as $resource){
+            $bundle['entry'][]['resource'] = $resource;
+        }
+
+        ?>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/ajv/6.12.6/ajv.min.js" integrity="sha512-+WCxUYg8L1mFBIyL05WJAJRP2UWCy+6mvpMHQbjPDdlDVcgS4XYyPhw5TVvzf9Dq8DTD/BedPW5745dqUeIP5g==" crossorigin="anonymous"></script>
+        <script>
+            (function(){
+                var schema = <?=$schemaJSON?>;
+                var bundle = <?=json_encode($bundle, JSON_PRETTY_PRINT)?>;
+
+                try{
+                    // AJV doesn't like these two values for some reason...
+                    schema.$schema = undefined
+                    schema.id = undefined
+                    
+                    // The following may be needed if FHIR ever adds another Resource similar to Bundle (causing multiple matches)
+                    // schema.oneOf = [
+                    //     {
+                    //         '$ref': '#/definitions/Bundle'
+                    //     }
+                    // ]
+    
+                    var ajv = new Ajv()
+                    var validate = ajv.compile(schema)
+                    if(!validate(bundle)){
+                        throw validate.errors
+                    }
+
+                    // We'll comment out downloads for now, since they're a little annoying to test with.
+                    // var a = document.createElement('a')
+                    // var blob = new Blob([JSON.stringify(bundle, null, 2)]) // , {type: mimeType})
+                    // var url = URL.createObjectURL(blob)
+                    // a.setAttribute('href', url)
+                    // a.setAttribute('download', 'Bundle-' + (new Date()).toJSON() + '.json')
+                    // a.click()
+                    // close()
+
+                    document.write('<pre>' + JSON.stringify(bundle, null, 2) + '</pre>')
+                }
+                catch(error){
+                    document.write(
+                        '<h4>FHIR Validation Error - Please report this error along with instructions on how to reproduce it.</h4>' +
+                        '<label>Errors</label><pre>' + JSON.stringify(error, null, 2) + '</pre>' +
+                        '<br><label>Resource</label><pre>' + JSON.stringify(bundle, null, 2) + '</pre>'
+                    )
+                }
+            })()
+        </script>
+        <?php
+    }
+
+    private function formatContactPoints($contactPoints){
+        foreach($contactPoints as &$contactPoint){
+            if(isset($contactPoint[0])){
+                // We've already formatted this ContactPoint
+                continue;
+            }
+
+            foreach($contactPoint as $use=>$systems){
+                unset($contactPoint[$use]);
+                foreach($systems as $system=>$values){
+                    $contactPoint[] = array_merge([
+                        'use' => $use,
+                        'system' => $system,
+                    ], $values);
+                }
+            }
+        }
     }
 }

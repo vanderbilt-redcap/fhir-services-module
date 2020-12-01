@@ -1,7 +1,5 @@
 <?php
 
-header('Content-type: application/json'); 
-
 $projectId = $module->getProjectId();
 $recordId = $_GET['id'];
 
@@ -16,6 +14,8 @@ else{
     echo $module->getMappedFieldJSON($projectId, $recordId);
     die();
 }
+
+header('Content-type: application/json'); 
 
 // Remove the ID since it is not allowed because it will be different on the remote system.
 // The 'identifier' will still contain the id from this system.

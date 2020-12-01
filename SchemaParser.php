@@ -39,15 +39,7 @@ class SchemaParser{
                 continue;
             }
 
-            $items = @$property['items'];
-            if($items !== null){
-                $ref = @$items['$ref'];
-            }
-            else{
-                $ref = @$property['$ref'];
-            }
-
-            $refDefinitionName = @explode('/', $ref)[2];
+            $refDefinitionName = self::getResourceNameFromRef($property);
             $subProperties = @self::$definitions[$refDefinitionName]['properties'];
             $parts = array_merge($parents, [$propertyName]);
             
@@ -72,6 +64,18 @@ class SchemaParser{
                 }
             }
         }
+    }
+
+    static function getResourceNameFromRef($property){
+        $items = @$property['items'];
+        if($items !== null){
+            $ref = @$items['$ref'];
+        }
+        else{
+            $ref = @$property['$ref'];
+        }
+        
+        return @explode('/', $ref)[2];
     }
 
     private static function handleProperty($parts, $property){
