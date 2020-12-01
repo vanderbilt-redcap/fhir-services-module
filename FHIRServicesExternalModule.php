@@ -543,7 +543,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
 
         $edocId = db_escape($edocId);
-        $result = $this->query("select * from redcap_edocs_metadata where doc_id = $edocId");
+        $result = $this->query("select * from redcap_edocs_metadata where doc_id = ?", $edocId);
         return $result->fetch_assoc();
     }
 
@@ -596,11 +596,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $sql = "
             select element_enum
             from redcap_metadata
-            where project_id = $pid
-            and field_name = '$fieldName'
+            where project_id = ?
+            and field_name = ?
         ";
 
-        $result = $this->query($sql);
+        $result = $this->query($sql, [$pid, $fieldName]);
 
         $row = $result->fetch_assoc();
         if($row === null){
