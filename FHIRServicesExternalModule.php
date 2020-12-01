@@ -1562,10 +1562,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $this->queryLogs("
             select log_id, timestamp, type, content
             where project_id is null
-            and message = '" . RESOURCE_RECEIVED . "'
+            and message = ?
             $whereClause
             order by log_id desc
-        ");
+        ", RESOURCE_RECEIVED);
     }
 
     function getReceivedResource($logId){
