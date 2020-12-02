@@ -2083,18 +2083,22 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 $subPath = &$arraySubPath;
             }
 
+            if(isset($subPath[$elementName])){
+                throw new Exception("The following element is currently mapped to multiple fields, which is not supported: " . json_encode($mapping, JSON_PRETTY_PRINT));
+            }
+
             // The java FHIR validator does not allow leading or trailing whitespace.
             $value = trim($value);
+            if($value === ''){
+                // In FHIR, empty values should just not be specified in the first place.
+                continue;
+            }
 
             $elementProperty = $parentDefinition['properties'][$elementName];
             if($elementProperty['type'] === 'array'){
                 $value = [$value];
             }
             
-            if(isset($subPath[$elementName])){
-                throw new Exception("The following element is currently mapped to multiple fields, which is not supported: " . json_encode($mapping, JSON_PRETTY_PRINT));
-            }
-
             $subPath[$elementName] = $value;
         }
 

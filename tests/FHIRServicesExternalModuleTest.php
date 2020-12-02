@@ -192,7 +192,7 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $setMisc($fieldName2, '');
 
         $setFHIRMapping = function($fieldName, $value) use ($setMisc){
-            $setMisc($fieldName, "@FHIR-MAPPING='$value'");
+            $setMisc($fieldName, ACTION_TAG_PREFIX . $value . ACTION_TAG_SUFFIX);
         };
             
         $assert = function($elementPath, $value, $expectedJSON) use ($pid, $fieldName, $setFHIRMapping){
@@ -203,9 +203,12 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
             $setFHIRMapping($fieldName, "$resourceType/$elementPath");
 
             $recordId = 1;
-            if($value[0] === ' '){
+            if($value === ''){
+                $this->query('delete from redcap_data where project_id = ? and record = ? and field_name = ?', [$pid, $recordId, $fieldName]);
+            }
+            else if($value[0] === ' '){
                 // This is a leading white space check.  Manually update the DB since REDCap::saveData() trims leading & trailing whitespace automatically.
-                $this->query('update redcap_data set value = ? where project_id = ? and field_name = ?', [$value, $pid, $fieldName]);
+                $this->query('update redcap_data set value = ? where project_id = ? and record = ? and field_name = ?', [$value, $pid, $recordId, $fieldName]);
             }
             else{
                 \REDCap::saveData($pid, 'json', json_encode([[
@@ -217,14 +220,17 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
             $expected = [
                 'resourceType' => 'Bundle',
                 'type' => 'collection',
-                'entry' => [
+            ];
+
+            if($value !== ''){
+                $expected['entry'] = [
                     [
                         'resource' => array_merge([
                             'resourceType' => $resourceType
                         ], $expectedJSON)
                     ]
-                ]
-            ];
+                ];
+            }
     
             $actual = $this->getMappedFieldsAsBundle($pid, $recordId);
     
@@ -246,6 +252,9 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $assert('gender', ' female ', [
             'gender' => 'female'
         ]);
+
+        // Empty value
+        $assert('gender', '', []);
 
         // Array sub-values
         $assert('name/given', 'Joe', [
