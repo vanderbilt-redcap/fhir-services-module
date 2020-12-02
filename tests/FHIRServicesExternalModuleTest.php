@@ -181,14 +181,26 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
 
     function testGetMappedFieldsAsBundle(){
         [$pid] = \ExternalModules\ExternalModules::getTestPIDs();
+        $fieldName = 'test_text_field';
+        $fieldName2 = 'test_sql_field';
         
-        $assert = function($elementPath, $value, $expectedJSON) use ($pid){
+        $setMisc = function($fieldName, $value) use ($pid){
+            $this->query('update redcap_metadata set misc = ? where project_id = ? and field_name = ?', [$value, $pid, $fieldName]);
+        };
+
+        $setMisc($fieldName, '');
+        $setMisc($fieldName2, '');
+
+        $setFHIRMapping = function($fieldName, $value) use ($setMisc){
+            $setMisc($fieldName, "@FHIR-MAPPING='$value'");
+        };
+            
+        $assert = function($elementPath, $value, $expectedJSON) use ($pid, $fieldName, $setFHIRMapping){
             $value = (string) $value;
 
             $resourceType = 'Patient';
 
-            $fieldName = 'test_text_field';
-            $this->query('update redcap_metadata set misc = ? where project_id = ? and field_name = ?', ["@FHIR-MAPPING='$resourceType/$elementPath'", $pid, $fieldName]);
+            $setFHIRMapping($fieldName, "$resourceType/$elementPath");
 
             $recordId = 1;
             if($value[0] === ' '){
@@ -245,5 +257,28 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
                 ]
             ]
         ]);
+
+        // ContactPoints (they have special handling)
+        $homeEmailPath = 'telecom/home/email/value';
+        $assert($homeEmailPath, 'a@b.com', [
+            'telecom' => [
+                [
+                    'use' => 'home',
+                    'system' => 'email',
+                    'value' => 'a@b.com',
+                ]
+            ]
+        ]);
+
+        $error = '';
+        try{
+            $setFHIRMapping($fieldName2, "Patient/$homeEmailPath");
+            $assert($homeEmailPath, 1, []);
+        }
+        catch(\Exception $e){
+            $error = $e->getMessage();
+        }
+
+        $this->assertStringContainsString('currently mapped to multiple fields', $error);
     }
 }
