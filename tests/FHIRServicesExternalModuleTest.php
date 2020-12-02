@@ -181,19 +181,9 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
 
     function testGetMappedFieldsAsBundle(){
         [$pid] = \ExternalModules\ExternalModules::getTestPIDs();
-
         $fieldName = 'test_text_field';
+        
         $this->query('update redcap_metadata set misc = ? where project_id = ? and field_name = ?', ["@FHIR-MAPPING='Patient/name/given'", $pid, $fieldName]);
-        $result = $this->query('select misc from redcap_metadata where project_id = ? and field_name = ?', [$pid, $fieldName]);
-
-        // // $_GET['pid'] = $pid;
-        // $csv = \REDCap::getDataDictionary($pid);
-        // $csvFileName = tempnam(sys_get_temp_dir(), 'data-dictionary-');
-        // file_put_contents($csvFileName, $csv);
-        // $metadata = $this->dataDictionaryCSVToMetadataArray($csvFileName);
-        // $metadata[$fieldName]['field_annotation'] = "@FHIR-MAPPING='Patient/name/given'";
-        // $this->saveMetadata($pid, $metadata);
-
 
         $recordId = 1;
         $value = (string) rand();
