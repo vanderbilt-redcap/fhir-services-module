@@ -2150,9 +2150,16 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     document.write('<pre>' + JSON.stringify(bundle, null, 2) + '</pre>')
                 }
                 catch(error){
+                    if(error instanceof Error){
+                        error = error.toString()
+                    }
+                    else{
+                        error = JSON.stringify(error, null, 2)
+                    }
+
                     document.write(
                         '<h4>FHIR Validation Error - Please report this error along with instructions on how to reproduce it.</h4>' +
-                        '<label>Errors</label><pre>' + JSON.stringify(error, null, 2) + '</pre>' +
+                        '<label>Errors</label><pre>' + error + '</pre>' +
                         '<br><label>Resource</label><pre>' + JSON.stringify(bundle, null, 2) + '</pre>'
                     )
                 }
