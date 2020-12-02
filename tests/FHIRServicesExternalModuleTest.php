@@ -181,44 +181,69 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
 
     function testGetMappedFieldsAsBundle(){
         [$pid] = \ExternalModules\ExternalModules::getTestPIDs();
-        $fieldName = 'test_text_field';
         
-        $this->query('update redcap_metadata set misc = ? where project_id = ? and field_name = ?', ["@FHIR-MAPPING='Patient/name/given'", $pid, $fieldName]);
+        $assert = function($elementPath, $value, $expectedJSON) use ($pid){
+            $value = (string) $value;
 
-        $recordId = 1;
-        $value = (string) rand();
-        \REDCap::saveData($pid, 'json', json_encode([[
-            'test_record_id' => $recordId,
-            $fieldName => $value
-        ]]));
+            $resourceType = 'Patient';
 
-        $expected = [
-            'resourceType' => 'Bundle',
-            'type' => 'collection',
-            'entry' => [
+            $fieldName = 'test_text_field';
+            $this->query('update redcap_metadata set misc = ? where project_id = ? and field_name = ?', ["@FHIR-MAPPING='$resourceType/$elementPath'", $pid, $fieldName]);
+
+            $recordId = 1;
+            if($value[0] === ' '){
+                // This is a leading white space check.  Manually update the DB since REDCap::saveData() trims leading & trailing whitespace automatically.
+                $this->query('update redcap_data set value = ? where project_id = ? and field_name = ?', [$value, $pid, $fieldName]);
+            }
+            else{
+                \REDCap::saveData($pid, 'json', json_encode([[
+                    'test_record_id' => $recordId,
+                    $fieldName => $value
+                ]]));
+            }
+    
+            $expected = [
+                'resourceType' => 'Bundle',
+                'type' => 'collection',
+                'entry' => [
+                    [
+                        'resource' => array_merge([
+                            'resourceType' => $resourceType
+                        ], $expectedJSON)
+                    ]
+                ]
+            ];
+    
+            $actual = $this->getMappedFieldsAsBundle($pid, $recordId);
+    
+            try {
+                $this->assertSame(json_encode($expected, JSON_PRETTY_PRINT), json_encode($actual, JSON_PRETTY_PRINT));
+            } 
+            catch (\Exception $e) {
+                echo $e->getComparisonFailure()->getDiff();
+                throw $e;
+            }
+        };
+        
+        // Basic top level field
+        $assert('gender', 'female', [
+            'gender' => 'female'
+        ]);
+
+        // Removal of leading & trailing whitespace
+        $assert('gender', ' female ', [
+            'gender' => 'female'
+        ]);
+
+        // Array sub-values
+        $assert('name/given', 'Joe', [
+            'name' => [
                 [
-                    'resource' => [
-                        'resourceType' => 'Patient',
-                        'name' => [
-                            [
-                                'given' => [
-                                    $value
-                                ]
-                            ]
-                        ]
+                    'given' => [
+                        'Joe'
                     ]
                 ]
             ]
-        ];
-
-        $actual = $this->getMappedFieldsAsBundle($pid, $recordId);
-
-        try {
-            $this->assertSame(json_encode($expected, JSON_PRETTY_PRINT), json_encode($actual, JSON_PRETTY_PRINT));
-        } 
-        catch (\Exception $e) {
-            echo $e->getComparisonFailure()->getDiff();
-            throw $e;
-        }
+        ]);
     }
 }

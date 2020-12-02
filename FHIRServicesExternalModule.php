@@ -2083,6 +2083,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 $subPath = &$arraySubPath;
             }
 
+            // The java FHIR validator does not allow leading or trailing whitespace.
+            $value = trim($value);
+
             $elementProperty = $parentDefinition['properties'][$elementName];
             if($elementProperty['type'] === 'array'){
                 $value = [$value];
