@@ -11,7 +11,8 @@ else if($module->getProjectType() === 'questionnaire'){
 }
 else{
     // This feature likely won't live here long term, but this is a good place for testing.
-    echo $module->getMappedFieldJSON($projectId, $recordId);
+    $bundle = $module->getMappedFieldsAsBundle($projectId, $recordId);
+    $module->validateInBrowserAndDisplay($bundle);
     die();
 }
 

@@ -178,4 +178,57 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $assert('12:00', 'time');
         $assert('whatever', 'open-choice');
     }
+
+    function testGetMappedFieldsAsBundle(){
+        [$pid] = \ExternalModules\ExternalModules::getTestPIDs();
+
+        $fieldName = 'test_text_field';
+        $this->query('update redcap_metadata set misc = ? where project_id = ? and field_name = ?', ["@FHIR-MAPPING='Patient/name/given'", $pid, $fieldName]);
+        $result = $this->query('select misc from redcap_metadata where project_id = ? and field_name = ?', [$pid, $fieldName]);
+
+        // // $_GET['pid'] = $pid;
+        // $csv = \REDCap::getDataDictionary($pid);
+        // $csvFileName = tempnam(sys_get_temp_dir(), 'data-dictionary-');
+        // file_put_contents($csvFileName, $csv);
+        // $metadata = $this->dataDictionaryCSVToMetadataArray($csvFileName);
+        // $metadata[$fieldName]['field_annotation'] = "@FHIR-MAPPING='Patient/name/given'";
+        // $this->saveMetadata($pid, $metadata);
+
+
+        $recordId = 1;
+        $value = (string) rand();
+        \REDCap::saveData($pid, 'json', json_encode([[
+            'test_record_id' => $recordId,
+            $fieldName => $value
+        ]]));
+
+        $expected = [
+            'resourceType' => 'Bundle',
+            'type' => 'collection',
+            'entry' => [
+                [
+                    'resource' => [
+                        'resourceType' => 'Patient',
+                        'name' => [
+                            [
+                                'given' => [
+                                    $value
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $actual = $this->getMappedFieldsAsBundle($pid, $recordId);
+
+        try {
+            $this->assertSame(json_encode($expected, JSON_PRETTY_PRINT), json_encode($actual, JSON_PRETTY_PRINT));
+        } 
+        catch (\Exception $e) {
+            echo $e->getComparisonFailure()->getDiff();
+            throw $e;
+        }
+    }
 }

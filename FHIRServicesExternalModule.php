@@ -2023,7 +2023,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $video_url_formatted;
     }
 
-    function getMappedFieldJSON($projectId, $recordId){
+    function getMappedFieldsAsBundle($projectId, $recordId){
         $metadata = REDCap::getDataDictionary($projectId, 'array');
         $mappings = [];
         foreach($metadata as $fieldName=>$details){
@@ -2039,8 +2039,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             }
         }
 
-        $schemaJSON = file_get_contents(__DIR__ . '/fhir.schema.json');
-        $schema = json_decode($schemaJSON, true);
+        $schema = json_decode(file_get_contents(__DIR__ . '/fhir.schema.json'), true);
         $data = json_decode(REDCap::getData($projectId, 'json', $recordId, array_keys($mappings)), true)[0];
         $resources = [];
         $contactPoints = [];
@@ -2107,12 +2106,16 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $bundle['entry'][]['resource'] = $resource;
         }
 
+        return $bundle;
+    }
+
+    function validateInBrowserAndDisplay($resource){
         ?>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/ajv/6.12.6/ajv.min.js" integrity="sha512-+WCxUYg8L1mFBIyL05WJAJRP2UWCy+6mvpMHQbjPDdlDVcgS4XYyPhw5TVvzf9Dq8DTD/BedPW5745dqUeIP5g==" crossorigin="anonymous"></script>
         <script>
             (function(){
-                var schema = <?=$schemaJSON?>;
-                var bundle = <?=json_encode($bundle, JSON_PRETTY_PRINT)?>;
+                var schema = <?=file_get_contents(__DIR__ . '/fhir.schema.json')?>;
+                var bundle = <?=json_encode($resource, JSON_PRETTY_PRINT)?>;
 
                 try{
                     // AJV doesn't like these two values for some reason...
