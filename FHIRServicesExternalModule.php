@@ -2129,17 +2129,20 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     schema.$schema = undefined
                     schema.id = undefined
                     
-                    // The following may be needed if FHIR ever adds another Resource similar to Bundle (causing multiple matches)
-                    // schema.oneOf = [
-                    //     {
-                    //         '$ref': '#/definitions/Bundle'
-                    //     }
-                    // ]
-    
-                    var ajv = new Ajv()
-                    var validate = ajv.compile(schema)
-                    if(!validate(bundle)){
-                        throw validate.errors
+                    for(var entryIndex in bundle.entry){
+                        var resource = bundle.entry[entryIndex].resource
+
+                        schema.oneOf = [
+                            {
+                                '$ref': '#/definitions/' + resource.resourceType
+                            }
+                        ]
+        
+                        var ajv = new Ajv()
+                        var validate = ajv.compile(schema)
+                        if(!validate(resource)){
+                            throw validate.errors
+                        }
                     }
 
                     // We'll comment out downloads for now, since they're a little annoying to test with.
