@@ -194,6 +194,15 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $setFHIRMapping = function($fieldName, $value) use ($setMisc){
             $setMisc($fieldName, ACTION_TAG_PREFIX . $value . ACTION_TAG_SUFFIX);
         };
+
+        $setTypeAndEnum = function($fieldName, $type, $enum) use ($pid){
+            $this->query('update redcap_metadata set element_type = ? ,element_enum = ? where project_id = ? and field_name = ?', [
+                $type,
+                $enum,
+                $pid,
+                $fieldName
+            ]);
+        };
             
         $assert = function($elementPath, $value, $expectedJSON) use ($pid, $fieldName, $setFHIRMapping){
             $value = (string) $value;
@@ -242,6 +251,9 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
                 throw $e;
             }
         };
+
+        // In case a previous test failed before it could reset the value
+        $setTypeAndEnum($fieldName, 'text', '');
         
         // Basic top level field
         $assert('gender', 'female', [
@@ -252,6 +264,13 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $assert('gender', ' female ', [
             'gender' => 'female'
         ]);
+
+        // Labels as values
+        $setTypeAndEnum($fieldName, 'select', "F, Female \\n M, Male");
+        $assert('gender', 'F', [
+            'gender' => 'female'
+        ]);
+        $setTypeAndEnum($fieldName, 'text', '');
 
         // Empty value
         $assert('gender', '', []);

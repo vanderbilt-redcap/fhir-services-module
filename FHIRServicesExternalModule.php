@@ -2095,6 +2095,15 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             }
 
             $elementProperty = $parentDefinition['properties'][$elementName];
+            $enum = @$elementProperty['enum'];
+            if($enum !== null && !in_array($value, $enum)){
+                $label = strtolower($this->getChoiceLabel(['project_id'=>$projectId, 'field_name'=>$fieldName, 'value'=>$value]));
+                if(in_array($label, $enum)){
+                    // Use the label as the value.  An example of a case where this works well is a REDCap gender value of 'F' with a label of 'Female'.
+                    $value = $label;
+                }
+            }
+
             if($elementProperty['type'] === 'array'){
                 $value = [$value];
             }
