@@ -2159,6 +2159,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                         var validate = ajv.compile(schema)
                         if(!validate(resource)){
                             handleError(JSON.stringify(validate.errors, null, 2), resource)
+                            return
                         }
                     }
 
