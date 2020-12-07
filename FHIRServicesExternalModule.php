@@ -2130,6 +2130,14 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         <script src="https://cdnjs.cloudflare.com/ajax/libs/ajv/6.12.6/ajv.min.js" integrity="sha512-+WCxUYg8L1mFBIyL05WJAJRP2UWCy+6mvpMHQbjPDdlDVcgS4XYyPhw5TVvzf9Dq8DTD/BedPW5745dqUeIP5g==" crossorigin="anonymous"></script>
         <script>
             (function(){
+                var handleError = function(error, resource){
+                    document.write(
+                        '<h4>FHIR Validation Error - Please report this error along with instructions on how to reproduce it.</h4>' +
+                        '<label>Errors</label><pre>' + error + '</pre>' +
+                        '<br><label>Resource</label><pre>' + JSON.stringify(resource, null, 2) + '</pre>'
+                    )
+                }
+
                 var schema = <?=file_get_contents(__DIR__ . '/fhir.schema.json')?>;
                 var bundle = <?=json_encode($resource, JSON_PRETTY_PRINT)?>;
 
@@ -2150,7 +2158,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                         var ajv = new Ajv()
                         var validate = ajv.compile(schema)
                         if(!validate(resource)){
-                            throw validate.errors
+                            handleError(JSON.stringify(validate.errors, null, 2), resource)
                         }
                     }
 
@@ -2166,18 +2174,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     document.write('<pre>' + JSON.stringify(bundle, null, 2) + '</pre>')
                 }
                 catch(error){
-                    if(error instanceof Error){
-                        error = error.toString()
-                    }
-                    else{
-                        error = JSON.stringify(error, null, 2)
-                    }
-
-                    document.write(
-                        '<h4>FHIR Validation Error - Please report this error along with instructions on how to reproduce it.</h4>' +
-                        '<label>Errors</label><pre>' + error + '</pre>' +
-                        '<br><label>Resource</label><pre>' + JSON.stringify(bundle, null, 2) + '</pre>'
-                    )
+                    handleError(error, bundle)
                 }
             })()
         </script>
