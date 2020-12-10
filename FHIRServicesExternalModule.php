@@ -2071,16 +2071,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 if($subResourceName === 'ContactPoint'){
                     $contactPoints[] = &$subPath;
                 }
-            }
-
-            if($parentProperty['type'] === 'array'){
-                $i=-1;
-                do{
-                    $i++;
-                    $arraySubPath = &$subPath[$i];
-                }while(isset($arraySubPath[$elementName]));
-
-                $subPath = &$arraySubPath;
+                else if($parentProperty['type'] === 'array'){
+                    // We only support one mapping of each element for now, so just always use the first instance of any array.
+                    $subPath =& $subPath[0];
+                }
             }
 
             if(isset($subPath[$elementName])){
@@ -2118,8 +2112,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             'type' => 'collection',
         ];
 
-        foreach($resources as $resource){
-            $bundle['entry'][]['resource'] = $resource;
+        // The $resource2 variable is used here because $resource caused unexpected behavior due to the reference operator (&) being used.
+        foreach($resources as $resource2){
+            $bundle['entry'][]['resource'] = $resource2;
         }
 
         return $bundle;

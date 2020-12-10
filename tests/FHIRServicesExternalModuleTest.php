@@ -9,6 +9,23 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnai
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRCode;
 
 class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
+    public function setUp():void{
+        parent::setUp();
+
+        $this->setFHIRMapping($this->getFieldName(), null);
+        $this->setFHIRMapping($this->getFieldName2(), null);
+        
+        $this->setTypeAndEnum($this->getFieldName2(), 'text', '');
+    }
+
+    private function getFieldName(){
+        return 'test_text_field';
+    }
+
+    private function getFieldName2(){
+        return 'test_sql_field';
+    }
+    
     private function getFormName(){
         return 'all_field_type_examples';
     }
@@ -192,31 +209,28 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $this->query('update redcap_metadata set misc = ? where project_id = ? and field_name = ?', [$value, $pid, $fieldName]);
     }
 
-    function assert($resourceType, $elementPath, $value, $expectedJSON, $fieldName = 'test_text_field', $pid = null){
-        $value = (string) $value;
-
-        if($pid === null){
-            $pid = $this->getTestPID();
-        }
-
-        $resourceType = 'Patient';
-
-        $this->setFHIRMapping($fieldName, "$resourceType/$elementPath");
-
+    function assert($fields, $expectedJSON){
+        $pid = $this->getTestPID();
         $recordId = 1;
-        if($value === ''){
-            $this->query('delete from redcap_data where project_id = ? and record = ? and field_name = ?', [$pid, $recordId, $fieldName]);
+
+        $data = ['test_record_id' => $recordId];
+        foreach($fields as $fieldName=>$details){
+            $this->setFHIRMapping($fieldName, $details['resource'] . '/' . $details['element']);
+
+            $value = (string) $details['value'];
+            if($value === ''){
+                $this->query('delete from redcap_data where project_id = ? and record = ? and field_name = ?', [$pid, $recordId, $fieldName]);
+            }
+            else if($value[0] === ' '){
+                // This is a leading white space check.  Manually update the DB since REDCap::saveData() trims leading & trailing whitespace automatically.
+                $this->query('update redcap_data set value = ? where project_id = ? and record = ? and field_name = ?', [$value, $pid, $recordId, $fieldName]);
+            }
+            else{
+                $data[$fieldName] = $value;
+            }
         }
-        else if($value[0] === ' '){
-            // This is a leading white space check.  Manually update the DB since REDCap::saveData() trims leading & trailing whitespace automatically.
-            $this->query('update redcap_data set value = ? where project_id = ? and record = ? and field_name = ?', [$value, $pid, $recordId, $fieldName]);
-        }
-        else{
-            \REDCap::saveData($pid, 'json', json_encode([[
-                'test_record_id' => $recordId,
-                $fieldName => $value
-            ]]));
-        }
+
+        \REDCap::saveData($pid, 'json', json_encode([$data]));
 
         $expected = [
             'resourceType' => 'Bundle',
@@ -226,15 +240,13 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         if($value !== ''){
             $expected['entry'] = [
                 [
-                    'resource' => array_merge([
-                        'resourceType' => $resourceType
-                    ], $expectedJSON)
+                    'resource' => $expectedJSON
                 ]
             ];
         }
-
+        
         $actual = $this->getMappedFieldsAsBundle($pid, $recordId);
-
+        
         try {
             $this->assertSame(json_encode($expected, JSON_PRETTY_PRINT), json_encode($actual, JSON_PRETTY_PRINT));
         } 
@@ -248,28 +260,33 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         return \ExternalModules\ExternalModules::getTestPIDs()[0];
     }
 
-    function testGetMappedFieldsAsBundle(){
-        $fieldName = 'test_text_field';
-        $fieldName2 = 'test_sql_field';
+    function setTypeAndEnum($fieldName, $type, $enum){
+        $this->query('update redcap_metadata set element_type = ? ,element_enum = ? where project_id = ? and field_name = ?', [
+            $type,
+            $enum,
+            $this->getTestPID(),
+            $fieldName
+        ]);
+    }
 
-        $this->setFHIRMapping($fieldName, null);
-        $this->setFHIRMapping($fieldName2, null);
+    function testGetMappedFieldsAsBundle_patient(){
+        $fieldName = $this->getFieldName();
+        $fieldName2 = $this->getFieldName2();
 
-        $setTypeAndEnum = function($fieldName, $type, $enum){
-            $this->query('update redcap_metadata set element_type = ? ,element_enum = ? where project_id = ? and field_name = ?', [
-                $type,
-                $enum,
-                $this->getTestPID(),
-                $fieldName
-            ]);
-        };
-            
         $assert = function($elementPath, $value, $expectedJSON) use ($fieldName){
-            $this->assert('Patient', $elementPath, $value, $expectedJSON, $fieldName);
+            $this->assert(
+                [
+                    $fieldName => [
+                        'resource' => 'Patient',
+                        'element' => $elementPath,
+                        'value' => $value
+                    ]
+                ],
+                array_merge([
+                    'resourceType' => 'Patient'
+                ], $expectedJSON)
+            );
         };
-
-        // In case a previous test failed before it could reset the value
-        $setTypeAndEnum($fieldName, 'text', '');
         
         // Basic top level field
         $assert('gender', 'female', [
@@ -282,11 +299,11 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         ]);
 
         // Labels as values
-        $setTypeAndEnum($fieldName, 'select', "F, Female \\n M, Male");
+        $this->setTypeAndEnum($fieldName, 'select', "F, Female \\n M, Male");
         $assert('gender', 'F', [
             'gender' => 'female'
         ]);
-        $setTypeAndEnum($fieldName, 'text', '');
+        $this->setTypeAndEnum($fieldName, 'text', '');
 
         // Empty value
         $assert('gender', '', []);
@@ -304,15 +321,35 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
 
         // ContactPoints (they have special handling)
         $homeEmailPath = 'telecom/home/email/value';
-        $assert($homeEmailPath, 'a@b.com', [
-            'telecom' => [
-                [
-                    'use' => 'home',
-                    'system' => 'email',
-                    'value' => 'a@b.com',
+        $this->assert(
+            [
+                $fieldName => [
+                    'resource' => 'Patient',
+                    'element' => $homeEmailPath,
+                    'value' => 'a@b.com'
+                ],
+                $fieldName2 => [
+                    'resource' => 'Patient',
+                    'element' => 'telecom/work/email/value',
+                    'value' => 'c@d.com'
+                ]
+            ],
+            [
+                'resourceType' => 'Patient',
+                'telecom' => [
+                    [
+                        'use' => 'home',
+                        'system' => 'email',
+                        'value' => 'a@b.com',
+                    ],
+                    [
+                        'use' => 'work',
+                        'system' => 'email',
+                        'value' => 'c@d.com',
+                    ]
                 ]
             ]
-        ]);
+        );
 
         $error = '';
         try{
@@ -324,5 +361,30 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         }
 
         $this->assertStringContainsString('currently mapped to multiple fields', $error);
+    }
+
+    function testGetMappedFieldsAsBundle_consent(){
+        // This assertion covers two levels of array nesting.
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'resource' => 'Consent',
+                    'element' => 'category/coding/display',
+                    'value' => 'foo'
+                ]
+            ],
+            [
+                'resourceType' => 'Consent',
+                'category' => [
+                    [
+                        'coding' => [
+                            [
+                                'display' => 'foo'
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        );
     }
 }
