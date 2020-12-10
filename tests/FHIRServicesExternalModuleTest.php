@@ -179,23 +179,29 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $assert('whatever', 'open-choice');
     }
 
-    function setFHIRMapping($pid, $fieldName, $value){
+    function setFHIRMapping($fieldName, $value){
         if($value === null){
             $value = '';
         }
         else{
             $value = ACTION_TAG_PREFIX . $value . ACTION_TAG_SUFFIX;
         }
-        
+
+        $pid = $this->getTestPID();
+
         $this->query('update redcap_metadata set misc = ? where project_id = ? and field_name = ?', [$value, $pid, $fieldName]);
     }
 
-    function assert($resourceType, $elementPath, $value, $expectedJSON, $pid, $fieldName = 'test_text_field'){
+    function assert($resourceType, $elementPath, $value, $expectedJSON, $fieldName = 'test_text_field', $pid = null){
         $value = (string) $value;
+
+        if($pid === null){
+            $pid = $this->getTestPID();
+        }
 
         $resourceType = 'Patient';
 
-        $this->setFHIRMapping($pid, $fieldName, "$resourceType/$elementPath");
+        $this->setFHIRMapping($fieldName, "$resourceType/$elementPath");
 
         $recordId = 1;
         if($value === ''){
@@ -238,25 +244,28 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         }
     }
 
+    function getTestPID(){
+        return \ExternalModules\ExternalModules::getTestPIDs()[0];
+    }
+
     function testGetMappedFieldsAsBundle(){
-        [$pid] = \ExternalModules\ExternalModules::getTestPIDs();
         $fieldName = 'test_text_field';
         $fieldName2 = 'test_sql_field';
 
-        $this->setFHIRMapping($pid, $fieldName, null);
-        $this->setFHIRMapping($pid, $fieldName2, null);
+        $this->setFHIRMapping($fieldName, null);
+        $this->setFHIRMapping($fieldName2, null);
 
-        $setTypeAndEnum = function($fieldName, $type, $enum) use ($pid){
+        $setTypeAndEnum = function($fieldName, $type, $enum){
             $this->query('update redcap_metadata set element_type = ? ,element_enum = ? where project_id = ? and field_name = ?', [
                 $type,
                 $enum,
-                $pid,
+                $this->getTestPID(),
                 $fieldName
             ]);
         };
             
-        $assert = function($elementPath, $value, $expectedJSON) use ($pid, $fieldName){
-            $this->assert('Patient', $elementPath, $value, $expectedJSON, $pid, $fieldName);
+        $assert = function($elementPath, $value, $expectedJSON) use ($fieldName){
+            $this->assert('Patient', $elementPath, $value, $expectedJSON, $fieldName);
         };
 
         // In case a previous test failed before it could reset the value
@@ -307,7 +316,7 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
 
         $error = '';
         try{
-            $this->setFHIRMapping($pid, $fieldName2, "Patient/$homeEmailPath");
+            $this->setFHIRMapping($fieldName2, "Patient/$homeEmailPath");
             $assert($homeEmailPath, 1, []);
         }
         catch(\Exception $e){
