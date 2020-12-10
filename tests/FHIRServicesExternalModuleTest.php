@@ -179,21 +179,72 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $assert('whatever', 'open-choice');
     }
 
+    function setFHIRMapping($pid, $fieldName, $value){
+        if($value === null){
+            $value = '';
+        }
+        else{
+            $value = ACTION_TAG_PREFIX . $value . ACTION_TAG_SUFFIX;
+        }
+        
+        $this->query('update redcap_metadata set misc = ? where project_id = ? and field_name = ?', [$value, $pid, $fieldName]);
+    }
+
+    function assert($resourceType, $elementPath, $value, $expectedJSON, $pid, $fieldName = 'test_text_field'){
+        $value = (string) $value;
+
+        $resourceType = 'Patient';
+
+        $this->setFHIRMapping($pid, $fieldName, "$resourceType/$elementPath");
+
+        $recordId = 1;
+        if($value === ''){
+            $this->query('delete from redcap_data where project_id = ? and record = ? and field_name = ?', [$pid, $recordId, $fieldName]);
+        }
+        else if($value[0] === ' '){
+            // This is a leading white space check.  Manually update the DB since REDCap::saveData() trims leading & trailing whitespace automatically.
+            $this->query('update redcap_data set value = ? where project_id = ? and record = ? and field_name = ?', [$value, $pid, $recordId, $fieldName]);
+        }
+        else{
+            \REDCap::saveData($pid, 'json', json_encode([[
+                'test_record_id' => $recordId,
+                $fieldName => $value
+            ]]));
+        }
+
+        $expected = [
+            'resourceType' => 'Bundle',
+            'type' => 'collection',
+        ];
+
+        if($value !== ''){
+            $expected['entry'] = [
+                [
+                    'resource' => array_merge([
+                        'resourceType' => $resourceType
+                    ], $expectedJSON)
+                ]
+            ];
+        }
+
+        $actual = $this->getMappedFieldsAsBundle($pid, $recordId);
+
+        try {
+            $this->assertSame(json_encode($expected, JSON_PRETTY_PRINT), json_encode($actual, JSON_PRETTY_PRINT));
+        } 
+        catch (\Exception $e) {
+            echo $e->getComparisonFailure()->getDiff();
+            throw $e;
+        }
+    }
+
     function testGetMappedFieldsAsBundle(){
         [$pid] = \ExternalModules\ExternalModules::getTestPIDs();
         $fieldName = 'test_text_field';
         $fieldName2 = 'test_sql_field';
-        
-        $setMisc = function($fieldName, $value) use ($pid){
-            $this->query('update redcap_metadata set misc = ? where project_id = ? and field_name = ?', [$value, $pid, $fieldName]);
-        };
 
-        $setMisc($fieldName, '');
-        $setMisc($fieldName2, '');
-
-        $setFHIRMapping = function($fieldName, $value) use ($setMisc){
-            $setMisc($fieldName, ACTION_TAG_PREFIX . $value . ACTION_TAG_SUFFIX);
-        };
+        $this->setFHIRMapping($pid, $fieldName, null);
+        $this->setFHIRMapping($pid, $fieldName2, null);
 
         $setTypeAndEnum = function($fieldName, $type, $enum) use ($pid){
             $this->query('update redcap_metadata set element_type = ? ,element_enum = ? where project_id = ? and field_name = ?', [
@@ -204,52 +255,8 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
             ]);
         };
             
-        $assert = function($elementPath, $value, $expectedJSON) use ($pid, $fieldName, $setFHIRMapping){
-            $value = (string) $value;
-
-            $resourceType = 'Patient';
-
-            $setFHIRMapping($fieldName, "$resourceType/$elementPath");
-
-            $recordId = 1;
-            if($value === ''){
-                $this->query('delete from redcap_data where project_id = ? and record = ? and field_name = ?', [$pid, $recordId, $fieldName]);
-            }
-            else if($value[0] === ' '){
-                // This is a leading white space check.  Manually update the DB since REDCap::saveData() trims leading & trailing whitespace automatically.
-                $this->query('update redcap_data set value = ? where project_id = ? and record = ? and field_name = ?', [$value, $pid, $recordId, $fieldName]);
-            }
-            else{
-                \REDCap::saveData($pid, 'json', json_encode([[
-                    'test_record_id' => $recordId,
-                    $fieldName => $value
-                ]]));
-            }
-    
-            $expected = [
-                'resourceType' => 'Bundle',
-                'type' => 'collection',
-            ];
-
-            if($value !== ''){
-                $expected['entry'] = [
-                    [
-                        'resource' => array_merge([
-                            'resourceType' => $resourceType
-                        ], $expectedJSON)
-                    ]
-                ];
-            }
-    
-            $actual = $this->getMappedFieldsAsBundle($pid, $recordId);
-    
-            try {
-                $this->assertSame(json_encode($expected, JSON_PRETTY_PRINT), json_encode($actual, JSON_PRETTY_PRINT));
-            } 
-            catch (\Exception $e) {
-                echo $e->getComparisonFailure()->getDiff();
-                throw $e;
-            }
+        $assert = function($elementPath, $value, $expectedJSON) use ($pid, $fieldName){
+            $this->assert('Patient', $elementPath, $value, $expectedJSON, $pid, $fieldName);
         };
 
         // In case a previous test failed before it could reset the value
@@ -300,7 +307,7 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
 
         $error = '';
         try{
-            $setFHIRMapping($fieldName2, "Patient/$homeEmailPath");
+            $this->setFHIRMapping($pid, $fieldName2, "Patient/$homeEmailPath");
             $assert($homeEmailPath, 1, []);
         }
         catch(\Exception $e){
