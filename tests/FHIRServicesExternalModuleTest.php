@@ -218,10 +218,7 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
             $this->setFHIRMapping($fieldName, $details['resource'] . '/' . $details['element']);
 
             $value = (string) $details['value'];
-            if($value === ''){
-                $this->query('delete from redcap_data where project_id = ? and record = ? and field_name = ?', [$pid, $recordId, $fieldName]);
-            }
-            else if($value[0] === ' '){
+            if($value[0] === ' '){
                 // This is a leading white space check.  Manually update the DB since REDCap::saveData() trims leading & trailing whitespace automatically.
                 $this->query('update redcap_data set value = ? where project_id = ? and record = ? and field_name = ?', [$value, $pid, $recordId, $fieldName]);
             }
@@ -230,20 +227,18 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
             }
         }
 
-        \REDCap::saveData($pid, 'json', json_encode([$data]));
+        \REDCap::saveData($pid, 'json', json_encode([$data]), 'overwrite');
 
         $expected = [
             'resourceType' => 'Bundle',
             'type' => 'collection',
         ];
 
-        if($value !== ''){
-            $expected['entry'] = [
-                [
-                    'resource' => $expectedJSON
-                ]
-            ];
-        }
+        $expected['entry'] = [
+            [
+                'resource' => $expectedJSON
+            ]
+        ];
         
         $actual = $this->getMappedFieldsAsBundle($pid, $recordId);
         
@@ -361,6 +356,27 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         }
 
         $this->assertStringContainsString('currently mapped to multiple fields', $error);
+    }
+
+    function testGetMappedFieldsAsBundle_blankValue(){
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'resource' => 'Patient',
+                    'element' => 'gender',
+                    'value' => 'female'
+                ],
+                $this->getFieldName2() => [
+                    'resource' => 'Patient',
+                    'element' => 'name/family',
+                    'value' => ''
+                ]
+            ],
+            [
+                'resourceType' => 'Patient',
+                'gender' => 'female',
+            ]
+        );
     }
 
     function testGetMappedFieldsAsBundle_consent(){

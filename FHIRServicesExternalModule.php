@@ -2040,11 +2040,19 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
 
         $schema = json_decode(file_get_contents(__DIR__ . '/fhir.schema.json'), true);
-        $data = json_decode(REDCap::getData($projectId, 'json', $recordId, array_keys($mappings)), true)[0];
+        
+        // Add the record ID regardless so that the standard return format is used.
+        // REDCap returns a different format without it.
+        $fields = array_merge([$this->getRecordIdField($projectId)], array_keys($mappings));
+        $data = json_decode(REDCap::getData($projectId, 'json', $recordId, $fields), true)[0];
         $resources = [];
         $contactPoints = [];
         foreach($data as $fieldName=>$value){
-            $mapping = $mappings[$fieldName];
+            $mapping = @$mappings[$fieldName];
+            if($value === '' || $mapping === null){
+                continue;
+            }
+            
             $resourceName = $mapping['resource'];
             $elementName = $mapping['elementName'];
 
@@ -2101,7 +2109,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             if($elementProperty['type'] === 'array'){
                 $value = [$value];
             }
-            
+
             $subPath[$elementName] = $value;
         }
 
