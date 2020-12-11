@@ -300,9 +300,6 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         ]);
         $this->setTypeAndEnum($fieldName, 'text', '');
 
-        // Empty value
-        $assert('gender', '', []);
-
         // Array sub-values
         $assert('name/given', 'Joe', [
             'name' => [
