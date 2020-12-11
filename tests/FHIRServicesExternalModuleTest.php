@@ -249,6 +249,8 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
             echo $e->getComparisonFailure()->getDiff();
             throw $e;
         }
+
+        return $actual;
     }
 
     function getTestPID(){
@@ -269,7 +271,7 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $fieldName2 = $this->getFieldName2();
 
         $assert = function($elementPath, $value, $expectedJSON) use ($fieldName){
-            $this->assert(
+            return $this->assert(
                 [
                     $fieldName => [
                         'resource' => 'Patient',
@@ -394,6 +396,34 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
                             [
                                 'display' => 'foo'
                             ]
+                        ]
+                    ]
+                ]
+            ]
+        );
+    }
+
+    function testGetMappedFieldsAsBundle_elementMappedTwice(){
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'resource' => 'Patient',
+                    'element' => 'name/given',
+                    'value' => 'Billy'
+                ],
+                $this->getFieldName2() => [
+                    'resource' => 'Patient',
+                    'element' => 'name/given',
+                    'value' => 'John'
+                ]
+            ],
+            [
+                'resourceType' => 'Patient',
+                'name' => [
+                    [
+                        'given' => [
+                            'Billy',
+                            'John'
                         ]
                     ]
                 ]

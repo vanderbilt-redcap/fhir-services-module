@@ -2085,7 +2085,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 }
             }
 
-            if(isset($subPath[$elementName])){
+            $elementProperty = $parentDefinition['properties'][$elementName];
+            if($elementProperty['type'] !== 'array' && isset($subPath[$elementName])){
                 throw new Exception("The following element is currently mapped to multiple fields, which is not supported: " . json_encode($mapping, JSON_PRETTY_PRINT));
             }
 
@@ -2096,7 +2097,6 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 continue;
             }
 
-            $elementProperty = $parentDefinition['properties'][$elementName];
             $enum = @$elementProperty['enum'];
             if($enum !== null && !in_array($value, $enum)){
                 $label = strtolower($this->getChoiceLabel(['project_id'=>$projectId, 'field_name'=>$fieldName, 'value'=>$value]));
@@ -2107,10 +2107,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             }
 
             if($elementProperty['type'] === 'array'){
-                $value = [$value];
+                $subPath[$elementName][] = $value;
             }
-
-            $subPath[$elementName] = $value;
+            else{
+                $subPath[$elementName] = $value;
+            }
         }
 
         $this->formatContactPoints($contactPoints);
