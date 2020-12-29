@@ -290,6 +290,11 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
             'gender' => 'female'
         ]);
 
+        // Mapping different cases to valid values
+        $assert('gender', 'FeMaLe', [
+            'gender' => 'female'
+        ]);
+
         // Removal of leading & trailing whitespace
         $assert('gender', ' female ', [
             'gender' => 'female'
