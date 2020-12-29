@@ -110,7 +110,7 @@ $(function(){
                 simpleDialog(`
                     <div>
                         The following choices are not valid for the currently mapped FHIR element.
-                        You must modify them to be FHIR compatible as described at the top of the <a href='#' class='fhir-services-recommended-choices-link'>list of recommended choices</a>:
+                        They must be modified to ensure FHIR compatibility as described at the top of the <a href='#' class='fhir-services-recommended-choices-link'>list of recommended choices</a>:
                     </div>
                     <ul>
                         <li>` + invalidChoices.join('</li><li>') + `</li>
@@ -137,7 +137,7 @@ $(function(){
                         They will be automatically used as the choices for this field if no choices have been specified.
                         If choices have already been specified, they may need to modified to ensure FHIR compatibility.
                         Some modifications to the following are allowed including removing unused values, changing labels, and/or changing codes as long as the label still case insensitively matches one of the recommended codes.
-                        Before modifying or removing any choice codes used by existing records, you will need to export this field for all records, update any changed values manually, and import your updates to prevent data loss:
+                        Before modifying or removing any choice codes used by existing records, you may need to export this field for all records, update any changed values manually, and import your updates to prevent data loss:
                     </div>
                     <div class='textarea-wrapper'>
                         <textarea readonly>` + module.getRecommendedChoices() + `</textarea>
