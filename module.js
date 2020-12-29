@@ -56,13 +56,8 @@ $(function(){
 
             $('#div_field_req').before(typeaheadContainer)
 
-            $('body').on('click', 'a.fhir-services-recommended-choices-link', function(){
-                $('#'+module.RECOMMENDED_CHOICES_DIALOG_ID).dialog('close')
-                module.showRecommendedChoices()
-                return false
-            })
-
             module.initSaveButton()
+            module.initRecommendedChoiceLinks()
         },
         initSaveButton: function(){
             var addEditFieldSave = window.addEditFieldSave
@@ -115,23 +110,32 @@ $(function(){
         getMappedElement: function(){
             return module.getElementsForResource()[module.ELEMENT_TYPEAHEAD.val()]
         },
-        showRecommendedChoices: function(){
+        getRecommendedChoices: () => {
             let choices = []
             module.getMappedElement().enum.forEach(value => {
                 choices.push(value + ', ' + module.capitalizeFirstLetter(value))
             })
-            
-            simpleDialog(`
-                <div>
-                    The following choices are recommended and represent all valid values for the currently mapped FHIR element.
-                    They can be copy-pasted as-is into the choices for this field, or modified to an extent.
-                    Allowed modifications include removing unused values, changing labels, or changing codes as long as the label still case insensitively matches one of the recommended codes:
-                </div>
-                <div class='textarea-wrapper'>
-                    <textarea readonly>` + choices.join('\n') + `</textarea>
-                    <button onclick='this.previousElementSibling.select()'>Select All (for easy copying)</button
-                </div>
-            `, 'Recommended Choices', 'fhir-services-recommended-choices-dialog')
+
+            return choices.join('\n')
+        },
+        initRecommendedChoiceLinks: () => {
+            $('body').on('click', 'a.fhir-services-recommended-choices-link', function(){
+                $('#'+module.RECOMMENDED_CHOICES_DIALOG_ID).dialog('close')
+
+                simpleDialog(`
+                    <div>
+                        The following choices are recommended and represent all valid values for the currently mapped FHIR element.
+                        They can be copy-pasted as-is into the choices for this field, or modified to an extent.
+                        Allowed modifications include removing unused values, changing labels, or changing codes as long as the label still case insensitively matches one of the recommended codes:
+                    </div>
+                    <div class='textarea-wrapper'>
+                        <textarea readonly>` + module.getRecommendedChoices() + `</textarea>
+                        <button onclick='this.previousElementSibling.select()'>Select All (for easy copying)</button
+                    </div>
+                `, 'Recommended Choices', 'fhir-services-recommended-choices-dialog')
+                
+                return false
+            })
         },
         capitalizeFirstLetter: string => {
             return string.charAt(0).toUpperCase() + string.slice(1);
