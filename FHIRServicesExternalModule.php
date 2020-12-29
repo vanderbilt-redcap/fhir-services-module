@@ -141,6 +141,22 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             #fhir-services-mapping-field-settings input{
                 width: 78%;
             }
+            #fhir-services-invalid-choices-dialog a{
+                text-decoration: underline;
+                outline : none;
+            }
+            #fhir-services-invalid-choices-dialog ul{
+                margin-top: 10px;
+            }
+            #fhir-services-recommended-choices-dialog .textarea-wrapper{
+                margin-top: 10px;
+                text-align: center;
+            }
+
+            #fhir-services-recommended-choices-dialog textarea{
+                height: 150px;
+                width: 85%;
+            }
         </style>
         <script>
             var FHIRServicesExternalModule = <?=json_encode([

@@ -51,6 +51,86 @@ $(function(){
             }
 
             $('#div_field_req').before(typeaheadContainer)
+
+            module.initSaveButton()
+        },
+        initSaveButton: function(){
+            var addEditFieldSave = window.addEditFieldSave
+            var finishSave = function(){
+                addEditFieldSave.apply(null, arguments);
+            }
+
+            window.addEditFieldSave = function(){
+                var element = module.getMappedElement()
+                if(element === undefined){
+                    // No element is mapped
+                    finishSave()
+                    return
+                }
+
+                var validValues = {}
+                element.enum.forEach(function(value){
+                    validValues[value.toLowerCase()] = true
+                })
+
+                var invalidChoices = []
+                $('#element_enum').val().split("\n").forEach(function(line){
+                    var separator = ', '
+                    var separatorIndex = line.indexOf(separator)
+                    var value = line.substring(0, separatorIndex).toLowerCase()
+                    var label = line.substring(separatorIndex+separator.length).toLowerCase()
+
+                    if(validValues[value] === undefined && validValues[label] === undefined){
+                        invalidChoices.push(line)
+                    }
+                })
+
+                if(invalidChoices.length === 0){
+                    finishSave()
+                    return
+                }
+                
+                const dialogId = 'fhir-services-invalid-choices-dialog'
+                simpleDialog(`
+                    <div>
+                        The following choices are not valid for the currently mapped FHIR element.
+                        You must remove them or edit them as described under <a href='#' class='recommended-choices'>Recommended Choices</a>.
+                        Before you remove any choices used by existing records, you may need to export this field for all records, update any changed values manually, and import your updates to prevent data loss:
+                    </div>
+                    <ul>
+                        <li>` + invalidChoices.join('</li><li>') + `</li>
+                    </ul>
+                `, 'Invalid Choices Exist', dialogId, 400)
+
+                $('body').on('click', '#fhir-services-invalid-choices-dialog a.recommended-choices', function(){
+                    $('#'+dialogId).dialog('close')
+                    module.showRecommendedChoices()
+                })
+            }
+        },
+        getMappedElement: function(){
+            return module.getElementsForResource()[module.ELEMENT_TYPEAHEAD.val()]
+        },
+        showRecommendedChoices: function(){
+            let choices = []
+            module.getMappedElement().enum.forEach(value => {
+                choices.push(value + ', ' + module.capitalizeFirstLetter(value))
+            })
+            
+            simpleDialog(`
+                <div>
+                    The following choices are recommended and represent all valid values for the currently mapped FHIR element.
+                    They can be copy-pasted as-is into the choices for this field, or modified to an extent.
+                    Allowed modifications include removing unused values, changing labels, or changing codes as long as the label still case insensitively matches one of the recommended codes:
+                </div>
+                <div class='textarea-wrapper'>
+                    <textarea readonly>` + choices.join('\n') + `</textarea>
+                    <button onclick='this.previousElementSibling.select()'>Select All (for easy copying)</button
+                </div>
+            `, 'Recommended Choices', 'fhir-services-recommended-choices-dialog')
+        },
+        capitalizeFirstLetter: string => {
+            return string.charAt(0).toUpperCase() + string.slice(1);
         },
         initTypeahead: function(options){
             options = $.extend({
