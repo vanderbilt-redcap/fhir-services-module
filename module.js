@@ -79,21 +79,28 @@ $(function(){
                 })
 
                 var invalidChoices = []
-                $('#element_enum').val().split("\n").forEach(function(line){
-                    line = line.trim()
-                    if(line === ''){
-                        return
-                    }
 
-                    var separator = ', '
-                    var separatorIndex = line.indexOf(separator)
-                    var value = line.substring(0, separatorIndex).toLowerCase()
-                    var label = line.substring(separatorIndex+separator.length).toLowerCase()
-
-                    if(validValues[value] === undefined && validValues[label] === undefined){
-                        invalidChoices.push(line)
-                    }
-                })
+                var existingChoices = $('#element_enum').val().trim()
+                if(existingChoices === ''){
+                    $('#element_enum').val(module.getRecommendedChoices())
+                }
+                else{
+                    existingChoices.split("\n").forEach(function(line){
+                        line = line.trim()
+                        if(line === ''){
+                            return
+                        }
+    
+                        var separator = ', '
+                        var separatorIndex = line.indexOf(separator)
+                        var value = line.substring(0, separatorIndex).toLowerCase()
+                        var label = line.substring(separatorIndex+separator.length).toLowerCase()
+    
+                        if(validValues[value] === undefined && validValues[label] === undefined){
+                            invalidChoices.push(line)
+                        }
+                    })
+                }
 
                 if(invalidChoices.length === 0){
                     finishSave()
@@ -263,10 +270,6 @@ $(function(){
             const element = module.getMappedElement()
             if(element && element.enum){
                 module.RECOMMENDED_CHOICES_LINK.show()
-
-                if($('#element_enum').val().trim() === ''){
-                    $('#element_enum').val(module.getRecommendedChoices())
-                }
             }
             else{
                 module.RECOMMENDED_CHOICES_LINK.hide()
