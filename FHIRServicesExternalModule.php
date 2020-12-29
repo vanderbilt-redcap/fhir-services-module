@@ -2126,22 +2126,21 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     private function getMatchingEnumValue($projectId, $fieldName, $value, $enum){
+        // An example of a case where it makes sense to match the label instead of the value is a REDCap gender value of 'F' with a label of 'Female'.
+        $label = strtolower($this->getChoiceLabel(['project_id'=>$projectId, 'field_name'=>$fieldName, 'value'=>$value]));
+        $possibleValues = [$value, $label];
+
         $lowerCaseMap = [];
         foreach($enum as $enumValue){
             $lowerCaseMap[strtolower($enumValue)] = $enumValue;
         }
 
-        $matchedValue = @$lowerCaseMap[strtolower($value)];
-        if($matchedValue !== null){
-            // Use the enum value even though the case is differs.
-            return $matchedValue;
-        }
-
-        $label = strtolower($this->getChoiceLabel(['project_id'=>$projectId, 'field_name'=>$fieldName, 'value'=>$value]));
-        $matchedValue = @$lowerCaseMap[strtolower($label)];
-        if($matchedValue !== null){
-            // Use the label as the value.  An example of a case where this works well is a REDCap gender value of 'F' with a label of 'Female'.
-            return $matchedValue;
+        foreach($possibleValues as $possibleValue){
+            // Use lower case strings for case insensitive matching.
+            $matchedValue = @$lowerCaseMap[strtolower($possibleValue)];
+            if($matchedValue !== null){
+                return $matchedValue;
+            }
         }
 
         return $value;
