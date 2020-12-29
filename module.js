@@ -131,8 +131,6 @@ $(function(){
         },
         initRecommendedChoiceLinks: () => {
             $('body').on('click', 'a.fhir-services-recommended-choices-link', function(){
-                $('#'+module.RECOMMENDED_CHOICES_DIALOG_ID).dialog('close')
-
                 simpleDialog(`
                     <div>
                         The following choices are recommended and represent all valid values for the currently mapped FHIR element.
