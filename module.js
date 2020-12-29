@@ -67,8 +67,8 @@ $(function(){
 
             window.addEditFieldSave = function(){
                 var element = module.getMappedElement()
-                if(element === undefined){
-                    // No element is mapped
+                if(element === undefined || element.enum === undefined){
+                    // No enum element is mapped
                     finishSave()
                     return
                 }
