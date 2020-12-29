@@ -59,7 +59,7 @@ $(function(){
                 blur: function(){}
             }, options)
 
-            var typeahead = $('<input class="x-form-text x-form-field">')
+            var typeahead = $('<input class="x-form-text x-form-field" type="search">')
 
             typeahead.focus(function(){
                 options.focus(typeahead)
