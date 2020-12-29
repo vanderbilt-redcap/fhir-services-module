@@ -80,6 +80,11 @@ $(function(){
 
                 var invalidChoices = []
                 $('#element_enum').val().split("\n").forEach(function(line){
+                    line = line.trim()
+                    if(line === ''){
+                        return
+                    }
+
                     var separator = ', '
                     var separatorIndex = line.indexOf(separator)
                     var value = line.substring(0, separatorIndex).toLowerCase()
@@ -98,13 +103,12 @@ $(function(){
                 simpleDialog(`
                     <div>
                         The following choices are not valid for the currently mapped FHIR element.
-                        You must remove them or edit them as described at the top of the <a href='#' class='fhir-services-recommended-choices-link'>list of recommended choices</a>.
-                        Before you remove any choices used by existing records, you may need to export this field for all records, update any changed values manually, and import your updates to prevent data loss:
+                        You must modify them to be FHIR compatible as described at the top of the <a href='#' class='fhir-services-recommended-choices-link'>list of recommended choices</a>:
                     </div>
                     <ul>
                         <li>` + invalidChoices.join('</li><li>') + `</li>
                     </ul>
-                `, 'Invalid Choices Exist', module.RECOMMENDED_CHOICES_DIALOG_ID, 400)
+                `, 'Invalid Choices Exist', module.RECOMMENDED_CHOICES_DIALOG_ID)
             }
         },
         getMappedElement: function(){
@@ -125,8 +129,10 @@ $(function(){
                 simpleDialog(`
                     <div>
                         The following choices are recommended and represent all valid values for the currently mapped FHIR element.
-                        They can be copy-pasted as-is into the choices for this field, or modified to an extent.
-                        Allowed modifications include removing unused values, changing labels, or changing codes as long as the label still case insensitively matches one of the recommended codes:
+                        They will be automatically used as the choices for this field if no choices have been specified.
+                        If choices have already been specified, they may need to modified to ensure FHIR compatibility.
+                        Some modifications to the following are allowed including removing unused values, changing labels, and/or changing codes as long as the label still case insensitively matches one of the recommended codes.
+                        Before modifying or removing any choice codes used by existing records, you will need to export this field for all records, update any changed values manually, and import your updates to prevent data loss:
                     </div>
                     <div class='textarea-wrapper'>
                         <textarea readonly>` + module.getRecommendedChoices() + `</textarea>
@@ -257,6 +263,10 @@ $(function(){
             const element = module.getMappedElement()
             if(element && element.enum){
                 module.RECOMMENDED_CHOICES_LINK.show()
+
+                if($('#element_enum').val().trim() === ''){
+                    $('#element_enum').val(module.getRecommendedChoices())
+                }
             }
             else{
                 module.RECOMMENDED_CHOICES_LINK.hide()
