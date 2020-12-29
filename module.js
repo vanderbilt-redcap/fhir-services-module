@@ -1,5 +1,7 @@
 $(function(){
     var module = $.extend(FHIRServicesExternalModule, {
+        RECOMMENDED_CHOICES_LINK: $("<a href='#' class='fhir-services-recommended-choices-link'>View the recommended choices for this element</a>"),
+        RECOMMENDED_CHOICES_DIALOG_ID: 'fhir-services-invalid-choices-dialog',
         init: function(){
             var elementTypeahead = module.initTypeahead({})
             var resourceTypeahead = module.initResourceTypeahead(elementTypeahead)
@@ -18,6 +20,7 @@ $(function(){
             var typeaheadContainer = $('<div id="fhir-services-mapping-field-settings" style="border: 1px solid rgb(211, 211, 211); padding: 4px 8px; margin-top: 5px; display: block;"><b>FHIR Mapping</b></div>')
             addRow('Resource', resourceTypeahead)
             addRow('Element', elementTypeahead)
+            typeaheadContainer.append(module.RECOMMENDED_CHOICES_LINK)
 
             var openAddQuesFormVisible = window.openAddQuesFormVisible
             window.openAddQuesFormVisible = function(){
@@ -43,6 +46,7 @@ $(function(){
                     elementTypeahead.val(parts.join('/'))
 
                     module.initElementAutocomplete()
+                    module.updateRecommendedChoicesVisibility()
                 }
 
                 if(resourceTypeahead.val() !== ''){
@@ -51,6 +55,12 @@ $(function(){
             }
 
             $('#div_field_req').before(typeaheadContainer)
+
+            $('body').on('click', 'a.fhir-services-recommended-choices-link', function(){
+                $('#'+module.RECOMMENDED_CHOICES_DIALOG_ID).dialog('close')
+                module.showRecommendedChoices()
+                return false
+            })
 
             module.initSaveButton()
         },
@@ -90,22 +100,16 @@ $(function(){
                     return
                 }
                 
-                const dialogId = 'fhir-services-invalid-choices-dialog'
                 simpleDialog(`
                     <div>
                         The following choices are not valid for the currently mapped FHIR element.
-                        You must remove them or edit them as described under <a href='#' class='recommended-choices'>Recommended Choices</a>.
+                        You must remove them or edit them as described at the top of the <a href='#' class='fhir-services-recommended-choices-link'>list of recommended choices</a>.
                         Before you remove any choices used by existing records, you may need to export this field for all records, update any changed values manually, and import your updates to prevent data loss:
                     </div>
                     <ul>
                         <li>` + invalidChoices.join('</li><li>') + `</li>
                     </ul>
-                `, 'Invalid Choices Exist', dialogId, 400)
-
-                $('body').on('click', '#fhir-services-invalid-choices-dialog a.recommended-choices', function(){
-                    $('#'+dialogId).dialog('close')
-                    module.showRecommendedChoices()
-                })
+                `, 'Invalid Choices Exist', module.RECOMMENDED_CHOICES_DIALOG_ID, 400)
             }
         },
         getMappedElement: function(){
@@ -214,6 +218,8 @@ $(function(){
             })
 
             elementTypeahead.blur(function(){
+                module.updateRecommendedChoicesVisibility()
+
                 var textarea = module.getActionTagTextArea()
                 var tags = textarea.val()
 
@@ -242,6 +248,15 @@ $(function(){
             })
 
             return resourceTypeAhead
+        },
+        updateRecommendedChoicesVisibility: () => {
+            const element = module.getMappedElement()
+            if(element && element.enum){
+                module.RECOMMENDED_CHOICES_LINK.show()
+            }
+            else{
+                module.RECOMMENDED_CHOICES_LINK.hide()
+            }
         },
         initElementAutocomplete: function(){
             var elements = module.getElementsForResource()

@@ -141,6 +141,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             #fhir-services-mapping-field-settings input{
                 width: 78%;
             }
+            #fhir-services-mapping-field-settings a,
             #fhir-services-invalid-choices-dialog a{
                 text-decoration: underline;
                 outline : none;
@@ -156,6 +157,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             #fhir-services-recommended-choices-dialog textarea{
                 height: 150px;
                 width: 85%;
+            }
+            #fhir-services-mapping-field-settings .fhir-services-recommended-choices-link{
+                margin-left: 21%;
+                margin-bottom: 3px;
+                display: inline-block;
             }
         </style>
         <script>
