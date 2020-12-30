@@ -2052,8 +2052,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $pattern = '/.*' . ACTION_TAG_PREFIX . '(.*)' . ACTION_TAG_SUFFIX . '.*/';
             preg_match($pattern, $details['field_annotation'], $matches);
             if(!empty($matches)){
-                $parts = explode('/', $matches[1]);
+                $value = $matches[1];
+                $parts = explode('/', $value);
                 $mappings[$fieldName] = [
+                    'raw' => $value,
                     'resource' => array_shift($parts),
                     'elementName' => array_pop($parts),
                     'elementParents' => $parts
@@ -2109,7 +2111,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
             $elementProperty = $parentDefinition['properties'][$elementName];
             if($elementProperty['type'] !== 'array' && isset($subPath[$elementName])){
-                throw new Exception("The following element is currently mapped to multiple fields, which is not supported: " . json_encode($mapping, JSON_PRETTY_PRINT));
+                throw new Exception("The following element is currently mapped to multiple fields, which is not supported: " . $mapping['raw']);
             }
 
             // The java FHIR validator does not allow leading or trailing whitespace.

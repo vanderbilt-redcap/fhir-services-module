@@ -435,4 +435,24 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
             ]
         );
     }
+
+    function testDuplicateFieldMapping(){
+        $this->expectExceptionMessage('mapped to multiple fields');
+
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'resource' => 'Patient',
+                    'element' => 'name/family',
+                    'value' => 'One'
+                ],
+                $this->getFieldName2() => [
+                    'resource' => 'Patient',
+                    'element' => 'name/family',
+                    'value' => 'Two'
+                ]
+            ],
+            []
+        );
+    }
 }
