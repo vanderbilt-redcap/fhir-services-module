@@ -119,7 +119,12 @@ $(function(){
             }
         },
         getMappedElement: function(){
-            return module.getElementsForResource()[module.ELEMENT_TYPEAHEAD.val()]
+            const elements = module.getElementsForResource()
+            if(elements === undefined){
+                return undefined
+            }
+
+            return elements[module.ELEMENT_TYPEAHEAD.val()]
         },
         getRecommendedChoices: () => {
             let choices = []
