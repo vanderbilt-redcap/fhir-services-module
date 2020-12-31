@@ -1,14 +1,10 @@
 <?php namespace Vanderbilt\FHIRServicesExternalModule;
 
-require_once __DIR__ . '/../../../redcap_connect.php';
-
 use DateTime;
 use DateTimeZone;
-use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRCoding;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaire\FHIRQuestionnaireItem;
-use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRCode;
 
-class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
+class FHIRServicesExternalModuleTest extends BaseTest{
     public function setUp():void{
         parent::setUp();
 
@@ -209,13 +205,13 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $this->query('update redcap_metadata set misc = ? where project_id = ? and field_name = ?', [$value, $pid, $fieldName]);
     }
 
-    function assert($fields, $expectedJSON){
+    function assert($fields, $expectedJSON, $resource = 'Patient'){
         $pid = $this->getTestPID();
         $recordId = 1;
 
         $data = ['test_record_id' => $recordId];
         foreach($fields as $fieldName=>$details){
-            $this->setFHIRMapping($fieldName, $details['resource'] . '/' . $details['element']);
+            $this->setFHIRMapping($fieldName, $resource . '/' . $details['element']);
 
             $value = (string) $details['value'];
             if($value[0] === ' '){
@@ -236,7 +232,9 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
 
         $expected['entry'] = [
             [
-                'resource' => $expectedJSON
+                'resource' => array_merge([
+                    'resourceType' => $resource
+                ], $expectedJSON)
             ]
         ];
         
@@ -274,14 +272,11 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
             return $this->assert(
                 [
                     $fieldName => [
-                        'resource' => 'Patient',
                         'element' => $elementPath,
                         'value' => $value
                     ]
                 ],
-                array_merge([
-                    'resourceType' => 'Patient'
-                ], $expectedJSON)
+                $expectedJSON
             );
         };
         
@@ -323,18 +318,15 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $this->assert(
             [
                 $fieldName => [
-                    'resource' => 'Patient',
                     'element' => $homeEmailPath,
                     'value' => 'a@b.com'
                 ],
                 $fieldName2 => [
-                    'resource' => 'Patient',
                     'element' => 'telecom/work/email/value',
                     'value' => 'c@d.com'
                 ]
             ],
             [
-                'resourceType' => 'Patient',
                 'telecom' => [
                     [
                         'use' => 'home',
@@ -366,18 +358,15 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $this->assert(
             [
                 $this->getFieldName() => [
-                    'resource' => 'Patient',
                     'element' => 'gender',
                     'value' => 'female'
                 ],
                 $this->getFieldName2() => [
-                    'resource' => 'Patient',
                     'element' => 'name/family',
                     'value' => ''
                 ]
             ],
             [
-                'resourceType' => 'Patient',
                 'gender' => 'female',
             ]
         );
@@ -388,13 +377,11 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
         $this->assert(
             [
                 $this->getFieldName() => [
-                    'resource' => 'Consent',
                     'element' => 'category/coding/display',
                     'value' => 'foo'
                 ]
             ],
             [
-                'resourceType' => 'Consent',
                 'category' => [
                     [
                         'coding' => [
@@ -404,26 +391,27 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
                         ]
                     ]
                 ]
-            ]
+            ],
+            'Consent'
         );
     }
 
-    function testGetMappedFieldsAsBundle_elementMappedTwice(){
+    private function assertPatient($fields, $expectedJSON){
+    }
+
+    function testGetMappedFieldsAsBundle_elementsMappedTwice(){
         $this->assert(
             [
                 $this->getFieldName() => [
-                    'resource' => 'Patient',
                     'element' => 'name/given',
                     'value' => 'Billy'
                 ],
                 $this->getFieldName2() => [
-                    'resource' => 'Patient',
                     'element' => 'name/given',
                     'value' => 'John'
                 ]
             ],
             [
-                'resourceType' => 'Patient',
                 'name' => [
                     [
                         'given' => [
@@ -434,20 +422,15 @@ class FHIRServicesExternalModuleTest extends \ExternalModules\ModuleBaseTest{
                 ]
             ]
         );
-    }
 
-    function testDuplicateFieldMapping(){
         $this->expectExceptionMessage('mapped to multiple fields');
-
         $this->assert(
             [
                 $this->getFieldName() => [
-                    'resource' => 'Patient',
                     'element' => 'name/family',
                     'value' => 'One'
                 ],
                 $this->getFieldName2() => [
-                    'resource' => 'Patient',
                     'element' => 'name/family',
                     'value' => 'Two'
                 ]
