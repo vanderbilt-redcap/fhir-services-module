@@ -166,7 +166,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         </style>
         <script>
             var FHIRServicesExternalModule = <?=json_encode([
-                'schema' => SchemaParser::parse(),
+                'schema' => SchemaParser::getModifiedSchema(),
                 'ACTION_TAG_PREFIX' => ACTION_TAG_PREFIX,
                 'ACTION_TAG_SUFFIX' => ACTION_TAG_SUFFIX,
             ])?>
@@ -2057,6 +2057,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 $mappings[$fieldName] = [
                     'raw' => $value,
                     'resource' => array_shift($parts),
+                    'elementPath' => implode('/', $parts),
                     'elementName' => array_pop($parts),
                     'elementParents' => $parts
                 ];        
@@ -2121,9 +2122,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 continue;
             }
 
-            $enum = @$elementProperty['enum'];
-            if($enum !== null){
-                $value = $this->getMatchingEnumValue($projectId, $fieldName, $value, $enum);
+            $choices = SchemaParser::getChoices($resourceName, $mapping['elementPath']);
+            if($choices !== null){
+                $value = $this->getMatchingChoiceValue($projectId, $fieldName, $value, $choices);
             }
 
             if($elementProperty['type'] === 'array'){
@@ -2149,14 +2150,15 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $bundle;
     }
 
-    private function getMatchingEnumValue($projectId, $fieldName, $value, $enum){
+    private function getMatchingChoiceValue($projectId, $fieldName, $value, $choices){
         // An example of a case where it makes sense to match the label instead of the value is a REDCap gender value of 'F' with a label of 'Female'.
         $label = strtolower($this->getChoiceLabel(['project_id'=>$projectId, 'field_name'=>$fieldName, 'value'=>$value]));
         $possibleValues = [$value, $label];
 
         $lowerCaseMap = [];
-        foreach($enum as $enumValue){
-            $lowerCaseMap[strtolower($enumValue)] = $enumValue;
+        foreach($choices as $code => $label){
+            $lowerCaseMap[strtolower($label)] = $code;
+            $lowerCaseMap[strtolower($code)] = $code;
         }
 
         foreach($possibleValues as $possibleValue){

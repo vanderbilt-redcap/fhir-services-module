@@ -2,26 +2,28 @@
 
 class SchemaParser{
     private static $definitions;
-    private static $result;
+    private static $modifiedSchema;
 
-    static function parse(){
-        self::$result = [];
+    static function getModifiedSchema(){
+        if(self::$modifiedSchema === null){
+            self::$modifiedSchema = [];
 
-        $schema = json_decode(file_get_contents(__DIR__ . '/fhir.schema.json'), true);
-        
-        self::$definitions = $schema['definitions'];
-        foreach(self::$definitions as $definition){
-            $properties = @$definition['properties'];
-            $resourceName = @$properties['resourceType']['const'];
-            if(in_array($resourceName, [null])){
-                // Skip definitions that aren't resources.
-                continue;
+            $schema = json_decode(file_get_contents(__DIR__ . '/fhir.schema.json'), true);
+            
+            self::$definitions = $schema['definitions'];
+            foreach(self::$definitions as $definition){
+                $properties = @$definition['properties'];
+                $resourceName = @$properties['resourceType']['const'];
+                if(in_array($resourceName, [null])){
+                    // Skip definitions that aren't resources.
+                    continue;
+                }
+
+                self::handleProperties([$resourceName], $properties);    
             }
-
-            self::handleProperties([$resourceName], $properties);    
         }
 
-        return self::$result;
+        return self::$modifiedSchema;
     }
 
     static function handleProperties($parents, $properties){
@@ -79,7 +81,21 @@ class SchemaParser{
     }
 
     private static function handleProperty($parts, $property){
+        $enum = @$property['enum'];
+        if($enum){
+            $choices = [];
+            foreach($enum as $value){
+                $choices[$value] = ucfirst($value);
+            }
+
+            $property['redcapChoices'] = $choices;
+        }
+
         $resourceName = array_shift($parts);
-        self::$result[$resourceName][implode('/', $parts)] = $property;
+        self::$modifiedSchema[$resourceName][implode('/', $parts)] = $property;
+    }
+
+    static function getChoices($resourceName, $elementPath){
+        return self::getModifiedSchema()[$resourceName][$elementPath]['redcapChoices'];
     }
 }

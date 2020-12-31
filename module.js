@@ -67,16 +67,19 @@ $(function(){
 
             window.addEditFieldSave = function(){
                 var element = module.getMappedElement()
-                if(element === undefined || element.enum === undefined){
-                    // No enum element is mapped
+                if(element === undefined || element.redcapChoices === undefined){
+                    // An element with choices is not mapped
                     finishSave()
                     return
                 }
 
                 var validValues = {}
-                element.enum.forEach(function(value){
-                    validValues[value.toLowerCase()] = true
-                })
+                for(var code in element.redcapChoices){
+                    var value = element.redcapChoices[code]
+                    ;[code, value].forEach(function(codeOrValue){
+                        validValues[codeOrValue.toLowerCase()] = true
+                    })
+                }
 
                 var invalidChoices = []
 
@@ -127,12 +130,14 @@ $(function(){
             return elements[module.ELEMENT_TYPEAHEAD.val()]
         },
         getRecommendedChoices: () => {
-            let choices = []
-            module.getMappedElement().enum.forEach(value => {
-                choices.push(value + ', ' + module.capitalizeFirstLetter(value))
-            })
+            const choices = module.getMappedElement().redcapChoices
+            let choiceLines = []
+            for(let code in choices){
+                let label = choices[code]
+                choiceLines.push(code + ', ' + label)
+            }
 
-            return choices.join('\n')
+            return choiceLines.join('\n')
         },
         initRecommendedChoiceLinks: () => {
             $('body').on('click', 'a.fhir-services-recommended-choices-link', function(){
@@ -271,7 +276,7 @@ $(function(){
         },
         updateRecommendedChoicesVisibility: () => {
             const element = module.getMappedElement()
-            if(element && element.enum){
+            if(element && element.redcapChoices){
                 module.RECOMMENDED_CHOICES_LINK.show()
             }
             else{
