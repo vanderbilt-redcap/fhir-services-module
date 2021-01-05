@@ -79,7 +79,7 @@ class SchemaParser{
                     }
                 }
                 else if($refDefinitionName === 'CodeableConcept'){
-                    $property['redcapChoices'] = self::getCodeableConceptChoices($parts);
+                    self::addCodeableConceptValues($parts, $property);
                     self::handleProperty($parts, $property);
                 }
                 else{
@@ -116,11 +116,11 @@ class SchemaParser{
         self::$modifiedSchema[$resourceName][implode('/', $parts)] = $property;
     }
 
-    static function getChoices($resourceName, $elementPath){
-        return self::getModifiedSchema()[$resourceName][$elementPath]['redcapChoices'];
+    static function getModifiedProperty($resourceName, $elementPath){
+        return self::getModifiedSchema()[$resourceName][$elementPath];
     }
 
-    private static function getCodeableConceptChoices($pathParts){
+    private static function addCodeableConceptValues($pathParts, &$property){
         $dataElement = self::getDataElements()[implode('.', $pathParts)];
         $valueSetUrl = $dataElement->snapshot->element[0]->binding->valueSet;
 
@@ -128,10 +128,13 @@ class SchemaParser{
 
         $choices = [];
         foreach($expansion->expansion->contains as $option){
-            $choices[$option->code] = $option->display;
+            $code = $option->code;
+            $choices[$code] = $option->display;
+            $property['systemsByCode'][$code] = $option->system;
         }
 
-        return $choices;
+        
+        $property['redcapChoices'] = $choices;
     }
 
     private static function getDataElements(){

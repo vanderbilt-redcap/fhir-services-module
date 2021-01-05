@@ -448,7 +448,14 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 ],
             ],
             [
-                'maritalStatus' => 'M'
+                'maritalStatus' => [
+                    "coding" => [
+                        [
+                            "system" => "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus",
+                            "code" => "M"
+                        ]
+                    ]
+                ]
             ]
         );
     }

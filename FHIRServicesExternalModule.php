@@ -2122,9 +2122,27 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 continue;
             }
 
-            $choices = SchemaParser::getChoices($resourceName, $mapping['elementPath']);
+            /**
+             * This can't currently be combined with $elementProperty above
+             * because of special handling (pseudo-elements like Patient/telecom/mobile/phone/value).
+             */
+            $modifiedElementProperty = SchemaParser::getModifiedProperty($resourceName, $mapping['elementPath']);
+
+            $choices = $modifiedElementProperty['redcapChoices'];
             if($choices !== null){
                 $value = $this->getMatchingChoiceValue($projectId, $fieldName, $value, $choices);
+                
+                $elementResourceName = SchemaParser::getResourceNameFromRef($elementProperty);
+                if($elementResourceName === 'CodeableConcept'){
+                    $value = [
+                        'coding' => [
+                            [
+                                'system' => $modifiedElementProperty['systemsByCode'][$value],
+                                'code' => $value
+                            ]
+                        ]
+                    ];
+                }
             }
 
             if($elementProperty['type'] === 'array'){
