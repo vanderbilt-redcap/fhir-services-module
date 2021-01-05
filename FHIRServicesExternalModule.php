@@ -2064,7 +2064,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             }
         }
 
-        $schema = json_decode(file_get_contents(__DIR__ . '/fhir.schema.json'), true);
+        $schema = json_decode(SchemaParser::getSchemaJSON(), true);
         
         // Add the record ID regardless so that the standard return format is used.
         // REDCap returns a different format without it.
@@ -2185,7 +2185,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     )
                 }
 
-                var schema = <?=file_get_contents(__DIR__ . '/fhir.schema.json')?>;
+                var schema = <?=SchemaParser::getSchemaJSON()?>;
                 var bundle = <?=json_encode($resource, JSON_PRETTY_PRINT)?>;
 
                 try{

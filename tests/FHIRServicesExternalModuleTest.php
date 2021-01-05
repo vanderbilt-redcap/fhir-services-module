@@ -438,4 +438,18 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             []
         );
     }
+
+    function testGetMappedFieldsAsBundle_codeableConcept(){
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'element' => 'maritalStatus',
+                    'value' => 'married'
+                ],
+            ],
+            [
+                'maritalStatus' => 'M'
+            ]
+        );
+    }
 }
