@@ -46,8 +46,9 @@ $(function(){
                     elementTypeahead.val(parts.join('/'))
 
                     module.initElementAutocomplete()
-                    module.updateRecommendedChoicesVisibility()
                 }
+                
+                module.updateRecommendedChoicesVisibility()
 
                 if(resourceTypeahead.val() !== ''){
                     elementTypeahead.parent().show()
