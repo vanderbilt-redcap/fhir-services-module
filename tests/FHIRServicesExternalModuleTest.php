@@ -480,4 +480,22 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $assert('false', false);
         $assert('0', false);
     }
+
+    function testGetMappedFieldsAsBundle_multipleDeceased(){
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'element' => 'deceasedBoolean',
+                    'value' => 1
+                ],
+                $this->getFieldName2() => [
+                    'element' => 'deceasedBoolean',
+                    'value' => 0
+                ],
+            ],
+            [
+                'deceasedBoolean' => true
+            ]
+        );
+    }
 }
