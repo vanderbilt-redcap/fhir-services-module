@@ -459,4 +459,25 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             ]
         );
     }
+
+    function testGetMappedFieldsAsBundle_booleans(){
+        $assert = function($value, $expected){
+            $this->assert(
+                [
+                    $this->getFieldName() => [
+                        'element' => 'deceasedBoolean',
+                        'value' => $value
+                    ],
+                ],
+                [
+                    'deceasedBoolean' => $expected
+                ]
+            );
+        };
+
+        $assert('true', true);
+        $assert('1', true);
+        $assert('false', false);
+        $assert('0', false);
+    }
 }

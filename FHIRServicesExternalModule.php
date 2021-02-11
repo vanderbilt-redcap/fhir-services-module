@@ -2144,6 +2144,14 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     ];
                 }
             }
+            else if($modifiedElementProperty['pattern'] === '^true|false$'){
+                if($value === 'true' || $value === '1'){
+                    $value = true;
+                }
+                else if($value === 'false' || $value === '0'){
+                    $value = false;
+                }
+            }
 
             if($elementProperty['type'] === 'array'){
                 $subPath[$elementName][] = $value;
