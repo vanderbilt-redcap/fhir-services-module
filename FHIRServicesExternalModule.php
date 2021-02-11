@@ -2116,15 +2116,15 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     $resourceName === 'Patient'
                     &&
                     $mapping['elementPath'] === 'deceasedBoolean'
-                    &&
-                    @$subPath[$elementName] === true
                 ){
                     /**
                      * This element is allowed to be mapped multiple times, since a deceased flag may exist on multiple events in REDCap.
                      * If ANY of those mapped values is true, then we should just continue and ignore any false values.
                      * Remember, this loop may not process events in chronological order.
                      */
-                    continue;
+                    if(@$subPath[$elementName] === true){
+                        continue;
+                    }
                 }
                 else{
                     throw new Exception("The following element is currently mapped to multiple fields, which is not supported: " . $mapping['raw']);
