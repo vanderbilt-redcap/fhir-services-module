@@ -2127,7 +2127,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     }
                 }
                 else{
-                    throw new Exception("The following element is currently mapped to multiple fields, which is not supported: " . $mapping['raw']);
+                    die("The '" . $mapping['raw'] . "' element is currently mapped to multiple fields, but should only be mapped to a single field.  It is recommended to download the Data Dictionary and search for '" . $mapping['raw'] . "' to determine which field mapping(s) need to be modified.");
                 }
             }
 
