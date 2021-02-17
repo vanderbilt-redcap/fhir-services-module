@@ -2161,7 +2161,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     ];
                 }
             }
-            else if($modifiedElementProperty['pattern'] === '^true|false$'){
+            else if($modifiedElementProperty['type'] === 'boolean'){
                 if($value === 'true' || $value === '1'){
                     $value = true;
                 }
