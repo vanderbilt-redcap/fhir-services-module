@@ -192,6 +192,8 @@ $(function(){
                 if(source.indexOf(typeahead.val()) === -1){
                     typeahead.val('')
                 }
+
+                module.updateActionTag()
             })
 
             typeahead.keypress(function(e) {
@@ -229,12 +231,13 @@ $(function(){
             return typeahead
         },
         initResourceTypeahead: function(elementTypeahead){
-            var resourceTypeAhead = module.initTypeahead({
+            return module.initTypeahead({
                 source: Object.keys(module.schema),
                 blur: function(typeahead){
                     var elements = module.getElementsForResource()
                     if(elements){
                         module.initElementAutocomplete()
+                        elementTypeahead.val('')
                         elementTypeahead.focus()
                     }
                     else{
@@ -242,38 +245,35 @@ $(function(){
                     }
                 }
             })
+        },
+        updateActionTag: () => {
+            module.updateRecommendedChoicesVisibility()
 
-            elementTypeahead.blur(function(){
-                module.updateRecommendedChoicesVisibility()
+            var textarea = module.getActionTagTextArea()
+            var tags = textarea.val()
 
-                var textarea = module.getActionTagTextArea()
-                var tags = textarea.val()
+            var details = module.getExistingActionTagDetails()
+            if(!details){
+                // A error must have occurred.
+                return
+            }
 
-                var details = module.getExistingActionTagDetails()
-                if(!details){
-                    // A error must have occurred.
-                    return
-                }
+            var tagStartIndex = details.tagStartIndex
+            var tagEndIndex = details.tagEndIndex
 
-                var tagStartIndex = details.tagStartIndex
-                var tagEndIndex = details.tagEndIndex
+            var resource = module.RESOURCE_TYPEAHEAD.val()
+            var element = module.ELEMENT_TYPEAHEAD.val()
 
-                var resource = resourceTypeAhead.val()
-                var element = elementTypeahead.val()
+            var newTag = ''
+            if(resource != '' && element != ''){
+                newTag = module.ACTION_TAG_PREFIX + resource + '/' + element + module.ACTION_TAG_SUFFIX
+            }
 
-                var newTag = ''
-                if(resource != '' && element != ''){
-                    newTag = module.ACTION_TAG_PREFIX + resource + '/' + element + module.ACTION_TAG_SUFFIX
-                }
+            if(tagStartIndex > 0 && tags[tagStartIndex-1] !== ' '){
+                newTag = ' ' + newTag
+            }
 
-                if(tagStartIndex > 0 && tags[tagStartIndex-1] !== ' '){
-                    newTag = ' ' + newTag
-                }
-
-                textarea.val(tags.substring(0, tagStartIndex) + newTag + tags.substring(tagEndIndex))
-            })
-
-            return resourceTypeAhead
+            textarea.val(tags.substring(0, tagStartIndex) + newTag + tags.substring(tagEndIndex))
         },
         updateRecommendedChoicesVisibility: () => {
             const element = module.getMappedElement()
