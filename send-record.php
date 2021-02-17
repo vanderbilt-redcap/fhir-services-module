@@ -1,4 +1,4 @@
-<?php
+<?php namespace Vanderbilt\FHIRServicesExternalModule;
 
 $projectId = $module->getProjectId();
 $recordId = $_GET['id'];
@@ -11,9 +11,21 @@ else if($module->getProjectType() === 'questionnaire'){
 }
 else{
     // This feature likely won't live here long term, but this is a good place for testing.
-    $bundle = $module->getMappedFieldsAsBundle($projectId, $recordId);
-    $module->validateInBrowserAndDisplay($bundle);
-    die();
+    try{
+
+        $bundle = $module->getMappedFieldsAsBundle($projectId, $recordId);
+        $module->validateInBrowserAndDisplay($bundle);
+    }
+    catch(\Throwable $t){
+        if($t instanceof StackFreeException){
+            die($t->getMessage());
+        }
+        else{
+            throw $t;
+        }
+    }
+
+    return;
 }
 
 header('Content-type: application/json'); 

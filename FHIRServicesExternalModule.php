@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/SchemaParser.php';
+require_once __DIR__ . '/StackFreeException.php';
 
 use REDCap;
 use DateTime;
@@ -2127,7 +2128,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     }
                 }
                 else{
-                    die("The '" . $mapping['raw'] . "' element is currently mapped to multiple fields, but should only be mapped to a single field.  It is recommended to download the Data Dictionary and search for '" . $mapping['raw'] . "' to determine which field mapping(s) need to be modified.");
+                    throw new StackFreeException("The '" . $mapping['raw'] . "' element is currently mapped to multiple fields, but should only be mapped to a single field.  It is recommended to download the Data Dictionary and search for '" . $mapping['raw'] . "' to determine which field mapping(s) need to be modified.");
                 }
             }
 
