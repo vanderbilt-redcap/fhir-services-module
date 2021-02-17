@@ -50,6 +50,8 @@ const SUPPORTED_ACTION_TAGS = [
 const ACTION_TAG_PREFIX = "@FHIR-MAPPING='";
 const ACTION_TAG_SUFFIX = "'";
 
+const DATE_TIME_PATTERN = "^([0-9]([0-9]([0-9][1-9]|[1-9]0)|[1-9]00)|[1-9]000)(-(0[1-9]|1[0-2])(-(0[1-9]|[1-2][0-9]|3[0-1])(T([01][0-9]|2[0-3]):[0-5][0-9]:([0-5][0-9]|60)(\\.[0-9]+)?(Z|(\\+|-)((0[0-9]|1[0-3]):[0-5][0-9]|14:00)))?)?)?$";
+
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
     function redcap_every_page_top(){
         if($this->isPage('DataEntry/record_home.php')){
@@ -2168,6 +2170,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 else if($value === 'false' || $value === '0'){
                     $value = false;
                 }
+            }
+            else if($modifiedElementProperty['pattern'] === DATE_TIME_PATTERN){
+                $value = $this->formatFHIRDateTime($value);
             }
 
             if($elementProperty['type'] === 'array'){

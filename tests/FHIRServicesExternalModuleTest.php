@@ -505,4 +505,19 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $assert(0, 1, true);
         $assert(0, 0, false);
     }
+
+    function testGetMappedFieldsAsBundle_dateTimes(){
+        $redcapFormattedDate = '2021-02-17 13:49:02';
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'element' => 'deceasedDateTime',
+                    'value' => $redcapFormattedDate
+                ],
+            ],
+            [
+                'deceasedDateTime' => '2021-02-17T13:49:02-06:00'
+            ]
+        );
+    }
 }
