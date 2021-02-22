@@ -2233,11 +2233,12 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     )
                 }
 
+                var draft06 = <?=file_get_contents(__DIR__ . '/fhir/json-schema-draft-06.json')?>;
                 var schema = <?=SchemaParser::getSchemaJSON()?>;
                 var bundle = <?=json_encode($resource, JSON_PRETTY_PRINT)?>;
 
                 try{
-                    // AJV doesn't like these two values for some reason...
+                    // AJV throws a bunch of warnings if I don't remove these (likely because the FHIR schema is not quite valid).
                     schema.$schema = undefined
                     schema.id = undefined
                     
@@ -2251,6 +2252,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                         ]
         
                         var ajv = new Ajv()
+
+                        /**
+                         * Added per the recommendation here:
+                         * https://github.com/ajv-validator/ajv/tree/v6.12.6#using-version-6
+                         */
+                        ajv.addMetaSchema(draft06)
+
                         var validate = ajv.compile(schema)
                         if(!validate(resource)){
                             handleError(JSON.stringify(validate.errors, null, 2), resource)
