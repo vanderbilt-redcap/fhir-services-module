@@ -2307,6 +2307,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function getEConsentFHIRBundle($args){
+        $type = $args['type'];
         $version = $args['version'];
         $firstName = $args['firstName'];
         $lastName = $args['lastName'];
@@ -2344,7 +2345,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 'contentType' => 'application/pdf',
                 'data' => base64_encode($args['data']),
                 'hash' => sha1($args['data']),
-                'title' => "eConsent Version $version for $firstName $lastName",
+                'title' => "$type eConsent Version $version for $firstName $lastName",
                 'creation' => $this->formatFHIRDateTime($args['creation'])
             ],
             'policy' => [
@@ -2505,6 +2506,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $data = \Records::getData($Proj->project_id, 'array', $record, $fields, $events);
 
         $returnData = [
+            'type' => $surveySettings['pdf_econsent_type'],
             'version' => $surveySettings['pdf_econsent_version']
         ];
         

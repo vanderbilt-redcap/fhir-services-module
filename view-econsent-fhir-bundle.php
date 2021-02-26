@@ -16,6 +16,7 @@ $bundle = $module->getEConsentFHIRBundle([
     'scope' => $formSettings['econsent-scope'],
     'categories' => $formSettings['econsent-categories'],
     'data' => $data,
+    'type' => $eConsentData['type'],
     'version' => $eConsentData['version'],
     'firstName' => $eConsentData['firstname'],
     'lastName' => $eConsentData['lastname'],

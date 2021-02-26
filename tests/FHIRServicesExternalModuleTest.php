@@ -531,6 +531,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             'scope' => 'research',
             'categories' => ['acd', 'dnr'],
             'data' => rand(),
+            'type' => 'Some Type',
             'version' => rand(),
             'firstName' => 'Joe',
             'lastName' => 'Bloe',
@@ -574,7 +575,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 'contentType' => 'application/pdf',
                 'data' => base64_encode($args['data']),
                 'hash' => sha1($args['data']),
-                'title' => "eConsent Version {$args['version']} for {$args['firstName']} {$args['lastName']}",
+                'title' => "{$args['type']} eConsent Version {$args['version']} for {$args['firstName']} {$args['lastName']}",
                 'creation' => $this->formatFHIRDateTime($args['creation'])
             ],
             'policy' => [
