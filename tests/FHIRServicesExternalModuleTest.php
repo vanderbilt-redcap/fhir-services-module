@@ -245,13 +245,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         
         $actual = $this->getMappedFieldsAsBundle($pid, $recordId);
         
-        try {
-            $this->assertSame(json_encode($expected, JSON_PRETTY_PRINT), json_encode($actual, JSON_PRETTY_PRINT));
-        } 
-        catch (\Exception $e) {
-            echo $e->getComparisonFailure()->getDiff();
-            throw $e;
-        }
+        $this->assertSame($expected, $actual);
 
         // TODO - Make this work on all calls.  AJV is not comprehensive.
         // Instead of spinning up a new java process on each test, we could write resources to a files and scan them all at once in tearDown().
