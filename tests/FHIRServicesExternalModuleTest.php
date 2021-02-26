@@ -530,6 +530,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             'consentId' => $this->getInstanceFHIRId($pid, $record, rand(), 'some_form', rand()),
             'scope' => 'research',
             'categories' => ['acd', 'dnr'],
+            'dateTime' => '2021-02-20 18:41:52.0',
             'data' => rand(),
             'type' => 'Some Type',
             'version' => rand(),
@@ -571,12 +572,12 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             'patient' => [
                 'reference' => $this->getRelativeResourceUrl($patient)
             ],
+            'dateTime' => $this->formatFHIRDateTime($args['dateTime']),
             'sourceAttachment' => [
                 'contentType' => 'application/pdf',
                 'data' => base64_encode($args['data']),
                 'hash' => sha1($args['data']),
                 'title' => "{$args['type']} eConsent Version {$args['version']} for {$args['firstName']} {$args['lastName']}",
-                'creation' => $this->formatFHIRDateTime($args['creation'])
             ],
             'policy' => [
                 [

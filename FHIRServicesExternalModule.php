@@ -2341,12 +2341,12 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             'patient' => [
                 'reference' => $this->getRelativeResourceUrl($patient)
             ],
+            'dateTime' => $this->formatFHIRDateTime($args['dateTime']),
             'sourceAttachment' => [
                 'contentType' => 'application/pdf',
                 'data' => base64_encode($args['data']),
                 'hash' => sha1($args['data']),
                 'title' => "$type eConsent Version $version for $firstName $lastName",
-                'creation' => $this->formatFHIRDateTime($args['creation'])
             ],
             'policy' => [
                 [
@@ -2536,4 +2536,48 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     function getProjectHomeUrl($pid){
         return APP_PATH_WEBROOT_FULL . ltrim(APP_PATH_WEBROOT, '/') . "?pid=$pid";
     }
+
+    // This can be removed once it makes it into a framework version.
+    function getSurveyResponseDetails($form, $recordId, $eventId = null, $instance = null) {
+        $pid = $this->getProjectId();
+
+        $query = $this->createQuery();
+		$query->add("
+			select p.*, r.*
+            from redcap_surveys s
+            join redcap_surveys_participants p
+                on p.survey_id = s.survey_id
+            join redcap_surveys_response r
+                on r.participant_id = p.participant_id 
+            where
+                project_id = ?
+                and form_name = ?
+                and r.record = ?
+		", [$pid, $form, $recordId]);
+
+		if($eventId !== null){
+			$query->add(" and p.event_id = ?", $eventId);
+		}
+
+        if($instance !== null){
+			$query->add(" and r.instance = ?", $instance);
+		}
+
+        // This table sometimes contains duplicate entries.
+        // Mark isn't sure why, but the following seems to weed almost all of them out.
+        // It might be appropriate to throw an exception for any that remain,
+        // since it could be considered a data corruption issue on the project.
+        $query->add('
+            and completion_time is not null
+            order by completion_time asc
+        ');
+
+		$result = $query->execute();
+		$row = $result->fetch_assoc();
+        if($result->fetch_assoc() !== null){
+            throw new Exception("Multiple survey responses found for pid '$pid', record '$recordId', event '$eventId', and instance '$instance'!  You may need to supply more arguments to target the response you're looking for.");
+        }
+
+        return $row;
+	}
 }
