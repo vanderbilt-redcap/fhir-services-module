@@ -12,7 +12,8 @@
     ],
     "permissions": [
         "redcap_every_page_top",
-        "redcap_module_link_check_display"
+        "redcap_module_link_check_display",
+        "redcap_data_entry_form"
     ],
     "links": {
 		"project": [
@@ -47,7 +48,139 @@
             "key": "remote-fhir-server-url",
             "name": "Remote FHIR Server URL",
             "type": "text"
-        }
+        },
+        {
+            "key": "econsent-form-settings",
+            "name": "eConsent Form Settings",
+            "type": "sub_settings",
+            "repeatable":true,
+            "sub_settings":[
+                {
+					"key": "form-name",
+					"name": "Form",
+					"type": "form-list"
+				},
+                {
+                    "key": "econsent-scope",
+                    "name": "eConsent Scope",
+                    "type": "dropdown",
+                    "choices":[
+                        {
+                            "name" : "Advanced Care Directive",
+                            "value" : "adr"
+                        },
+                        {
+                            "name" : "Research",
+                            "value" : "research"
+                        },
+                        {
+                            "name" : "Privacy Consent",
+                            "value" : "patient-privacy"
+                        },
+                        {
+                            "name" : "Treatment",
+                            "value" : "treatment"
+                        }   
+                    ]
+                },
+                {
+                    "key": "econsent-categories",
+                    "name": "eConsent Categories",
+                    "repeatable": true,
+                    "type": "dropdown",
+                    "choices":[
+                        {
+                            "name" : "Advance Directive",
+                            "value" : "acd"
+                        },
+                        {
+                            "name" : "Do Not Resuscitate",
+                            "value" : "dnr"
+                        },
+                        {
+                            "name" : "Emergency Only",
+                            "value" : "emgronly"
+                        },
+                        {
+                            "name" : "Health Care Directive",
+                            "value" : "hcd"
+                        },
+                        {
+                            "name" : "Notice of Privacy Practices",
+                            "value" : "npp"
+                        },
+                        {
+                            "name" : "POLST",
+                            "value" : "polst"
+                        },
+                        {
+                            "name" : "Research Information Access",
+                            "value" : "research"
+                        },
+                        {
+                            "name" : "De-identified Information Access",
+                            "value" : "rsdid"
+                        },
+                        {
+                            "name" : "Re-identifiable Information Access",
+                            "value" : "rsreid"
+                        },
+                        {
+                            "name" : "v3-ActCode: information collection",
+                            "value" : "ICOL"
+                        },
+                        {
+                            "name" : "v3-ActCode: information disclosure",
+                            "value" : "IDSCL"
+                        },
+                        {
+                            "name" : "v3-ActCode: information access",
+                            "value" : "INFA"
+                        },
+                        {
+                            "name" : "v3-ActCode: access only",
+                            "value" : "INFAO"
+                        },
+                        {
+                            "name" : "v3-ActCode: access and save only",
+                            "value" : "INFASO"
+                        },
+                        {
+                            "name" : "v3-ActCode: information redisclosure",
+                            "value" : "IRDSCL"
+                        },
+                        {
+                            "name" : "v3-ActCode: research information access",
+                            "value" : "RESEARCH"
+                        },
+                        {
+                            "name" : "v3-ActCode: de-identified information access",
+                            "value" : "RSDID"
+                        },
+                        {
+                            "name" : "v3-ActCode: re-identifiable information access",
+                            "value" : "RSREID"
+                        },
+                        {
+                            "name" : "LOINC: Patient Consent",
+                            "value" : "59284-0"
+                        },
+                        {
+                            "name" : "LOINC: Privacy policy acknowledgement Document",
+                            "value" : "57016-8"
+                        },
+                        {
+                            "name" : "LOINC: Privacy policy Organization Document",
+                            "value" : "57017-6"
+                        },
+                        {
+                            "name" : "LOINC: Release of information consent",
+                            "value" : "64292-6"
+                        }
+                    ]
+                }
+			]
+		}
     ],
     "compatibility": {
         "redcap-version-min": "9.7.8"

@@ -181,8 +181,6 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     private function hookRecordHome(){
         $projectId = $this->getProjectId();
         $recordId = $_GET['id'];
-        $urlPrefix = $this->getUrl('service.php', true);
-        $urlPrefix = str_replace("&pid=$projectId", '', $urlPrefix); 
 
         $projectType = $this->getProjectType();
         $resourceName = null;
@@ -274,7 +272,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     }
                     else{
                         openAction = function(){
-                            window.open(<?=json_encode("$urlPrefix&fhir-url=/$resourceName/$projectId-$recordId")?>)
+                            window.open(<?=json_encode($this->getResourceUrl([
+                                'resourceType' => $resourceName,
+                                'id' => $this->getRecordFHIRId($projectId, $recordId)
+                            ]))?>)
                         }
                     }
 
@@ -302,6 +303,39 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 var csvSection = $('#uploadmain').parent().parent()
                 var fhirSection = csvSection.clone()
                 csvSection.after(fhirSection)
+            })
+        </script>
+        <?php
+    }
+
+    function redcap_data_entry_form($project_id, $record, $instrument, $event_id, $group_id, $repeat_instance){
+        $Proj = new \Project($project_id);
+		$surveySettings = $Proj->surveys[$Proj->forms[$instrument]['survey_id']];
+        $isEConsentEnabled = $surveySettings['pdf_auto_archive'] === '2';
+        ?>
+        <script>
+            $(function(){
+                if(<?=json_encode($isEConsentEnabled)?>){
+                    var dropdown = $('#SurveyActionDropDownUl')
+                    var newItem = dropdown.find('> li:first-child').clone()
+                    var newLink = newItem.find('> a')
+                    
+                    newLink.removeAttr('id onclick')
+                    newLink.find('img')[0].nextSibling.nodeValue = 'View eConsent FHIR Bundle'
+                    newLink.click(function(){
+                        window.open(<?=
+                            json_encode(
+                                $this->getUrl('view-econsent-fhir-bundle.php') .
+                                "&record=$record" .
+                                "&form=$instrument" .
+                                "&event=$event_id" .
+                                "&instance=$repeat_instance"
+                            )
+                        ?>)
+                    })
+    
+                    dropdown.append(newItem)
+                }
             })
         </script>
         <?php
@@ -684,12 +718,47 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return [$projectId, $recordId]; 
     }
 
+    function getResourceUrl($resource){
+        $originalPid = $_GET['pid'];
+        unset($_GET['pid']);
+
+        // Get the URL without the pid.
+        $urlPrefix = $this->getUrl('service.php', true, true);
+
+        $_GET['pid'] = $originalPid;
+
+        return "$urlPrefix&fhir-url=/" . $this->getRelativeResourceUrl($resource);
+    }
+
+    function getRelativeResourceUrl($resource){
+        $type = $resource['resourceType'];
+        if(empty($type)){
+            throw new Exception("A 'resourceType' is required to build URLs.");
+        }
+
+        $id = $resource['id'];
+        if(empty($id)){
+            throw new Exception("An 'id' is required to build URLs.");
+        }
+
+        return "$type/$id";
+    }
+
+    function getRecordFHIRId($projectId, $recordId){
+        return "$projectId-$recordId";
+    }
+
+    function getInstanceFHIRId($pid, $record, $event, $form, $instance){
+        $form = str_replace('_', '-', $form);
+        return $this->getRecordFHIRId($pid, $record) . "-$event-$form-$instance";
+    }
+
     function addIdentifier($resource, $projectId, $recordId){
         if($resource->getId()){
             throw new Exception('The ID is already set!');
         }
 
-        $resourceId = "$projectId-$recordId";
+        $resourceId = $this->getRecordFHIRId($projectId, $recordId);
 
         $resource->setId($resourceId);
 
@@ -2086,7 +2155,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
             if(!isset($resources[$resourceName])){
                 $resources[$resourceName] = [
-                    'resourceType' => $resourceName
+                    'resourceType' => $resourceName,
+                    'id' => $this->getRecordFHIRId($projectId, $recordId)
                 ];
             }
 
@@ -2185,17 +2255,106 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $this->formatContactPoints($contactPoints);
 
-        $bundle = [
-            'resourceType' => 'Bundle',
-            'type' => 'collection',
-        ];
+        return $this->createBundle($resources);
+    }
 
-        // The $resource2 variable is used here because $resource caused unexpected behavior due to the reference operator (&) being used.
-        foreach($resources as $resource2){
-            $bundle['entry'][]['resource'] = $resource2;
+    private function createResource($type, $args){
+        return array_merge([
+            'resourceType' => $type,
+        ], $args);
+    }
+
+    function createBundle($resources, $type = 'collection'){
+        $bundle = $this->createResource('Bundle', [
+            'type' => $type,
+        ]);
+
+        foreach($resources as $resource){
+            $bundle['entry'][] = [
+                'fullUrl' => $this->getResourceUrl($resource),
+                'resource' => $resource
+            ];
         }
 
         return $bundle;
+    }
+
+    function formatConsentCategories($values){
+        $categories = [];
+        foreach($values as $value){
+            if(ctype_digit($value[0])){
+                $system = 'http://loinc.org';
+
+            }
+            elseif(ctype_upper($value)){
+                $system = 'http://terminology.hl7.org/CodeSystem/v3-ActCode';
+            }
+            else{
+                $system = 'http://terminology.hl7.org/CodeSystem/consentcategorycodes';
+            }
+
+            $categories[] = [
+                'coding' => [
+                    [
+                        'system' => $system,
+                        'code' => $value
+                    ]
+                ]
+            ];
+        }
+
+        return $categories;
+    }
+
+    function getEConsentFHIRBundle($args){
+        $version = $args['version'];
+        $firstName = $args['firstName'];
+        $lastName = $args['lastName'];
+        $patientId = $args['patientId'];
+
+        $patient = $this->createResource('Patient', [
+            'id' => $patientId,
+            'name' => [
+                [
+                    'given' => [
+                        $firstName
+                    ],
+                    'family' => $lastName
+                ]
+            ],
+            'birthDate' => $args['birthDate']
+        ]);
+
+        $consent = $this->createResource('Consent', [
+            'id' => $args['consentId'],
+            'status' => 'active',
+            'scope' => [
+                'coding' => [
+                    [
+                        'system' => 'http://terminology.hl7.org/CodeSystem/consentscope',
+                        'code' => $args['scope']
+                    ]
+                ]
+            ],
+            'category' => $this->formatConsentCategories($args['categories']),
+            'patient' => [
+                'reference' => $this->getRelativeResourceUrl($patient)
+            ],
+            'sourceAttachment' => [
+                'contentType' => 'application/pdf',
+                'data' => base64_encode($args['data']),
+                'hash' => sha1($args['data']),
+                'title' => "eConsent Version $version for $firstName $lastName",
+                'creation' => $this->formatFHIRDateTime($args['creation'])
+            ],
+            'policy' => [
+                [
+                    'authority' => $args['authority']
+                ]
+            ]
+        ]);
+
+        return $this->createBundle([$consent, $patient]);
     }
 
     private function getMatchingChoiceValue($projectId, $fieldName, $value, $choices){
@@ -2302,5 +2461,77 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 }
             }
         }
+    }
+
+    function getEConsentFormSettings($formName){
+        $allFormSettings = $this->getSubSettings('econsent-form-settings');
+        foreach($allFormSettings as $formSettings){
+            if($formSettings['form-name'] === $formName){
+                return $formSettings;
+            }
+        }
+
+        throw new \Exception('Modules settings must be entered before eConsents can be exported for the following form: ' . $formName);
+    }
+
+    // This method is based on Survey::getEconsentOptionsData() in REDCap Core.
+    function getEConsentData($form, $record, $instance){
+        $Proj = new \Project();
+        $surveySettings = $Proj->surveys[$Proj->forms[$form]['survey_id']];
+        
+        $fields = [];
+        $events = [];
+        $allFieldDetails = [];
+        foreach(['firstname', 'lastname', 'dob'] as $fieldType){
+            $eventSettingName = "pdf_econsent_{$fieldType}_event_id";
+            $fieldSettingName = "pdf_econsent_{$fieldType}_field";
+
+            $event = $surveySettings[$eventSettingName];
+            $field = $surveySettings[$fieldSettingName];
+
+            if(empty($field)){
+                continue;
+            }
+            
+            $events[] = $event;
+            $fields[] = $field;
+            
+            $allFieldDetails[$fieldType] = [
+                'event' => $event,
+                'field' => $field,
+            ];
+        }
+
+        $data = \Records::getData($Proj->project_id, 'array', $record, $fields, $events);
+
+        $returnData = [
+            'version' => $surveySettings['pdf_econsent_version']
+        ];
+        
+        foreach($allFieldDetails as $fieldType => $details){
+            $event = $details['event'];
+            $field = $details['field'];
+
+            $thisFieldForm = $Proj->metadata[$fields[0]]['form_name'];
+            $thisFieldRepeating = $Proj->isRepeatingFormOrEvent($events[0], $thisFieldForm);
+            $thisFieldRepeatInstrument = "";
+            if ($thisFieldRepeating) {
+                $thisFieldRepeatInstrument = $Proj->isRepeatingForm($surveySettings['pdf_econsent_firstname_event_id'], $thisFieldForm) ? $thisFieldForm : "";
+            }
+
+            if ($thisFieldRepeating) {
+                $value = $data[$record]['repeat_instances'][$event][$thisFieldRepeatInstrument][$instance][$field];
+            } else {
+                $value =  $data[$record][$event][$field];
+            }
+
+            $returnData[$fieldType] = $value;
+        }
+
+        return $returnData;
+    }
+
+    function getProjectHomeUrl($pid){
+        return APP_PATH_WEBROOT_FULL . ltrim(APP_PATH_WEBROOT, '/') . "?pid=$pid";
     }
 }

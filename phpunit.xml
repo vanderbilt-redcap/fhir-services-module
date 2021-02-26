@@ -1,7 +1,10 @@
-<phpunit>
-    <testsuites>
-        <testsuite name='Default Test Suite'>
-            <directory>./tests/</directory>
-        </testsuite>
-    </testsuites>
+<phpunit
+	stopOnFailure="true"
+	stopOnError="true"
+	>
+	<testsuites>
+		<testsuite name="tests">
+			<directory>tests</directory>
+		</testsuite>
+	</testsuites>
 </phpunit>

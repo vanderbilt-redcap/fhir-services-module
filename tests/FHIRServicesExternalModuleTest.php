@@ -230,11 +230,16 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             'type' => 'collection',
         ];
 
+        $expectedJSON = array_merge([
+            // Type & id are required to build URLs, which are required by Bundles.
+            'resourceType' => $resource,
+            'id' => $this->getRecordFHIRId($pid, $recordId)
+        ], $expectedJSON);
+
         $expected['entry'] = [
             [
-                'resource' => array_merge([
-                    'resourceType' => $resource
-                ], $expectedJSON)
+                'fullUrl' => $this->getResourceUrl($expectedJSON),
+                'resource' => $expectedJSON
             ]
         ];
         
@@ -247,6 +252,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             echo $e->getComparisonFailure()->getDiff();
             throw $e;
         }
+
+        // TODO - Make this work on all calls.  AJV is not comprehensive.
+        // Instead of spinning up a new java process on each test, we could write resources to a files and scan them all at once in tearDown().
+        // $this->validate($actual);
 
         return $actual;
     }
@@ -396,9 +405,6 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         );
     }
 
-    private function assertPatient($fields, $expectedJSON){
-    }
-
     function testGetMappedFieldsAsBundle_elementsMappedTwice(){
         $this->assert(
             [
@@ -519,5 +525,102 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 'deceasedDateTime' => '2021-02-17T13:49:02-06:00'
             ]
         );
+    }
+
+    function testGetEConsentFHIRBundle(){
+        $pid = rand();
+        $record = rand();
+        $patientId = $this->getRecordFHIRId($pid, $record);
+        
+        $args = [
+            'consentId' => $this->getInstanceFHIRId($pid, $record, rand(), 'some_form', rand()),
+            'scope' => 'research',
+            'categories' => ['acd', 'dnr'],
+            'data' => rand(),
+            'version' => rand(),
+            'firstName' => 'Joe',
+            'lastName' => 'Bloe',
+            'creation' => time(),
+            'authority' => $this->getProjectHomeUrl($pid),
+            'patientId' => $patientId,
+            'birthDate' => date('Y-m-d'),
+        ];
+
+        $patient = [
+            'resourceType' => 'Patient',
+            'id' => $patientId,
+            'name' => [
+                [
+                    'given' => [
+                        $args['firstName']
+                    ],
+                    'family' => $args['lastName']
+                ]
+            ],
+            'birthDate' => $args['birthDate']
+        ];
+        
+        $consent = [
+            'resourceType' => 'Consent',
+            'id' => $args['consentId'],
+            'status' => 'active',
+            'scope' => [
+                'coding' => [
+                    [
+                        'system' => 'http://terminology.hl7.org/CodeSystem/consentscope',
+                        'code' => $args['scope']
+                    ]
+                ]
+            ],
+            'category' => $this->formatConsentCategories($args['categories']),
+            'patient' => [
+                'reference' => $this->getRelativeResourceUrl($patient)
+            ],
+            'sourceAttachment' => [
+                'contentType' => 'application/pdf',
+                'data' => base64_encode($args['data']),
+                'hash' => sha1($args['data']),
+                'title' => "eConsent Version {$args['version']} for {$args['firstName']} {$args['lastName']}",
+                'creation' => $this->formatFHIRDateTime($args['creation'])
+            ],
+            'policy' => [
+                [
+                    'authority' => $args['authority']
+                ]
+            ]
+        ];
+
+        $expected = $this->createBundle([$consent, $patient]);
+        $actual = $this->getEConsentFHIRBundle($args);
+
+        $this->assertSame($expected, $actual);
+        $this->validate($actual);
+    }
+
+    function validate($resource){
+        $vendorPath = __DIR__ . '/../vendor';
+
+        $validatorPath = realpath("$vendorPath/fhir-validator.jar");
+        if(!file_exists($validatorPath)){
+            file_put_contents($validatorPath, file_get_contents('https://storage.googleapis.com/ig-build/org.hl7.fhir.validator.jar'));
+        }
+
+        $resourcePath = realpath("$vendorPath/resource-to-validate.json");
+
+        $resourceJson = json_encode($resource, JSON_PRETTY_PRINT);
+        file_put_contents($resourcePath, $resourceJson);
+        
+        if($resource['resourceType'] === 'Patient'){
+            $profileArg = '-ig hl7.fhir.us.core -profile http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient';
+        }
+        else{
+            $profileArg = '';
+        }
+
+        $cmd = "java -Xmx3g -jar $validatorPath $resourcePath -version 4.0.1 $profileArg 2>&1";
+        exec($cmd, $output, $exitCode);
+        if($exitCode !== 0){
+            throw new \Exception("Validation of the following resource failed with the following output:\n\n$resourceJson\n\n" . implode("\n", $output));
+        }
     }
 }
