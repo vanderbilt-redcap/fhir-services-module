@@ -316,13 +316,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         <script>
             $(function(){
                 if(<?=json_encode($isEConsentEnabled)?>){
-                    var dropdown = $('#SurveyActionDropDownUl')
-                    var newItem = dropdown.find('> li:first-child').clone()
-                    var newLink = newItem.find('> a')
-                    
-                    newLink.removeAttr('id onclick')
-                    newLink.find('img')[0].nextSibling.nodeValue = 'View eConsent FHIR Bundle'
-                    newLink.click(function(){
+                    var newButton = $('<button style="margin-left: 10px; vertical-align: -1px" class="jqbuttonmed ui-button ui-corner-all ui-widget">View eConsent FHIR Bundle</button>')
+                    newButton.click(function(){
                         window.open(<?=
                             json_encode(
                                 $this->getUrl('view-econsent-fhir-bundle.php') .
@@ -332,9 +327,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                                 "&instance=$repeat_instance"
                             )
                         ?>)
+
+                        return false
                     })
-    
-                    dropdown.append(newItem)
+
+                    $('#SurveyActionDropDown').after(newButton)
                 }
             })
         </script>
