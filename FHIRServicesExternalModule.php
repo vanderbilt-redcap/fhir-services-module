@@ -2508,14 +2508,18 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         ];
         
         foreach($allFieldDetails as $fieldType => $details){
-            $event = $details['event'];
             $field = $details['field'];
+
+            $event = $details['event'];
+            if(!isset($event)){
+                $event = $Proj->firstEventId;
+            }
 
             $thisFieldForm = $Proj->metadata[$fields[0]]['form_name'];
             $thisFieldRepeating = $Proj->isRepeatingFormOrEvent($events[0], $thisFieldForm);
             $thisFieldRepeatInstrument = "";
             if ($thisFieldRepeating) {
-                $thisFieldRepeatInstrument = $Proj->isRepeatingForm($surveySettings['pdf_econsent_firstname_event_id'], $thisFieldForm) ? $thisFieldForm : "";
+                $thisFieldRepeatInstrument = $Proj->isRepeatingForm($surveySettings[$event], $thisFieldForm) ? $thisFieldForm : "";
             }
 
             if ($thisFieldRepeating) {
