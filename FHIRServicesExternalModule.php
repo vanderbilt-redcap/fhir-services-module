@@ -316,7 +316,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         <script>
             $(function(){
                 if(<?=json_encode($isEConsentEnabled)?>){
-                    var newButton = $('<button style="margin-left: 10px; vertical-align: -1px" class="jqbuttonmed ui-button ui-corner-all ui-widget">View eConsent FHIR Bundle</button>')
+                    var newButton = $('<button style="margin-left: 15px" class="jqbuttonmed ui-button ui-corner-all ui-widget">View eConsent FHIR Bundle</button>')
                     newButton.click(function(){
                         window.open(<?=
                             json_encode(
@@ -331,7 +331,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                         return false
                     })
 
-                    $('#SurveyActionDropDown').after(newButton)
+                    $('#form_response_header div:last-child').append(newButton)
                 }
             })
         </script>
