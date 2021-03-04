@@ -2132,8 +2132,6 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 ];        
             }
         }
-
-        $schema = json_decode(SchemaParser::getSchemaJSON(), true);
         
         // Add the record ID regardless so that the standard return format is used.
         // REDCap returns a different format without it.
@@ -2146,6 +2144,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             if($value === '' || $mapping === null){
                 continue;
             }
+
+            $definitions = SchemaParser::getDefinitions();
             
             $resourceName = $mapping['resource'];
             $elementName = $mapping['elementName'];
@@ -2163,13 +2163,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $parentProperty = [
                 'type' => null
             ];
-            $parentDefinition = $schema['definitions'][$resourceName];
+            $parentDefinition = $definitions[$resourceName];
 
             foreach($mapping['elementParents'] as $parentName){
                 $subPath = &$subPath[$parentName];
                 $parentProperty = $parentDefinition['properties'][$parentName];
                 $subResourceName = SchemaParser::getResourceNameFromRef($parentProperty);
-                $parentDefinition = $schema['definitions'][$subResourceName];
+                $parentDefinition = $definitions[$subResourceName];
 
                 if($subResourceName === 'ContactPoint'){
                     $contactPoints[] = &$subPath;

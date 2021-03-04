@@ -21,14 +21,19 @@ class SchemaParser{
         return self::getFhirJSON('fhir.schema.json');
     }
 
+    static function getDefinitions(){
+        if(self::$definitions === null){
+            self::$definitions = json_decode(self::getSchemaJSON(), true)['definitions'];
+        }
+
+        return self::$definitions;
+    }
+
     static function getModifiedSchema(){
         if(self::$modifiedSchema === null){
             self::$modifiedSchema = [];
 
-            $schema = json_decode(self::getSchemaJSON(), true);
-            
-            self::$definitions = $schema['definitions'];
-            foreach(self::$definitions as $definition){
+            foreach(self::getDefinitions() as $definition){
                 $properties = @$definition['properties'];
                 $resourceName = @$properties['resourceType']['const'];
                 if(in_array($resourceName, [null])){
