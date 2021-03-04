@@ -14,7 +14,7 @@ class FieldMapper{
 
         // Add the record ID regardless so that the standard return format is used.
         // REDCap returns a different format without it.
-        $fields = array_merge([$this->getModule()->getRecordIdField($projectId)], array_keys($mappings));
+        $fields = array_merge([$this->getModule()->getRecordIdField($projectId)], $this->getMappingFieldNames($mappings));
         $data = json_decode(REDCap::getData($projectId, 'json', $recordId, $fields), true)[0];
         foreach($data as $fieldName=>$value){
             $mapping = @$mappings[$fieldName];
@@ -22,12 +22,32 @@ class FieldMapper{
                 continue;
             }
 
-            $this->processElementMapping($fieldName, $value, $mapping);
+            if($mapping['type'] === 'Observation'){
+                $this->processObservationMapping($mapping, $data);
+            }
+            else{
+                $this->processElementMapping($fieldName, $value, $mapping);
+            }
         }
 
         $this->formatContactPoints($this->contactPoints);
 
         return $this->resources;
+    }
+
+    private function getMappingFieldNames($mappings){
+        $fieldNames = [];
+        foreach($mappings as $fieldName => $mapping){
+            $fieldNames[$fieldName] = true;
+
+            if(is_array($mapping)){
+                foreach($mapping['fields'] as $subFieldName){
+                    $fieldNames[$subFieldName] = true;
+                }
+            }
+        }
+
+        return array_keys($fieldNames);
     }
 
     private function getModule(){
@@ -50,27 +70,42 @@ class FieldMapper{
         $metadata = REDCap::getDataDictionary($projectId, 'array');
         $mappings = [];
         foreach($metadata as $fieldName=>$details){
-            $pattern = '/.*' . ACTION_TAG_PREFIX . '(.*)' . ACTION_TAG_SUFFIX . '.*/';
+            $pattern = '/.*' . ACTION_TAG_PREFIX . '([^' . ACTION_TAG_SUFFIX . ']*)' . ACTION_TAG_SUFFIX . '.*/';
             preg_match($pattern, $details['field_annotation'], $matches);
             if(!empty($matches)){
                 $value = $matches[1];
-                $parts = explode('/', $value);
-                $parsedMapping = [
-                    'raw' => $value,
-                    'resource' => array_shift($parts),
-                    'elementPath' => implode('/', $parts),
-                    'elementName' => array_pop($parts),
-                    'elementParents' => $parts
-                ]; 
-                
-                $mappings[$fieldName] = $parsedMapping;     
+
+                if($value[0] === '{'){
+                    $value = $this->actionTagDecode($value);
+                }
+
+                $mappings[$fieldName] = $value;     
             }
         }
 
         return $mappings;
     }
 
-    private function processElementMapping($fieldName, $value, $mapping){
+    private function actionTagDecode($value){
+        $value = str_replace(SINGLE_QUOTE_PLACEHOLDER, ACTION_TAG_SUFFIX, $value);
+        return json_decode($value, true);
+    }
+
+    static function actionTagEncode($value){
+        $value = json_encode($value);
+        return str_replace(ACTION_TAG_SUFFIX, SINGLE_QUOTE_PLACEHOLDER, $value); 
+    }
+
+    private function processElementMapping($fieldName, $value, $mappingString){
+        $parts = explode('/', $mappingString);
+        $mapping = [
+            'raw' => $value,
+            'resource' => array_shift($parts),
+            'elementPath' => implode('/', $parts),
+            'elementName' => array_pop($parts),
+            'elementParents' => $parts
+        ];
+
         $definitions = SchemaParser::getDefinitions();
 
         $resourceName = $mapping['resource'];
@@ -141,6 +176,7 @@ class FieldMapper{
         $modifiedElementProperty = SchemaParser::getModifiedProperty($resourceName, $mapping['elementPath']);
 
         $choices = $modifiedElementProperty['redcapChoices'];
+        $ref = SchemaParser::getResourceNameFromRef($modifiedElementProperty);
         if($choices !== null){
             $value = $this->getMatchingChoiceValue($this->getProjectId(), $fieldName, $value, $choices);
             
@@ -164,8 +200,25 @@ class FieldMapper{
                 $value = false;
             }
         }
-        else if($modifiedElementProperty['pattern'] === DATE_TIME_PATTERN){
+        else if(in_array($ref, ['dateTime', 'instant']) || $modifiedElementProperty['pattern'] === DATE_TIME_PATTERN){
             $value = $this->getModule()->formatFHIRDateTime($value);
+        }
+        else if($modifiedElementProperty['pattern'] === INTEGER_PATTERN){
+            if(ctype_digit($value)){
+                $value = (int) $value;
+            }
+            else{
+                throw new \Exception("Expected an integer value for the '$fieldName' field but found '$value' instead.");
+            }
+        }
+        else if($ref === 'decimal'){
+            $newValue = (int) $value;
+            if((string)$newValue === $value){
+                $value = $newValue;
+            }
+            else{
+                throw new \Exception("Expected a decimal value for the '$fieldName' field but found '$value' instead.");
+            }
         }
 
         if($elementProperty['type'] === 'array'){
@@ -173,6 +226,17 @@ class FieldMapper{
         }
         else{
             $subPath[$elementName] = $value;
+        }
+    }
+
+    private function processObservationMapping($mapping, $data){
+        $resource = $mapping['type'];
+        foreach($mapping['fields'] as $elementPath=>$fieldName){
+            $this->processElementMapping($fieldName, $data[$fieldName], "$resource/$elementPath");
+        }
+        
+        foreach($mapping['values'] as $elementPath=>$value){
+            $this->processElementMapping($fieldName, $value, "$resource/$elementPath");
         }
     }
 

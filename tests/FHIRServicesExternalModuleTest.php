@@ -200,6 +200,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             $value = ACTION_TAG_PREFIX . $value . ACTION_TAG_SUFFIX;
         }
 
+        // Wrap the action tag in other tags with quotes to make sure parsing still works correctly.
+        $value = "@SOME-PRIOR-TAG-WITH-QUOTES=" . ACTION_TAG_SUFFIX . rand() . ACTION_TAG_SUFFIX . " $value";
+        $value .= "@SOME-LATER-TAG-WITH-QUOTES=" . ACTION_TAG_SUFFIX . rand() . ACTION_TAG_SUFFIX . " $value";
+
         $pid = $this->getTestPID();
 
         $this->query('update redcap_metadata set misc = ? where project_id = ? and field_name = ?', [$value, $pid, $fieldName]);
@@ -211,7 +215,20 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
         $data = ['test_record_id' => $recordId];
         foreach($fields as $fieldName=>$details){
-            $this->setFHIRMapping($fieldName, $resource . '/' . $details['element']);
+            $mapping = @$details['mapping'];
+            $element = @$details['element'];
+            
+            if($mapping !== null){
+                $mapping = FieldMapper::actionTagEncode($mapping, JSON_PRETTY_PRINT);
+            }
+            else if($element !== null){
+                $mapping = $resource . '/' . $element;
+            }
+            else{
+                $mapping = null;
+            }
+
+            $this->setFHIRMapping($fieldName, $mapping);
 
             $value = (string) $details['value'];
             if($value[0] === ' '){
@@ -618,5 +635,149 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         if($exitCode !== 0){
             throw new \Exception("Validation of the following resource failed with the following output:\n\n$resourceJson\n\n" . implode("\n", $output));
         }
+    }
+
+    function testObservationMapping(){
+        $resourceName = 'Observation';
+        $status = 'preliminary';
+        $code = '15074-8';
+        $system = 'http://loinc.org';
+        $display = 'Glucose [Moles/volume] in Blood';
+        $issued = $this->formatREDCapDateTimeWithSeconds(time());
+        $reference = 'Patient/' . rand();
+
+        $mapping = [
+            'type' => $resourceName,
+            'fields' => [
+                'valueInteger' => $this->getFieldName(),
+                'effectivePeriod/start' => $this->getFieldName2(),
+                'effectivePeriod/end' => $this->getFieldName2()
+            ],
+            'values' => [
+                'status' => $status,
+                'code/coding/code' => $code, 
+                'code/coding/system' => $system,
+                'code/coding/display' => $display,
+                'issued' => $issued,
+                'subject/reference' => $reference
+            ]
+        ];
+
+        $value = rand();
+        $time = time();
+        $fhirDateTime = $this->formatFHIRDateTime($time);
+        
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'mapping' => $mapping,
+                    'value' => $value
+                ],
+                $this->getFieldName2() => [
+                    'value' => $this->formatREDCapDateTimeWithSeconds($time)
+                ],
+            ],
+            [
+                'valueInteger' => $value,
+                'effectivePeriod' => [
+                    'start' => $fhirDateTime,
+                    'end' => $fhirDateTime,
+                ],
+                'status' => $status,
+                'code' => [
+                    'coding' => [
+                        [
+                            'code' => $code,
+                            'system' => $system,
+                            'display' => $display
+                        ]
+                    ]
+                ],
+                'issued' => $this->formatFHIRDateTime($issued),
+                'subject'=> [
+                    'reference' => $reference
+                ]
+            ],
+            $resourceName
+        );
+    }
+
+    function testObservationMapping_valueQuantity(){
+        $resourceName = 'Observation';
+        $unitAndCode = 'mmol/L';
+        $system = 'http://unitsofmeasure.org';
+        $code = (string) rand();
+        $status = 'final';
+        
+        $mapping = [
+            'type' => $resourceName,
+            'fields' => [
+                'valueQuantity/value' => $this->getFieldName()
+            ],
+            'values' => [
+                'valueQuantity/unit' => $unitAndCode,
+                'valueQuantity/system' => $system,
+                'valueQuantity/code' => $unitAndCode,
+                'code/text' => $code,
+                'status' => $status
+            ]
+        ];
+
+        $value = rand();
+        
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'mapping' => $mapping,
+                    'value' => $value
+                ]
+            ],
+            [
+                'valueQuantity' => [
+                    'value' => $value,
+                    'unit' => $unitAndCode,
+                    'system' => $system,
+                    'code' => $unitAndCode
+                ],
+                'code' => [
+                    'text' => $code
+                ],
+                'status' => $status
+            ],
+            $resourceName
+        );
+    }
+
+    function testObservationMapping_singleQuotePlaceholders(){
+        $resourceName = 'Observation';
+        $status = 'final';
+        $code = (string) rand();
+        $value = "some value with 'single quotes' in it that could interfere with the action tag beginning/end if not replaced";
+        
+        $mapping = [
+            'type' => $resourceName,
+            'values' => [
+                'status' => $status,
+                'code/text' => $code,
+                'valueString' => $value,
+            ]
+        ];
+ 
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'mapping' => $mapping,
+                    'value' => "some value that doesn't matter"
+                ]
+            ],
+            [
+                'status' => $status,
+                'code' => [
+                    'text' => $code
+                ],
+                'valueString' => $value,
+            ],
+            $resourceName
+        );
     }
 }
