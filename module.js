@@ -269,8 +269,8 @@ $(function(){
                 newTag = module.ACTION_TAG_PREFIX + resource + '/' + element + module.ACTION_TAG_SUFFIX
             }
 
-            if(tagStartIndex > 0 && tags[tagStartIndex-1] !== ' '){
-                newTag = ' ' + newTag
+            if(tagStartIndex > 0 && tags[tagStartIndex-1] !== "\n"){
+                newTag = "\n" + newTag
             }
 
             textarea.val(tags.substring(0, tagStartIndex) + newTag + tags.substring(tagEndIndex))
@@ -310,26 +310,33 @@ $(function(){
             var tags = textarea.val()
 
             var tagPrefix = module.ACTION_TAG_PREFIX
+            var tagSuffix = module.ACTION_TAG_SUFFIX
+
             var tagStartIndex = tags.indexOf(tagPrefix)
+            var tagEndIndex
+            var value
             if(tagStartIndex === -1){
                 tagStartIndex = tags.length
                 tagEndIndex = tags.length
+                value = ''
             }
             else{
-                var tagEndIndex = tags.indexOf(module.ACTION_TAG_SUFFIX, tagStartIndex+tagPrefix.length)
+                tagEndIndex = tags.indexOf(tagSuffix, tagStartIndex+tagPrefix.length)
                 if(tagEndIndex === -1){
-                    alert("Corrupt action tag detected.  Please remove what's left of the " + module.ACTION_TAG_PREFIX + module.ACTION_TAG_SUFFIX + " action tag.")
+                    alert("Corrupt action tag detected.  Please remove what's left of the " + tagPrefix + tagSuffix + " action tag.")
                     return false
                 }
                 else{
                     tagEndIndex++ // put it past the end of the tag
                 }
+
+                value = tags.substring(tagStartIndex + tagPrefix.length, tagEndIndex-tagSuffix.length)
             }
 
             return {
                 tagStartIndex: tagStartIndex,
                 tagEndIndex: tagEndIndex,
-                value: tags.substring(tagStartIndex + tagPrefix.length, tagEndIndex-1)
+                value: value
             }
         }
     })
