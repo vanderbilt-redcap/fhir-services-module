@@ -298,19 +298,26 @@ $(function(){
             let button = $("<button class='btn btn-xs btn-rcgreen btn-rcgreen-light'>Add " + type + "</button>")
             button.click((e) => {
                 e.preventDefault()
-                
-                let table = module.createTable({
+
+                let wrapper = module.createTable({
                     'Element': $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">'),
                     [type]: $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">')
                 })
-                
-                table.prepend(`
-                    <a href="#" class='fhir-services-remove-additional-element' onclick="alert(1)">
+
+                let removeButton = $(`
+                    <a href="#" class='fhir-services-remove-additional-element'>
                         <img src="` + module.APP_PATH_IMAGES + `/cross.png">
                     </a>
                 `)
+
+                removeButton.click(function(e){
+                    e.preventDefault()
+                    wrapper.remove()
+                })
+                
+                wrapper.prepend(removeButton)
     
-                module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements').append(table)
+                module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements').append(wrapper)
             })
             
             module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-element-buttons').append(button)
