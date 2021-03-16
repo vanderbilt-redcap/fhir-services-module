@@ -137,15 +137,46 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 margin-bottom: 5px;
                 display: block;
             }
-            #fhir-services-mapping-field-settings label{
-                font-weight: bold;
-                margin-right: 3px;
-                min-width: 19%;
-                vertical-align: -2px;
+            #fhir-services-mapping-field-settings table,
+            #fhir-services-mapping-field-settings td:last-child,
+            #fhir-services-mapping-field-settings td input{
+                width: 100%;
+            }
+            #fhir-services-mapping-field-settings td:first-child{
                 text-align: right;
             }
-            #fhir-services-mapping-field-settings input{
-                width: 78%;
+            #fhir-services-mapping-field-settings td label{
+                margin-right: 4px;
+                margin-bottom: 0px;
+            }
+            .fhir-services-additional-element-header{
+                display: block;
+                margin-top: 12px;
+                margin-bottom: 5px;
+            }
+            .fhir-services-additional-element-wrapper{
+                margin-left: 3px;
+            }
+            #fhir-services-additional-elements .fhir-services-additional-element-wrapper{
+                border: 1px solid rgb(211, 211, 211);
+                background: #ececec;
+                margin-left: 5px;
+                margin-right: 16px;
+                padding: 4px;
+                padding-left: 4px;
+            }
+            .fhir-services-remove-additional-element{
+                display: block;
+                height: 0px;
+                position: relative;
+                left: 25px;
+                top: 16px;
+                text-align: right !important;
+            }
+            #fhir-services-additional-element-buttons{
+                margin-top: 8px;
+                margin-bottom: 4px;
+                text-align: center;
             }
             #fhir-services-mapping-field-settings a,
             #fhir-services-invalid-choices-dialog a{
@@ -159,7 +190,6 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 margin-top: 10px;
                 text-align: center;
             }
-
             #fhir-services-recommended-choices-dialog textarea{
                 height: 150px;
                 width: 85%;
@@ -175,6 +205,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 'schema' => SchemaParser::getModifiedSchema(),
                 'ACTION_TAG_PREFIX' => ACTION_TAG_PREFIX,
                 'ACTION_TAG_SUFFIX' => ACTION_TAG_SUFFIX,
+                'APP_PATH_IMAGES' => APP_PATH_IMAGES
             ])?>
         </script>
         <script src="<?=$this->getUrl('module.js')?>" />

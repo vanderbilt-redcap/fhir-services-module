@@ -9,19 +9,27 @@ $(function(){
             module.RESOURCE_TYPEAHEAD = resourceTypeahead
             module.ELEMENT_TYPEAHEAD = elementTypeahead
 
-            var addRow = function(label, field){
-                var row = $('<div />')
-                row.append('<label>' + label + ':</label>')
-                row.append(field)
-
-                typeaheadContainer.append(row)
-            }
-
             var typeaheadContainer = $('<div id="fhir-services-mapping-field-settings" style="border: 1px solid rgb(211, 211, 211); padding: 4px 8px; margin-top: 5px; display: block;"><b>FHIR Mapping</b></div>')
-            addRow('Resource', resourceTypeahead)
-            addRow('Element', elementTypeahead)
+            typeaheadContainer.append(module.createTable({
+                'Resource': resourceTypeahead,
+                'Element': elementTypeahead
+            }))
+
             typeaheadContainer.append(module.RECOMMENDED_CHOICES_LINK)
 
+            module.ADDITIONAL_ELEMENT_CONTAINER = $(`
+                <div>
+                    <b class='fhir-services-additional-element-header'>Additional Elements</b>
+                    <div id='fhir-services-additional-elements'></div>
+                    <div id='fhir-services-additional-element-buttons'>
+                        <button class='btn btn-xs btn-rcgreen btn-rcgreen-light'>Add Field</button>
+                        <button class='btn btn-xs btn-rcgreen btn-rcgreen-light'>Add Value</button>
+                    </div>
+                </div>
+            `)
+
+            typeaheadContainer.append(module.ADDITIONAL_ELEMENT_CONTAINER)
+            
             var openAddQuesFormVisible = window.openAddQuesFormVisible
             window.openAddQuesFormVisible = function(){
                 openAddQuesFormVisible.apply(null, arguments);
@@ -38,7 +46,7 @@ $(function(){
                      * easy to map several fields for the same resource in a row.
                      */
                     elementTypeahead.val('')
-                    elementTypeahead.parent().hide()
+                    module.hideElementTypeahead()
                 }
                 else{
                     var parts = details.value.split('/')
@@ -49,9 +57,10 @@ $(function(){
                 }
                 
                 module.updateRecommendedChoicesVisibility()
+                module.updateAdditionalFieldVisibility()
 
                 if(resourceTypeahead.val() !== ''){
-                    elementTypeahead.parent().show()
+                    module.showElementTypeahead()
                 }
             }
 
@@ -59,6 +68,35 @@ $(function(){
 
             module.initSaveButton()
             module.initRecommendedChoiceLinks()
+        },
+        hideElementTypeahead: () => {
+            module.ELEMENT_TYPEAHEAD.closest('tr').hide()
+        },
+        showElementTypeahead: () => {
+            module.ELEMENT_TYPEAHEAD.closest('tr').show()
+        },
+        createTable: (rows) => {
+            let table = $('<table></table>')
+
+            for(let label in rows){
+                let row = $('<tr></tr>')
+
+                let addColumn = function(content){
+                    let column = $('<td></td>')
+                    column.append(content)
+                    row.append(column)
+                }
+
+                addColumn('<label>' + label + '</label>')
+                addColumn(rows[label])
+
+                table.append(row)
+            }
+
+            let wrapper = $('<div class="fhir-services-additional-element-wrapper" />')
+            wrapper.append(table)
+
+            return wrapper
         },
         initSaveButton: function(){
             var addEditFieldSave = window.addEditFieldSave
@@ -241,10 +279,39 @@ $(function(){
                         elementTypeahead.focus()
                     }
                     else{
-                        elementTypeahead.parent().hide()
+                        module.hideElementTypeahead()
                     }
+
+                    module.updateAdditionalFieldVisibility()
                 }
             })
+        },
+        updateAdditionalFieldVisibility: () => {
+            if(module.isObservation()){
+                module.showAdditionalElements()
+            }
+            else{
+                module.hideAdditionalElements()
+            }
+        },
+        showAdditionalElements: () => {
+            let table = module.createTable({
+                'Element': $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">'),
+                'F or V': $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">')
+            })
+            
+            table.prepend(`
+                <a href="#" class='fhir-services-remove-additional-element' onclick="alert(1)">
+                    <img src="` + module.APP_PATH_IMAGES + `/cross.png">
+                </a>
+            `)
+
+            $('#fhir-services-additional-elements').append(table)
+
+            module.ADDITIONAL_ELEMENT_CONTAINER.show()
+        },
+        hideAdditionalElements: () => {
+            module.ADDITIONAL_ELEMENT_CONTAINER.hide()
         },
         updateActionTag: () => {
             module.updateRecommendedChoicesVisibility()
@@ -261,7 +328,7 @@ $(function(){
             var tagStartIndex = details.tagStartIndex
             var tagEndIndex = details.tagEndIndex
 
-            var resource = module.RESOURCE_TYPEAHEAD.val()
+            var resource = module.getResourceName()
             var element = module.ELEMENT_TYPEAHEAD.val()
 
             var newTag = ''
@@ -289,6 +356,10 @@ $(function(){
 
             var options = []
             for(var path in elements){
+                if(!module.isElementVisible(path)){
+                    continue
+                }
+
                 options.push({
                     label: path,
                     value: path,
@@ -297,10 +368,37 @@ $(function(){
             }
 
             module.ELEMENT_TYPEAHEAD.autocomplete('option', 'source', options)
-            module.ELEMENT_TYPEAHEAD.parent().show()
+            module.showElementTypeahead()
+        },
+        isObservation: () => {
+            return module.getResourceName() === 'Observation'
+        },
+        isElementVisible: (path) => {
+            if(module.isObservation()){
+                return [
+                    'valueQuantity/value',
+                    'valueCodeableConcept',
+                    'valueString',
+                    'valueBoolean',
+                    'valueInteger',
+                    'valueRange/low/value',
+                    'valueRange/high/value',
+                    'valueRatio/numerator/value',
+                    'valueRatio/denominator/value',
+                    'valueTime',
+                    'valueDateTime',
+                    'valuePeriod/start',
+                    'valuePeriod/end'
+                ].indexOf(path) !== -1
+            }
+
+            return true
+        },
+        getResourceName: () => {
+            return module.RESOURCE_TYPEAHEAD.val()
         },
         getElementsForResource: function(){
-            return module.schema[module.RESOURCE_TYPEAHEAD.val()]
+            return module.schema[module.getResourceName()]
         },
         getActionTagTextArea: function(){
             return $('#div_field_annotation textarea')
