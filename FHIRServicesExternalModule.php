@@ -178,6 +178,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 margin-bottom: 4px;
                 text-align: center;
             }
+            #fhir-services-additional-element-buttons button{
+                margin: 0px 2px;
+            }
             #fhir-services-mapping-field-settings a,
             #fhir-services-invalid-choices-dialog a{
                 text-decoration: underline;

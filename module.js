@@ -21,12 +21,12 @@ $(function(){
                 <div>
                     <b class='fhir-services-additional-element-header'>Additional Elements</b>
                     <div id='fhir-services-additional-elements'></div>
-                    <div id='fhir-services-additional-element-buttons'>
-                        <button class='btn btn-xs btn-rcgreen btn-rcgreen-light'>Add Field</button>
-                        <button class='btn btn-xs btn-rcgreen btn-rcgreen-light'>Add Value</button>
-                    </div>
+                    <div id='fhir-services-additional-element-buttons'></div>
                 </div>
             `)
+
+            module.addAdditionalElementButton('Field')
+            module.addAdditionalElementButton('Value')
 
             typeaheadContainer.append(module.ADDITIONAL_ELEMENT_CONTAINER)
             
@@ -294,21 +294,29 @@ $(function(){
                 module.hideAdditionalElements()
             }
         },
-        showAdditionalElements: () => {
-            let table = module.createTable({
-                'Element': $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">'),
-                'F or V': $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">')
+        addAdditionalElementButton: (type) => {
+            let button = $("<button class='btn btn-xs btn-rcgreen btn-rcgreen-light'>Add " + type + "</button>")
+            button.click((e) => {
+                e.preventDefault()
+                
+                let table = module.createTable({
+                    'Element': $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">'),
+                    [type]: $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">')
+                })
+                
+                table.prepend(`
+                    <a href="#" class='fhir-services-remove-additional-element' onclick="alert(1)">
+                        <img src="` + module.APP_PATH_IMAGES + `/cross.png">
+                    </a>
+                `)
+    
+                module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements').append(table)
             })
             
-            table.prepend(`
-                <a href="#" class='fhir-services-remove-additional-element' onclick="alert(1)">
-                    <img src="` + module.APP_PATH_IMAGES + `/cross.png">
-                </a>
-            `)
-
-            $('#fhir-services-additional-elements').append(table)
-
-            module.ADDITIONAL_ELEMENT_CONTAINER.show()
+            module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-element-buttons').append(button)
+        },
+        showAdditionalElements: () => {
+           module.ADDITIONAL_ELEMENT_CONTAINER.show()
         },
         hideAdditionalElements: () => {
             module.ADDITIONAL_ELEMENT_CONTAINER.hide()
