@@ -230,7 +230,7 @@ $(function(){
             options = $.extend({
                 source: [],
                 focus: function(){},
-                blur: function(){}
+                change: function(){}
             }, options)
 
             var typeahead = $('<input class="x-form-text x-form-field" type="search">')
@@ -243,8 +243,8 @@ $(function(){
                 })
             })
 
-            typeahead.blur(function(){
-                options.blur(typeahead)
+            typeahead.change(function(){
+                options.change(typeahead)
 
                 var source = typeahead.autocomplete('option', 'source');
                 if(typeof source[0] !== 'string'){
@@ -277,7 +277,7 @@ $(function(){
                 },
                 select: function(e, result){
                     typeahead.val(result.item.value)
-                    typeahead.blur()
+                    typeahead.change()
                 }
             })
             .autocomplete( "instance" )._renderItem = function( ul, item ){
@@ -297,7 +297,7 @@ $(function(){
         initResourceTypeahead: function(elementTypeahead){
             return module.initTypeahead({
                 source: Object.keys(module.schema),
-                blur: function(typeahead){
+                change: function(typeahead){
                     var elements = module.getElementsForResource()
                     if(elements){
                         module.initElementAutocomplete(module.ELEMENT_TYPEAHEAD, true)
@@ -347,7 +347,7 @@ $(function(){
             }
             else{
                 fieldOrValueInput = $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">')
-                fieldOrValueInput.blur(() => {
+                fieldOrValueInput.change(() => {
                     module.updateActionTag()
                 })
             }
