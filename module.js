@@ -2,6 +2,8 @@ $(function(){
     var module = $.extend(FHIRServicesExternalModule, {
         RECOMMENDED_CHOICES_LINK: $("<a href='#' class='fhir-services-recommended-choices-link'>View the recommended choices for this element</a>"),
         RECOMMENDED_CHOICES_DIALOG_ID: 'fhir-services-invalid-choices-dialog',
+        FIELD: 'Field',
+        VALUE: 'Value',
         init: function(){
             var elementTypeahead = module.initTypeahead({})
             var resourceTypeahead = module.initResourceTypeahead(elementTypeahead)
@@ -25,8 +27,8 @@ $(function(){
                 </div>
             `)
 
-            module.addAdditionalElementButton('Field')
-            module.addAdditionalElementButton('Value')
+            module.addAdditionalElementButton(module.FIELD)
+            module.addAdditionalElementButton(module.VALUE)
 
             typeaheadContainer.append(module.ADDITIONAL_ELEMENT_CONTAINER)
             
@@ -34,12 +36,13 @@ $(function(){
             window.openAddQuesFormVisible = function(){
                 openAddQuesFormVisible.apply(null, arguments);
 
-                var details = module.getExistingActionTagDetails()
+                let details = module.getExistingActionTagDetails()
                 if(!details){
                     // A error must have occurred.
                     return
                 }
                 
+                let mapping
                 if(details.value === ''){
                     /**
                      * The previously selected resource is intentionally left in place to make it
@@ -47,17 +50,19 @@ $(function(){
                      */
                     elementTypeahead.val('')
                     module.hideElementTypeahead()
+                    mapping = {}
                 }
                 else{
-                    var parts = details.value.split('/')
-                    resourceTypeahead.val(parts.shift())
-                    elementTypeahead.val(parts.join('/'))
+                    mapping = module.parseMapping(details.value)
+
+                    resourceTypeahead.val(mapping.type)
+                    elementTypeahead.val(mapping.valueElementPath)
 
                     module.initElementAutocomplete()
                 }
                 
                 module.updateRecommendedChoicesVisibility()
-                module.updateAdditionalFieldVisibility()
+                module.updateAdditionalFieldVisibility(mapping)
 
                 if(resourceTypeahead.val() !== ''){
                     module.showElementTypeahead()
@@ -68,6 +73,26 @@ $(function(){
 
             module.initSaveButton()
             module.initRecommendedChoiceLinks()
+        },
+        parseMapping: (actionTagValue) => {
+            if(actionTagValue[0] === '{'){
+                return module.actionTagDecode(actionTagValue);
+            }
+            else{
+                const parts = actionTagValue.split('/')
+                return {
+                    type: parts.shift(),
+                    valueElementPath: parts.join('/')
+                }
+            }
+        },
+        actionTagDecode: (value) => {
+            value = value.replaceAll(module.SINGLE_QUOTE_PLACEHOLDER, module.ACTION_TAG_SUFFIX);
+            return JSON.parse(value)
+        },
+        actionTagEncode: (value) => {
+            value = JSON.stringify(value, null, 2)
+            return value.replaceAll(module.ACTION_TAG_SUFFIX, module.SINGLE_QUOTE_PLACEHOLDER);
         },
         hideElementTypeahead: () => {
             module.ELEMENT_TYPEAHEAD.closest('tr').hide()
@@ -282,13 +307,13 @@ $(function(){
                         module.hideElementTypeahead()
                     }
 
-                    module.updateAdditionalFieldVisibility()
+                    module.updateAdditionalFieldVisibility({})
                 }
             })
         },
-        updateAdditionalFieldVisibility: () => {
+        updateAdditionalFieldVisibility: (mapping) => {
             if(module.isObservation()){
-                module.showAdditionalElements()
+                module.showAdditionalElements(mapping)
             }
             else{
                 module.hideAdditionalElements()
@@ -298,32 +323,50 @@ $(function(){
             let button = $("<button class='btn btn-xs btn-rcgreen btn-rcgreen-light'>Add " + type + "</button>")
             button.click((e) => {
                 e.preventDefault()
-
-                let wrapper = module.createTable({
-                    'Element': $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">'),
-                    [type]: $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">')
-                })
-
-                let removeButton = $(`
-                    <a href="#" class='fhir-services-remove-additional-element'>
-                        <img src="` + module.APP_PATH_IMAGES + `/cross.png">
-                    </a>
-                `)
-
-                removeButton.click(function(e){
-                    e.preventDefault()
-                    wrapper.remove()
-                })
-                
-                wrapper.prepend(removeButton)
-    
-                module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements').append(wrapper)
+                module.addAdditionalElement(type, '', '')
             })
             
             module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-element-buttons').append(button)
         },
-        showAdditionalElements: () => {
-           module.ADDITIONAL_ELEMENT_CONTAINER.show()
+        addAdditionalElement: (type, elementPath, fieldOrValue) => {
+            let elementInput = $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">')
+            elementInput.val(elementPath)
+
+            let fieldOrValueInput = $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">')
+            fieldOrValueInput.val(fieldOrValue)
+
+            let wrapper = module.createTable({
+                'Element': elementInput,
+                [type]: fieldOrValueInput
+            })
+
+            let removeButton = $(`
+                <a href="#" class='fhir-services-remove-additional-element'>
+                    <img src="` + module.APP_PATH_IMAGES + `/cross.png">
+                </a>
+            `)
+
+            removeButton.click(function(e){
+                e.preventDefault()
+                wrapper.remove()
+            })
+            
+            wrapper.prepend(removeButton)
+
+            module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements').append(wrapper)
+        },
+        showAdditionalElements: (mapping) => {
+            module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements').children().remove()
+
+            for(let path in mapping.fields){
+                module.addAdditionalElement(module.FIELD, path, mapping.fields[path])
+            }
+
+            for(let path in mapping.values){
+                module.addAdditionalElement(module.VALUE, path, mapping.values[path])
+            }
+        
+            module.ADDITIONAL_ELEMENT_CONTAINER.show()
         },
         hideAdditionalElements: () => {
             module.ADDITIONAL_ELEMENT_CONTAINER.hide()
