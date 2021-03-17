@@ -347,6 +347,9 @@ $(function(){
             }
             else{
                 fieldOrValueInput = $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">')
+                fieldOrValueInput.blur(() => {
+                    module.updateActionTag()
+                })
             }
 
             fieldOrValueInput.val(fieldOrValue)
