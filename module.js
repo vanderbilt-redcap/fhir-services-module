@@ -84,7 +84,6 @@ $(function(){
                 return {
                     type: parts.shift(),
                     primaryElementPath: parts.join('/'),
-                    additionalElements: {}
                 }
             }
         },
@@ -387,7 +386,9 @@ $(function(){
             let innerContainer = module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements')
             innerContainer.children().remove()
 
-            for(const [path, details] of Object.entries(mapping.additionalElements)){
+            const additionalElements = mapping.additionalElements || {}
+            
+            for(const [path, details] of Object.entries(additionalElements)){
                 let value = details.field
                 if(value){
                     type = module.FIELD
