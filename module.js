@@ -83,7 +83,8 @@ $(function(){
                 const parts = actionTagValue.split('/')
                 return {
                     type: parts.shift(),
-                    primaryElementPath: parts.join('/')
+                    primaryElementPath: parts.join('/'),
+                    additionalElements: {}
                 }
             }
         },
@@ -433,17 +434,17 @@ $(function(){
 
             let newTag = ''
             if(resource != '' && element != ''){
-                const additionalFields = module.getAdditionalFieldObject()
+                const additionalElements = module.getAdditionalElementMappings()
 
                 let content
-                if($.isEmptyObject(additionalFields)){
+                if($.isEmptyObject(additionalElements)){
                     content = resource + '/' + element
                 }
                 else{
                     content = module.actionTagEncode({
                         type: resource,
                         primaryElementPath: element,
-                        additionalFields: additionalFields
+                        additionalElements: additionalElements
                     })
                 }
 
@@ -452,8 +453,8 @@ $(function(){
 
             return newTag
         },
-        getAdditionalFieldObject: () => {
-            const additionalFields = {}
+        getAdditionalElementMappings: () => {
+            const additionalElements = {}
             module.ADDITIONAL_ELEMENT_CONTAINER.find('.fhir-services-additional-element-wrapper').each((index, wrapper) => {
                 wrapper = $(wrapper)
                 const inputs = wrapper.find('input')
@@ -466,14 +467,14 @@ $(function(){
                     return
                 }
 
-                if(additionalFields[elementPath] === undefined){
-                    additionalFields[elementPath] = {}
+                if(additionalElements[elementPath] === undefined){
+                    additionalElements[elementPath] = {}
                 }
                 
-                additionalFields[elementPath][type] = fieldOrValue
+                additionalElements[elementPath][type] = fieldOrValue
             })
 
-            return additionalFields
+            return additionalElements
         },
         updateRecommendedChoicesVisibility: () => {
             const element = module.getMappedElement()
