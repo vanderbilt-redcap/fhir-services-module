@@ -214,6 +214,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 'fields' => $fields,
                 'ACTION_TAG_PREFIX' => ACTION_TAG_PREFIX,
                 'ACTION_TAG_SUFFIX' => ACTION_TAG_SUFFIX,
+                'SINGLE_QUOTE_PLACEHOLDER' => SINGLE_QUOTE_PLACEHOLDER,
                 'APP_PATH_IMAGES' => APP_PATH_IMAGES
             ])?>
         </script>
