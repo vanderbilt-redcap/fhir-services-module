@@ -168,6 +168,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 padding: 4px;
                 padding-left: 4px;
             }
+            #fhir-services-additional-elements label{
+                text-transform: capitalize;
+            }
             .fhir-services-remove-additional-element{
                 display: block;
                 height: 0px;

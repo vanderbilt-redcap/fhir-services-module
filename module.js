@@ -2,8 +2,8 @@ $(function(){
     var module = $.extend(FHIRServicesExternalModule, {
         RECOMMENDED_CHOICES_LINK: $("<a href='#' class='fhir-services-recommended-choices-link'>View the recommended choices for this element</a>"),
         RECOMMENDED_CHOICES_DIALOG_ID: 'fhir-services-invalid-choices-dialog',
-        FIELD: 'Field',
-        VALUE: 'Value',
+        FIELD: 'field',
+        VALUE: 'value',
         init: function(){
             var elementTypeahead = module.initTypeahead({})
             var resourceTypeahead = module.initResourceTypeahead(elementTypeahead)
@@ -56,7 +56,7 @@ $(function(){
                     mapping = module.parseMapping(details.value)
 
                     resourceTypeahead.val(mapping.type)
-                    elementTypeahead.val(mapping.valueElementPath)
+                    elementTypeahead.val(mapping.primaryElementPath)
 
                     module.initElementAutocomplete(elementTypeahead, true)
                     module.showElementTypeahead()
@@ -83,7 +83,7 @@ $(function(){
                 const parts = actionTagValue.split('/')
                 return {
                     type: parts.shift(),
-                    valueElementPath: parts.join('/')
+                    primaryElementPath: parts.join('/')
                 }
             }
         },
@@ -382,12 +382,17 @@ $(function(){
             let innerContainer = module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements')
             innerContainer.children().remove()
 
-            for(let path in mapping.fields){
-                module.addAdditionalElement(module.FIELD, path, mapping.fields[path])
-            }
+            for(const [path, details] of Object.entries(mapping.additionalElements)){
+                let value = details.field
+                if(value){
+                    type = module.FIELD
+                }
+                else{
+                    type = module.VALUE
+                    value = details.value
+                }
 
-            for(let path in mapping.values){
-                module.addAdditionalElement(module.VALUE, path, mapping.values[path])
+                module.addAdditionalElement(type, path, value)
             }
         
             module.ADDITIONAL_ELEMENT_CONTAINER.show()
