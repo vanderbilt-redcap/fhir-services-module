@@ -330,17 +330,37 @@ $(function(){
             
             module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-element-buttons').append(button)
         },
+        initFieldOrValueInput: (type, fieldOrValue) => {
+            let fieldOrValueInput
+            if(type === module.FIELD){
+                fieldOrValueInput = module.initTypeahead({})
+
+                var options = []
+                module.fields.forEach((fieldName) => {
+                    options.push({
+                        label: fieldName,
+                        value: fieldName,
+                    })
+                })
+
+                fieldOrValueInput.autocomplete('option', 'source', options)
+            }
+            else{
+                fieldOrValueInput = $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">')
+            }
+
+            fieldOrValueInput.val(fieldOrValue)
+
+            return fieldOrValueInput
+        },
         addAdditionalElement: (type, elementPath, fieldOrValue) => {
             let elementTypeAhead = module.initTypeahead({})
             module.initElementAutocomplete(elementTypeAhead, false)
             elementTypeAhead.val(elementPath)
 
-            let fieldOrValueInput = $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">')
-            fieldOrValueInput.val(fieldOrValue)
-
             let wrapper = module.createTable({
                 'Element': elementTypeAhead,
-                [type]: fieldOrValueInput
+                [type]: module.initFieldOrValueInput(type, fieldOrValue)
             })
 
             let removeButton = $(`

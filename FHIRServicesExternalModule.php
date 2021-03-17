@@ -124,6 +124,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     private function getEditFieldModifications(){
+        $fields = \REDCap::getFieldNames();
+        sort($fields);
         ?>
         <style>
             .ui-autocomplete.fhir-services-module{
@@ -206,6 +208,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         <script>
             var FHIRServicesExternalModule = <?=json_encode([
                 'schema' => SchemaParser::getModifiedSchema(),
+                'fields' => $fields,
                 'ACTION_TAG_PREFIX' => ACTION_TAG_PREFIX,
                 'ACTION_TAG_SUFFIX' => ACTION_TAG_SUFFIX,
                 'APP_PATH_IMAGES' => APP_PATH_IMAGES
