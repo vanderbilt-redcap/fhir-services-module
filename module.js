@@ -63,7 +63,7 @@ $(function(){
                 }
                 
                 module.updateRecommendedChoicesVisibility()
-                module.updateAdditionalFieldVisibility(mapping)
+                module.updateAdditionalElementVisibility(mapping)
 
                 if(resourceTypeahead.val() !== ''){
                     module.showElementTypeahead()
@@ -309,11 +309,11 @@ $(function(){
                         module.hideElementTypeahead()
                     }
 
-                    module.updateAdditionalFieldVisibility({})
+                    module.updateAdditionalElementVisibility({})
                 }
             })
         },
-        updateAdditionalFieldVisibility: (mapping) => {
+        updateAdditionalElementVisibility: (mapping) => {
             if(module.isObservation()){
                 module.showAdditionalElements(mapping)
             }
