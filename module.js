@@ -120,7 +120,7 @@ $(function(){
                 table.append(row)
             }
 
-            let wrapper = $('<div class="fhir-services-additional-element-wrapper" />')
+            let wrapper = $('<div class="fhir-services-table-wrapper" />')
             wrapper.append(table)
 
             return wrapper
@@ -455,7 +455,7 @@ $(function(){
         },
         getAdditionalElementMappings: () => {
             const additionalElements = {}
-            module.ADDITIONAL_ELEMENT_CONTAINER.find('.fhir-services-additional-element-wrapper').each((index, wrapper) => {
+            module.ADDITIONAL_ELEMENT_CONTAINER.find('.fhir-services-table-wrapper').each((index, wrapper) => {
                 wrapper = $(wrapper)
                 const inputs = wrapper.find('input')
                 const elementPath = $(inputs[0]).val()

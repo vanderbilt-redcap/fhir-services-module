@@ -156,10 +156,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 margin-top: 12px;
                 margin-bottom: 5px;
             }
-            .fhir-services-additional-element-wrapper{
+            .fhir-services-table-wrapper{
                 margin-left: 3px;
             }
-            #fhir-services-additional-elements .fhir-services-additional-element-wrapper{
+            #fhir-services-additional-elements .fhir-services-table-wrapper{
                 border: 1px solid rgb(211, 211, 211);
                 background: #ececec;
                 margin-left: 5px;
