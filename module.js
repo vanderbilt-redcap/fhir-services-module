@@ -5,7 +5,21 @@ $(function(){
         FIELD: 'field',
         VALUE: 'value',
         init: function(){
-            var elementTypeahead = module.initTypeahead({})
+            var elementTypeahead = module.initTypeahead({
+                change: () => {
+                    let mapping
+                    if(elementTypeahead.val() === ''){
+                        mapping = {}
+                    }
+                    else{
+                        // Prevent the current additional elements from being changed.
+                        mapping = undefined
+                    }
+
+                    module.updateAdditionalElementVisibility(mapping)
+                }
+            })
+            
             var resourceTypeahead = module.initResourceTypeahead(elementTypeahead)
 
             module.RESOURCE_TYPEAHEAD = resourceTypeahead
@@ -313,14 +327,6 @@ $(function(){
                 }
             })
         },
-        updateAdditionalElementVisibility: (mapping) => {
-            if(module.isObservation()){
-                module.showAdditionalElements(mapping)
-            }
-            else{
-                module.hideAdditionalElements()
-            }
-        },
         addAdditionalElementButton: (type) => {
             let button = $("<button class='btn btn-xs btn-rcgreen btn-rcgreen-light'>Add " + type + "</button>")
             button.click((e) => {
@@ -382,29 +388,32 @@ $(function(){
 
             module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements').append(wrapper)
         },
-        showAdditionalElements: (mapping) => {
-            let innerContainer = module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements')
-            innerContainer.children().remove()
-
-            const additionalElements = mapping.additionalElements || {}
-            
-            for(const [path, details] of Object.entries(additionalElements)){
-                let value = details.field
-                if(value){
-                    type = module.FIELD
+        updateAdditionalElementVisibility: (mapping) => {
+            if(mapping !== undefined){
+                module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements').children().remove()
+    
+                const additionalElements = mapping.additionalElements || {}
+                
+                for(const [path, details] of Object.entries(additionalElements)){
+                    let value = details.field
+                    if(value){
+                        type = module.FIELD
+                    }
+                    else{
+                        type = module.VALUE
+                        value = details.value
+                    }
+    
+                    module.addAdditionalElement(type, path, value)
                 }
-                else{
-                    type = module.VALUE
-                    value = details.value
-                }
-
-                module.addAdditionalElement(type, path, value)
             }
-        
-            module.ADDITIONAL_ELEMENT_CONTAINER.show()
-        },
-        hideAdditionalElements: () => {
-            module.ADDITIONAL_ELEMENT_CONTAINER.hide()
+
+            if(module.isObservation() && module.ELEMENT_TYPEAHEAD.val() !== ''){
+                module.ADDITIONAL_ELEMENT_CONTAINER.show()
+            }
+            else{
+                module.ADDITIONAL_ELEMENT_CONTAINER.hide()
+            }
         },
         updateActionTag: () => {
             module.updateRecommendedChoicesVisibility()
