@@ -372,6 +372,7 @@ $(function(){
             removeButton.click(function(e){
                 e.preventDefault()
                 wrapper.remove()
+                module.updateActionTag()
             })
             
             wrapper.prepend(removeButton)
@@ -415,19 +416,61 @@ $(function(){
             var tagStartIndex = details.tagStartIndex
             var tagEndIndex = details.tagEndIndex
 
-            var resource = module.getResourceName()
-            var element = module.ELEMENT_TYPEAHEAD.val()
-
-            var newTag = ''
-            if(resource != '' && element != ''){
-                newTag = module.ACTION_TAG_PREFIX + resource + '/' + element + module.ACTION_TAG_SUFFIX
-            }
+            var newTag = module.getActionTagValueFromField()
 
             if(tagStartIndex > 0 && tags[tagStartIndex-1] !== "\n"){
                 newTag = "\n" + newTag
             }
 
             textarea.val(tags.substring(0, tagStartIndex) + newTag + tags.substring(tagEndIndex))
+        },
+        getActionTagValueFromField: () => {
+            const resource = module.getResourceName()
+            const element = module.ELEMENT_TYPEAHEAD.val()
+
+            let newTag = ''
+            if(resource != '' && element != ''){
+                const additionalFields = module.getAdditionalFieldObject()
+
+                let content
+                if($.isEmptyObject(additionalFields)){
+                    content = resource + '/' + element
+                }
+                else{
+                    content = module.actionTagEncode({
+                        type: resource,
+                        primaryElementPath: element,
+                        additionalFields: additionalFields
+                    })
+                }
+
+                newTag = module.ACTION_TAG_PREFIX + content + module.ACTION_TAG_SUFFIX
+            }
+
+            return newTag
+        },
+        getAdditionalFieldObject: () => {
+            const additionalFields = {}
+            module.ADDITIONAL_ELEMENT_CONTAINER.find('.fhir-services-additional-element-wrapper').each((index, wrapper) => {
+                wrapper = $(wrapper)
+                const inputs = wrapper.find('input')
+                const elementPath = $(inputs[0]).val()
+                const fieldOrValueElement = $(inputs[1])
+                const type = fieldOrValueElement.closest('tr').find('label').html()
+                const fieldOrValue = fieldOrValueElement.val()
+
+                if(elementPath === '' || fieldOrValue === ''){
+                    return
+                }
+
+                if(additionalFields[elementPath] === undefined){
+                    additionalFields[elementPath] = {}
+                }
+                
+                additionalFields[elementPath][type] = fieldOrValue
+            })
+
+            return additionalFields
         },
         updateRecommendedChoicesVisibility: () => {
             const element = module.getMappedElement()
