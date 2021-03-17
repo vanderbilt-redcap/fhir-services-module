@@ -49,7 +49,11 @@ $(function(){
                     module.hideElementTypeahead()
                 }
                 else{
-                    module.populateFieldsFromActionTag(details.value)
+                    var parts = details.value.split('/')
+                    resourceTypeahead.val(parts.shift())
+                    elementTypeahead.val(parts.join('/'))
+
+                    module.initElementAutocomplete()
                 }
                 
                 module.updateRecommendedChoicesVisibility()
@@ -64,13 +68,6 @@ $(function(){
 
             module.initSaveButton()
             module.initRecommendedChoiceLinks()
-        },
-        populateFieldsFromActionTag: (actionTagValue) => {
-            var parts = actionTagValue.split('/')
-            module.RESOURCE_TYPEAHEAD.val(parts.shift())
-            module.ELEMENT_TYPEAHEAD.val(parts.join('/'))
-
-            module.initElementAutocomplete()
         },
         hideElementTypeahead: () => {
             module.ELEMENT_TYPEAHEAD.closest('tr').hide()
