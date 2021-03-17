@@ -58,7 +58,8 @@ $(function(){
                     resourceTypeahead.val(mapping.type)
                     elementTypeahead.val(mapping.valueElementPath)
 
-                    module.initElementAutocomplete()
+                    module.initElementAutocomplete(elementTypeahead, true)
+                    module.showElementTypeahead()
                 }
                 
                 module.updateRecommendedChoicesVisibility()
@@ -299,7 +300,8 @@ $(function(){
                 blur: function(typeahead){
                     var elements = module.getElementsForResource()
                     if(elements){
-                        module.initElementAutocomplete()
+                        module.initElementAutocomplete(module.ELEMENT_TYPEAHEAD, true)
+                        module.showElementTypeahead()
                         elementTypeahead.val('')
                         elementTypeahead.focus()
                     }
@@ -329,14 +331,15 @@ $(function(){
             module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-element-buttons').append(button)
         },
         addAdditionalElement: (type, elementPath, fieldOrValue) => {
-            let elementInput = $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">')
-            elementInput.val(elementPath)
+            let elementTypeAhead = module.initTypeahead({})
+            module.initElementAutocomplete(elementTypeAhead, false)
+            elementTypeAhead.val(elementPath)
 
             let fieldOrValueInput = $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">')
             fieldOrValueInput.val(fieldOrValue)
 
             let wrapper = module.createTable({
-                'Element': elementInput,
+                'Element': elementTypeAhead,
                 [type]: fieldOrValueInput
             })
 
@@ -356,7 +359,8 @@ $(function(){
             module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements').append(wrapper)
         },
         showAdditionalElements: (mapping) => {
-            module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements').children().remove()
+            let innerContainer = module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements')
+            innerContainer.children().remove()
 
             for(let path in mapping.fields){
                 module.addAdditionalElement(module.FIELD, path, mapping.fields[path])
@@ -409,12 +413,13 @@ $(function(){
                 module.RECOMMENDED_CHOICES_LINK.hide()
             }
         },
-        initElementAutocomplete: function(){
+        initElementAutocomplete: function(typeahead, primary){
             var elements = module.getElementsForResource()
 
             var options = []
             for(var path in elements){
-                if(!module.isElementVisible(path)){
+                // The "^" is an XOR operator.
+                if(primary ^ module.isPrimaryElement(path)){
                     continue
                 }
 
@@ -425,13 +430,12 @@ $(function(){
                 })
             }
 
-            module.ELEMENT_TYPEAHEAD.autocomplete('option', 'source', options)
-            module.showElementTypeahead()
+            typeahead.autocomplete('option', 'source', options)
         },
         isObservation: () => {
             return module.getResourceName() === 'Observation'
         },
-        isElementVisible: (path) => {
+        isPrimaryElement: (path) => {
             if(module.isObservation()){
                 return [
                     'valueQuantity/value',
