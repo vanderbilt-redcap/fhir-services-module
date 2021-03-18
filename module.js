@@ -367,9 +367,14 @@ $(function(){
             module.initElementAutocomplete(elementTypeAhead, false)
             elementTypeAhead.val(elementPath)
 
+            let fieldOrValueInput = module.initFieldOrValueInput(type, fieldOrValue)
+            elementTypeAhead.change(() => {
+                fieldOrValueInput.focus()
+            })
+
             let wrapper = module.createTable({
                 'Element': elementTypeAhead,
-                [type]: module.initFieldOrValueInput(type, fieldOrValue)
+                [type]: fieldOrValueInput
             })
 
             let removeButton = $(`
