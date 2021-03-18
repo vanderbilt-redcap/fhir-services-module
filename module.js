@@ -402,9 +402,9 @@ $(function(){
             if(mapping !== undefined){
                 module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements').children().remove()
     
-                const additionalElements = mapping.additionalElements || {}
+                const additionalElements = mapping.additionalElements || []
                 
-                for(const [path, details] of Object.entries(additionalElements)){
+                additionalElements.forEach((details) => {
                     let value = details.field
                     if(value){
                         type = module.FIELD
@@ -414,8 +414,8 @@ $(function(){
                         value = details.value
                     }
     
-                    module.addAdditionalElement(type, path, value)
-                }
+                    module.addAdditionalElement(type, details.element, value)
+                })
             }
 
             if(module.isObservation() && module.ELEMENT_TYPEAHEAD.val() !== ''){
@@ -474,7 +474,7 @@ $(function(){
             return newTag
         },
         getAdditionalElementMappings: () => {
-            const additionalElements = {}
+            const additionalElements = []
             module.ADDITIONAL_ELEMENT_CONTAINER.find('.fhir-services-table-wrapper').each((index, wrapper) => {
                 wrapper = $(wrapper)
                 const inputs = wrapper.find('input')
@@ -487,14 +487,10 @@ $(function(){
                     return
                 }
 
-                if(additionalElements[elementPath] !== undefined){
-                    simpleDialog('The "' + elementPath + '" element is already mapped.  Please remove or modify the duplicate mapping, or it will be automatically removed on save.', 'Duplicate Mapping', 'fhir-services-duplicate-mapping')
-                    return
-                }
-                
-                additionalElements[elementPath] = {
+                additionalElements.push({
+                    element: elementPath,
                     [type]: fieldOrValue
-                }
+                })
             })
 
             return additionalElements
