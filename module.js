@@ -392,6 +392,11 @@ $(function(){
             wrapper.prepend(removeButton)
 
             module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements').append(wrapper)
+
+            if(elementPath === ''){
+                // The user just clicked one of the "Add" buttons.  Focus the element.
+                elementTypeAhead.focus()
+            }
         },
         updateAdditionalElementVisibility: (mapping) => {
             if(mapping !== undefined){
