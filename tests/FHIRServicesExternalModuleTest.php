@@ -648,18 +648,43 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
         $mapping = [
             'type' => $resourceName,
-            'fields' => [
-                'valueInteger' => $this->getFieldName(),
-                'effectivePeriod/start' => $this->getFieldName2(),
-                'effectivePeriod/end' => $this->getFieldName2()
-            ],
-            'values' => [
-                'status' => $status,
-                'code/coding/code' => $code, 
-                'code/coding/system' => $system,
-                'code/coding/display' => $display,
-                'issued' => $issued,
-                'subject/reference' => $reference
+            'additionalElements' => [
+                [
+                   'element' => 'valueInteger',
+                   'field' => $this->getFieldName()
+                ],
+                [
+                    'element' => 'effectivePeriod/start',
+                    'field' => $this->getFieldName2()
+                ],
+                [
+                    'element' => 'effectivePeriod/end',
+                    'field' => $this->getFieldName2()
+                ],
+                [
+                    'element' => 'status',
+                    'value' => $status
+                ],
+                [
+                    'element' => 'code/coding/code',
+                    'value' => $code
+                ],
+                [
+                    'element' => 'code/coding/system',
+                    'value' => $system
+                ],
+                [
+                    'element' => 'code/coding/display',
+                    'value' => $display
+                ],
+                [
+                    'element' => 'issued',
+                    'value' => $issued
+                ],
+                [
+                    'element' => 'subject/reference',
+                    'value' => $reference
+                ],
             ]
         ];
 
@@ -711,15 +736,31 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         
         $mapping = [
             'type' => $resourceName,
-            'fields' => [
-                'valueQuantity/value' => $this->getFieldName()
-            ],
-            'values' => [
-                'valueQuantity/unit' => $unitAndCode,
-                'valueQuantity/system' => $system,
-                'valueQuantity/code' => $unitAndCode,
-                'code/text' => $code,
-                'status' => $status
+            'additionalElements' => [
+                [
+                    'element' => 'valueQuantity/value',
+                    'field' => $this->getFieldName()
+                ],
+                [
+                    'element' => 'valueQuantity/unit',
+                    'value' => $unitAndCode
+                ],
+                [
+                    'element' => 'valueQuantity/system',
+                    'value' => $system
+                ],
+                [
+                    'element' => 'valueQuantity/code',
+                    'value' => $unitAndCode
+                ],
+                [
+                    'element' => 'code/text',
+                    'value' => $code
+                ],
+                [
+                    'element' => 'status',
+                    'value' => $status
+                ],
             ]
         ];
 
@@ -756,10 +797,19 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         
         $mapping = [
             'type' => $resourceName,
-            'values' => [
-                'status' => $status,
-                'code/text' => $code,
-                'valueString' => $value,
+            'additionalElements' => [
+                [
+                    'element' => 'status',
+                    'value' => $status
+                ],
+                [
+                    'element' => 'code/text',
+                    'value' => $code
+                ],
+                [
+                    'element' => 'valueString',
+                    'value' => $value
+                ],
             ]
         ];
  

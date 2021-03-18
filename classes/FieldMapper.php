@@ -41,8 +41,11 @@ class FieldMapper{
             $fieldNames[$fieldName] = true;
 
             if(is_array($mapping)){
-                foreach($mapping['fields'] as $subFieldName){
-                    $fieldNames[$subFieldName] = true;
+                foreach($mapping['additionalElements'] as $details){
+                    $fieldName = @$details['field'];
+                    if($fieldName !== null){
+                        $fieldNames[$fieldName] = true;
+                    }
                 }
             }
         }
@@ -231,12 +234,16 @@ class FieldMapper{
 
     private function processObservationMapping($mapping, $data){
         $resource = $mapping['type'];
-        foreach($mapping['fields'] as $elementPath=>$fieldName){
-            $this->processElementMapping($fieldName, $data[$fieldName], "$resource/$elementPath");
-        }
-        
-        foreach($mapping['values'] as $elementPath=>$value){
-            $this->processElementMapping($fieldName, $value, "$resource/$elementPath");
+        foreach($mapping['additionalElements'] as $details){
+            $fieldName = @$details['field'];
+            if($fieldName === null){
+                $value = $details['value'];
+            }
+            else{
+                $value = $data[$fieldName];
+            }
+            
+            $this->processElementMapping($fieldName, $value, "$resource/{$details['element']}");
         }
     }
 
