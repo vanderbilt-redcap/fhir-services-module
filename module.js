@@ -478,7 +478,7 @@ $(function(){
                 }
 
                 if(additionalElements[elementPath] !== undefined){
-                    simpleDialog('The "' + elementPath + '" element is already mapped.  Please modify/remove the duplicate mapping, or it will be automatically removed on save.', 'Duplicate Mapping', 'fhir-services-duplicate-mapping')
+                    simpleDialog('The "' + elementPath + '" element is already mapped.  Please remove or modify the duplicate mapping, or it will be automatically removed on save.', 'Duplicate Mapping', 'fhir-services-duplicate-mapping')
                     return
                 }
                 
