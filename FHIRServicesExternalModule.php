@@ -2408,4 +2408,79 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     function getProjectHomeUrl($pid){
         return APP_PATH_WEBROOT_FULL . ltrim(APP_PATH_WEBROOT, '/') . "?pid=$pid";
     }
+
+    // This can be removed once it makes it into a framework version.
+    function getSurveyResponses($args) {
+        $args = array_merge([
+            'pid' => $this->getProjectId()
+        ], $args);
+
+        $pid = @$args['pid'];
+        $event = @$args['event'];
+        $form = @$args['form'];
+        $record = @$args['record'];
+        $instance = @$args['instance'];
+
+        $query = $this->createQuery();
+		$query->add("
+			select *
+            from redcap_surveys s
+            join redcap_surveys_participants p
+                on p.survey_id = s.survey_id
+            join redcap_surveys_response r
+                on r.participant_id = p.participant_id 
+		");
+
+        $clauses = [];
+        $params = [];
+
+        if($pid !== null){
+            $clauses[] = "project_id = ?";
+            $params[] = $pid;
+		}
+
+		if($event !== null){
+            $clauses[] = "p.event_id = ?";
+            $params[] = $event;
+		}
+
+        if($form !== null){
+            $clauses[] = "form_name = ?";
+            $params[] = $form;
+		}
+
+        if($record !== null){
+            $clauses[] = "r.record = ?";
+            $params[] = $record;
+		}
+
+        if($instance !== null){
+            $clauses[] = "r.instance = ?";
+            $params[] = $instance;
+		}
+
+        $query->add(" where " . implode(' and ', $clauses), $params);
+
+        /**
+         * Ordering by participant_id is important since getParticipantAndResponseId() expects
+         * the first row returned to be the first participant.
+         * Keep in mind that there are sometimes two participants for a given event, record, & instance,
+         * due to a quirk of the way REDCap manages participants.  Here's Rob's explanation:
+         * Public surveys can have 1 or 2 rows. But other surveys in the project should not
+         * (unless they *used* to be the public survey at some point in the past).
+         * Each row in your join would correspond to a particular survey link/hash AND response,
+         * and public surveys occupy one row themselves while a private/unique survey link
+         * (after the record has been created) can occupy another row.
+         * In certain situations, either row may not exist, but in some situations, both exist.
+         * It’s not ideal, and has caused some issues over time because of this complexity.
+         * It is sort of a weird thing due to the evolution of surveys in REDCap over time
+         * (originally REDCap only allowed for one survey per project – i.e., the public survey).
+         * We probably wouldn’t design it that way if we re-built it all today.
+         */
+        $query->add('
+            order by p.participant_id asc
+        ');
+
+		return $query->execute();
+	}
 }

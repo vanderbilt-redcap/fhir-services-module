@@ -7,7 +7,15 @@ $instance = $_GET['instance'];
 
 $formSettings = $module->getEConsentFormSettings($form);
 $eConsentData = $module->getEConsentData($form, $record, $instance);
-$surveyResponseDetails = $module->getProject()->getForm($form)->getSurveyResponseDetails($record, $event, $instance);
+$responses = $module->getSurveyResponses([
+    'pid' => $pid,
+    'event' => $event,
+    'form' => $form,
+    'record' => $record,
+    'instance' => $instance
+]);
+
+$surveyResponseDetails = $responses->fetch_assoc();
 
 global $pdf_custom_header_text;
 $data = REDCap::getPDF($record, $form, $event, false, $instance, true, $pdf_custom_header_text);
