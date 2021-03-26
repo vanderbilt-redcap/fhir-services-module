@@ -348,6 +348,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                                 'element' => 'telecom/system',
                                 'value' => 'Email',
                             ],
+                            [
+                                'element' => 'telecom/rank',
+                                'value' => 1,
+                            ],
                         ]
                     ],
                     'value' => 'a@b.com'
@@ -365,6 +369,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                                 'element' => 'telecom/system',
                                 'value' => 'Email',
                             ],
+                            [
+                                'element' => 'telecom/rank',
+                                'value' => 2,
+                            ],
                         ]
                     ],
                     'value' => 'c@d.com'
@@ -376,11 +384,13 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                         'value' => 'a@b.com',
                         'use' => 'home',
                         'system' => 'email',
+                        'rank' => 1, // Used to test positiveInt element types
                     ],
                     [
                         'value' => 'c@d.com',
                         'use' => 'work',
                         'system' => 'email',
+                        'rank' => 2,
                     ]
                 ]
             ]

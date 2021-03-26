@@ -205,7 +205,11 @@ class FieldMapper{
         else if(in_array($ref, ['dateTime', 'instant']) || $modifiedElementProperty['pattern'] === DATE_TIME_PATTERN){
             $value = $this->getModule()->formatFHIRDateTime($value);
         }
-        else if($modifiedElementProperty['pattern'] === INTEGER_PATTERN){
+        else if(
+            $modifiedElementProperty['pattern'] === INTEGER_PATTERN
+            ||
+            $ref === 'positiveInt'
+        ){
             if(ctype_digit($value)){
                 $value = (int) $value;
             }
