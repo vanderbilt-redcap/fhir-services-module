@@ -145,16 +145,15 @@ $(function(){
             }
 
             window.addEditFieldSave = function(){
-                var element = module.getMappedElement()
-                if(element === undefined || element.redcapChoices === undefined){
+                const choices = module.getREDCapChoices()
+                if($.isEmptyObject(choices)){
                     // An element with choices is not mapped
                     finishSave()
                     return
                 }
 
                 var validValues = {}
-                for(var code in element.redcapChoices){
-                    var value = element.redcapChoices[code]
+                for(const [code, value] of Object.entries(choices)){
                     ;[code, value].forEach(function(codeOrValue){
                         validValues[codeOrValue.toLowerCase()] = true
                     })
@@ -200,16 +199,24 @@ $(function(){
                 `, 'Invalid Choices Exist', module.RECOMMENDED_CHOICES_DIALOG_ID)
             }
         },
-        getMappedElement: function(){
+        getMappedElement: function(elementPath = undefined){
             const elements = module.getElementsForResource()
             if(elements === undefined){
                 return undefined
             }
+            
+            if(elementPath === undefined){
+                elementPath = module.ELEMENT_TYPEAHEAD.val()
+            }
 
-            return elements[module.ELEMENT_TYPEAHEAD.val()]
+            return elements[elementPath]
+        },
+        getREDCapChoices: (elementPath = undefined) => {
+            const elementDetails = module.getMappedElement(elementPath)
+            return elementDetails?.redcapChoices || {}
         },
         getRecommendedChoices: () => {
-            const choices = module.getMappedElement().redcapChoices
+            const choices = module.getREDCapChoices()
             let choiceLines = []
             for(let code in choices){
                 let label = choices[code]
@@ -261,14 +268,16 @@ $(function(){
                 options.change(typeahead)
 
                 var source = typeahead.autocomplete('option', 'source');
-                if(typeof source[0] !== 'string'){
-                    source = source.map(function(item){
-                        return item.label
-                    })
-                }
-
-                if(source.indexOf(typeahead.val()) === -1){
-                    typeahead.val('')
+                if(source.length > 0){
+                    if(typeof source[0] !== 'string'){
+                        source = source.map(function(item){
+                            return item.label
+                        })
+                    }
+    
+                    if(source.indexOf(typeahead.val()) === -1){
+                        typeahead.val('')
+                    }
                 }
 
                 module.updateActionTag()
@@ -336,29 +345,39 @@ $(function(){
             
             module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-element-buttons').append(button)
         },
-        initFieldOrValueInput: (type, fieldOrValue) => {
-            let fieldOrValueInput
+        initFieldOrValueInput: (type, fieldOrValue, elementTypeAhead) => {
+            const fieldOrValueInput = module.initTypeahead({})
             if(type === module.FIELD){
-                fieldOrValueInput = module.initTypeahead({})
-
-                var options = []
+                const options = []
                 module.fields.forEach((fieldName) => {
                     options.push({
-                        label: fieldName,
                         value: fieldName,
+                        label: fieldName,
                     })
                 })
 
                 fieldOrValueInput.autocomplete('option', 'source', options)
             }
             else{
-                fieldOrValueInput = $('<input class="x-form-text x-form-field ui-autocomplete-input" type="search" autocomplete="off">')
-                fieldOrValueInput.change(() => {
-                    module.updateActionTag()
+                elementTypeAhead.change(()=>{
+                    const options = []
+                    for(const [value, label] of Object.entries(module.getREDCapChoices(elementTypeAhead.val()))){
+                        options.push({
+                            value: label,
+                            label: label,
+                        })
+                    }
+
+                    fieldOrValueInput.autocomplete('option', 'source', options)
                 })
             }
 
             fieldOrValueInput.val(fieldOrValue)
+
+            elementTypeAhead.change(()=>{
+                fieldOrValueInput.val('') // Force the user to re-enter field/value, since the previous one is likely no longer valid.
+                fieldOrValueInput.focus()
+            })
 
             return fieldOrValueInput
         },
@@ -367,14 +386,9 @@ $(function(){
             module.initElementAutocomplete(elementTypeAhead, false)
             elementTypeAhead.val(elementPath)
 
-            let fieldOrValueInput = module.initFieldOrValueInput(type, fieldOrValue)
-            elementTypeAhead.change(() => {
-                fieldOrValueInput.focus()
-            })
-
             let wrapper = module.createTable({
                 'Element': elementTypeAhead,
-                [type]: fieldOrValueInput
+                [type]: module.initFieldOrValueInput(type, fieldOrValue, elementTypeAhead)
             })
 
             let removeButton = $(`
@@ -418,7 +432,11 @@ $(function(){
                 })
             }
 
-            if(module.isObservation() && module.ELEMENT_TYPEAHEAD.val() !== ''){
+            if(
+                module.isObservation() && module.ELEMENT_TYPEAHEAD.val() !== ''
+                ||
+                module.isPatient() && module.ELEMENT_TYPEAHEAD.val() === 'telecom/value'
+            ){
                 module.ADDITIONAL_ELEMENT_CONTAINER.show()
             }
             else{
@@ -496,12 +514,11 @@ $(function(){
             return additionalElements
         },
         updateRecommendedChoicesVisibility: () => {
-            const element = module.getMappedElement()
-            if(element && element.redcapChoices){
-                module.RECOMMENDED_CHOICES_LINK.show()
+            if($.isEmptyObject(module.getREDCapChoices())){
+                module.RECOMMENDED_CHOICES_LINK.hide()
             }
             else{
-                module.RECOMMENDED_CHOICES_LINK.hide()
+                module.RECOMMENDED_CHOICES_LINK.show()
             }
         },
         initElementAutocomplete: function(typeahead, primary){
@@ -509,8 +526,7 @@ $(function(){
 
             var options = []
             for(var path in elements){
-                // The "^" is an XOR operator.
-                if(primary ^ module.isPrimaryElement(path)){
+                if(!module.isElementVisible(path, primary)){
                     continue
                 }
 
@@ -526,9 +542,12 @@ $(function(){
         isObservation: () => {
             return module.getResourceName() === 'Observation'
         },
-        isPrimaryElement: (path) => {
+        isPatient: () => {
+            return module.getResourceName() === 'Patient'
+        },
+        isElementVisible: (path, primary) => {
             if(module.isObservation()){
-                return [
+                const isValuePath = [
                     'valueQuantity/value',
                     'valueCodeableConcept',
                     'valueString',
@@ -543,6 +562,18 @@ $(function(){
                     'valuePeriod/start',
                     'valuePeriod/end'
                 ].indexOf(path) !== -1
+
+                return primary ^ !isValuePath
+            }
+            else if(module.isPatient()){
+                if(path.startsWith('telecom/')){
+                    const isValuePath = path === 'telecom/value'
+
+                    return primary ^ !isValuePath
+                }
+                else if(module.ELEMENT_TYPEAHEAD.val() === 'telecom/value'){
+                    return primary
+                }
             }
 
             return true

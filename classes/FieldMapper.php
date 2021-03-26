@@ -8,7 +8,6 @@ class FieldMapper{
         $this->projectId = $projectId;
         $this->recordId = $recordId;
         $this->resources = [];
-        $this->contactPoints = [];
 
         $mappings = $this->getMappings($projectId);
 
@@ -22,15 +21,14 @@ class FieldMapper{
                 continue;
             }
 
-            if($mapping['type'] === 'Observation'){
-                $this->processObservationMapping($mapping, $data);
+            if(is_array($mapping)){
+                $this->processElementMapping($fieldName, $value, $mapping['type'] . '/' . $mapping['primaryElementPath'], true);
+                $this->processAdditionalElements($mapping, $data);
             }
             else{
-                $this->processElementMapping($fieldName, $value, $mapping);
+                $this->processElementMapping($fieldName, $value, $mapping, false);
             }
         }
-
-        $this->formatContactPoints($this->contactPoints);
 
         return $this->resources;
     }
@@ -99,20 +97,14 @@ class FieldMapper{
         return str_replace(ACTION_TAG_SUFFIX, SINGLE_QUOTE_PLACEHOLDER, $value); 
     }
 
-    private function processElementMapping($fieldName, $value, $mappingString){
+    private function processElementMapping($fieldName, $value, $mappingString, $addNewArrayItem){
         $parts = explode('/', $mappingString);
-        $mapping = [
-            'raw' => $value,
-            'resource' => array_shift($parts),
-            'elementPath' => implode('/', $parts),
-            'elementName' => array_pop($parts),
-            'elementParents' => $parts
-        ];
+        $resourceName = array_shift($parts);
+        $elementPath = implode('/', $parts);
+        $elementName = array_pop($parts);
+        $elementParents = $parts;
 
         $definitions = SchemaParser::getDefinitions();
-
-        $resourceName = $mapping['resource'];
-        $elementName = $mapping['elementName'];
 
         if(!isset($this->resources[$resourceName])){
             $this->resources[$resourceName] = [
@@ -129,18 +121,25 @@ class FieldMapper{
         ];
         $parentDefinition = $definitions[$resourceName];
 
-        foreach($mapping['elementParents'] as $parentName){
+        foreach($elementParents as $parentName){
             $subPath = &$subPath[$parentName];
             $parentProperty = $parentDefinition['properties'][$parentName];
             $subResourceName = SchemaParser::getResourceNameFromRef($parentProperty);
             $parentDefinition = $definitions[$subResourceName];
 
-            if($subResourceName === 'ContactPoint'){
-                $this->contactPoints[] = &$subPath;
-            }
-            else if($parentProperty['type'] === 'array'){
-                // We only support one mapping of each element for now, so just always use the first instance of any array.
-                $subPath =& $subPath[0];
+            if($parentProperty['type'] === 'array'){
+                if(empty($subPath)){
+                    $subPathIndex = 0;
+                }
+                else{
+                    $subPathIndex = count($subPath);
+
+                    if(!$addNewArrayItem){
+                        $subPathIndex--;
+                    }
+                }
+
+                $subPath =& $subPath[$subPathIndex];
             }
         }
 
@@ -149,7 +148,7 @@ class FieldMapper{
             if(
                 $resourceName === 'Patient'
                 &&
-                $mapping['elementPath'] === 'deceasedBoolean'
+                $elementPath === 'deceasedBoolean'
             ){
                 /**
                  * This element is allowed to be mapped multiple times, since a deceased flag may exist on multiple events in REDCap.
@@ -161,7 +160,7 @@ class FieldMapper{
                 }
             }
             else{
-                throw new StackFreeException("The '" . $mapping['raw'] . "' element is currently mapped to multiple fields, but should only be mapped to a single field.  It is recommended to download the Data Dictionary and search for '" . $mapping['raw'] . "' to determine which field mapping(s) need to be modified.");
+                throw new StackFreeException("The '$mappingString' element is currently mapped to multiple fields, but should only be mapped to a single field.  It is recommended to view the Codebook and search for '$mappingString' to determine which field mapping(s) need to be modified.");
             }
         }
 
@@ -176,7 +175,7 @@ class FieldMapper{
          * This can't currently be combined with $elementProperty above
          * because of special handling (pseudo-elements like Patient/telecom/mobile/phone/value).
          */
-        $modifiedElementProperty = SchemaParser::getModifiedProperty($resourceName, $mapping['elementPath']);
+        $modifiedElementProperty = SchemaParser::getModifiedProperty($resourceName, $elementPath);
 
         $choices = $modifiedElementProperty['redcapChoices'];
         $ref = SchemaParser::getResourceNameFromRef($modifiedElementProperty);
@@ -232,7 +231,7 @@ class FieldMapper{
         }
     }
 
-    private function processObservationMapping($mapping, $data){
+    private function processAdditionalElements($mapping, $data){
         $resource = $mapping['type'];
         foreach($mapping['additionalElements'] as $details){
             $fieldName = @$details['field'];
@@ -243,26 +242,7 @@ class FieldMapper{
                 $value = $data[$fieldName];
             }
             
-            $this->processElementMapping($fieldName, $value, "$resource/{$details['element']}");
-        }
-    }
-
-    private function formatContactPoints($contactPoints){
-        foreach($contactPoints as &$contactPoint){
-            if(isset($contactPoint[0])){
-                // We've already formatted this ContactPoint
-                continue;
-            }
-
-            foreach($contactPoint as $use=>$systems){
-                unset($contactPoint[$use]);
-                foreach($systems as $system=>$values){
-                    $contactPoint[] = array_merge([
-                        'use' => $use,
-                        'system' => $system,
-                    ], $values);
-                }
-            }
+            $this->processElementMapping($fieldName, $value, "$resource/{$details['element']}", false);
         }
     }
 

@@ -71,19 +71,7 @@ class SchemaParser{
                 self::handleProperty($parts, $property);
             }
             else{
-                if($refDefinitionName === 'ContactPoint'){
-                    $useCodes = $subProperties['use']['enum'];
-                    $systemCodes = $subProperties['system']['enum'];
-                    unset($subProperties['use']);
-                    unset($subProperties['system']);
-
-                    foreach($useCodes as $useCode){
-                        foreach($systemCodes as $systemCode){
-                            self::handleProperties(array_merge($parts, [$useCode, $systemCode]), $subProperties);
-                        }
-                    }
-                }
-                else if($refDefinitionName === 'CodeableConcept'){
+                if($refDefinitionName === 'CodeableConcept'){
                     self::addCodeableConceptValues($parts, $property);
                     self::handleProperty($parts, $property);
                 }

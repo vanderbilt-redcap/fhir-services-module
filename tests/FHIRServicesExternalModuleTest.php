@@ -333,45 +333,68 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             ]
         ]);
 
-        // ContactPoints (they have special handling)
-        $homeEmailPath = 'telecom/home/email/value';
         $this->assert(
             [
                 $fieldName => [
-                    'element' => $homeEmailPath,
+                    'mapping' => [
+                        'type' => 'Patient',
+                        'primaryElementPath' => 'telecom/value',
+                        'additionalElements' => [
+                            [
+                                'element' => 'telecom/use',
+                                'value' => 'Home',
+                            ],
+                            [
+                                'element' => 'telecom/system',
+                                'value' => 'Email',
+                            ],
+                        ]
+                    ],
                     'value' => 'a@b.com'
                 ],
                 $fieldName2 => [
-                    'element' => 'telecom/work/email/value',
+                    'mapping' => [
+                        'type' => 'Patient',
+                        'primaryElementPath' => 'telecom/value',
+                        'additionalElements' => [
+                            [
+                                'element' => 'telecom/use',
+                                'value' => 'Work',
+                            ],
+                            [
+                                'element' => 'telecom/system',
+                                'value' => 'Email',
+                            ],
+                        ]
+                    ],
                     'value' => 'c@d.com'
                 ]
             ],
             [
                 'telecom' => [
                     [
+                        'value' => 'a@b.com',
                         'use' => 'home',
                         'system' => 'email',
-                        'value' => 'a@b.com',
                     ],
                     [
+                        'value' => 'c@d.com',
                         'use' => 'work',
                         'system' => 'email',
-                        'value' => 'c@d.com',
                     ]
                 ]
             ]
         );
+    }
 
-        $error = '';
-        try{
-            $this->setFHIRMapping($fieldName2, "Patient/$homeEmailPath");
-            $assert($homeEmailPath, 1, []);
-        }
-        catch(\Exception $e){
-            $error = $e->getMessage();
+    function testGetMappedFieldsAsBundle_duplicateMappings(){
+        $path = "Patient/name/family";
+        foreach([$this->getFieldName(), $this->getFieldName2()] as $fieldName){
+            $this->setFHIRMapping($fieldName, $path);
         }
 
-        $this->assertStringContainsString('currently mapped to multiple fields', $error);
+        $this->expectExceptionMessage('currently mapped to multiple fields');
+        $this->getMappedFieldsAsBundle($this->getTestPID(), 1);
     }
 
     function testGetMappedFieldsAsBundle_blankValue(){
@@ -648,11 +671,8 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
         $mapping = [
             'type' => $resourceName,
+            'primaryElementPath' => 'valueInteger',
             'additionalElements' => [
-                [
-                   'element' => 'valueInteger',
-                   'field' => $this->getFieldName()
-                ],
                 [
                     'element' => 'effectivePeriod/start',
                     'field' => $this->getFieldName2()
@@ -721,7 +741,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 'issued' => $this->formatFHIRDateTime($issued),
                 'subject'=> [
                     'reference' => $reference
-                ]
+                ],
             ],
             $resourceName
         );
@@ -736,11 +756,8 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         
         $mapping = [
             'type' => $resourceName,
+            'primaryElementPath' => 'valueQuantity/value',
             'additionalElements' => [
-                [
-                    'element' => 'valueQuantity/value',
-                    'field' => $this->getFieldName()
-                ],
                 [
                     'element' => 'valueQuantity/unit',
                     'value' => $unitAndCode
@@ -778,7 +795,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                     'value' => $value,
                     'unit' => $unitAndCode,
                     'system' => $system,
-                    'code' => $unitAndCode
+                    'code' => $unitAndCode,
                 ],
                 'code' => [
                     'text' => $code
@@ -797,6 +814,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         
         $mapping = [
             'type' => $resourceName,
+            'primaryElementPath' => 'valueString',
             'additionalElements' => [
                 [
                     'element' => 'status',
@@ -806,10 +824,6 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                     'element' => 'code/text',
                     'value' => $code
                 ],
-                [
-                    'element' => 'valueString',
-                    'value' => $value
-                ],
             ]
         ];
  
@@ -817,15 +831,15 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             [
                 $this->getFieldName() => [
                     'mapping' => $mapping,
-                    'value' => "some value that doesn't matter"
+                    'value' => $value
                 ]
             ],
             [
+                'valueString' => $value,
                 'status' => $status,
                 'code' => [
                     'text' => $code
                 ],
-                'valueString' => $value,
             ],
             $resourceName
         );
