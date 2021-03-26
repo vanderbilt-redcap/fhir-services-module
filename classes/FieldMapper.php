@@ -14,19 +14,21 @@ class FieldMapper{
         // Add the record ID regardless so that the standard return format is used.
         // REDCap returns a different format without it.
         $fields = array_merge([$this->getModule()->getRecordIdField($projectId)], $this->getMappingFieldNames($mappings));
-        $data = json_decode(REDCap::getData($projectId, 'json', $recordId, $fields), true)[0];
-        foreach($data as $fieldName=>$value){
-            $mapping = @$mappings[$fieldName];
-            if($value === '' || $mapping === null){
-                continue;
-            }
-
-            if(is_array($mapping)){
-                $this->processElementMapping($fieldName, $value, $mapping['type'] . '/' . $mapping['primaryElementPath'], true);
-                $this->processAdditionalElements($mapping, $data);
-            }
-            else{
-                $this->processElementMapping($fieldName, $value, $mapping, false);
+        $rows = json_decode(REDCap::getData($projectId, 'json', $recordId, $fields), true);
+        foreach($rows as $data){
+            foreach($data as $fieldName=>$value){
+                $mapping = @$mappings[$fieldName];
+                if($value === '' || $mapping === null){
+                    continue;
+                }
+    
+                if(is_array($mapping)){
+                    $this->processElementMapping($fieldName, $value, $mapping['type'] . '/' . $mapping['primaryElementPath'], true);
+                    $this->processAdditionalElements($mapping, $data);
+                }
+                else{
+                    $this->processElementMapping($fieldName, $value, $mapping, false);
+                }
             }
         }
 
@@ -93,7 +95,10 @@ class FieldMapper{
     }
 
     static function actionTagEncode($value){
-        $value = json_encode($value);
+        if(is_array($value)){
+            $value = json_encode($value);
+        }
+        
         return str_replace(ACTION_TAG_SUFFIX, SINGLE_QUOTE_PLACEHOLDER, $value); 
     }
 

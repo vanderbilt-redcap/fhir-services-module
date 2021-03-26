@@ -4,22 +4,34 @@ use DateTime;
 use DateTimeZone;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaire\FHIRQuestionnaireItem;
 
+/**
+ * These are not intended to be used outside the EM framework,
+ * but let's bend that rule a bit for convenience unless/until it becomes a problem.
+ */
+const TEST_RECORD_ID = 'test_record_id';
+const TEST_TEXT_FIELD = 'test_text_field';
+const TEST_SQL_FIELD = 'test_sql_field';
+const TEST_REPEATING_FORM = 'test_repeating_form';
+const TEST_REPEATING_FIELD_1 = 'test_repeating_field_1';
+const TEST_REPEATING_FIELD_2 = 'test_repeating_field_2';
+
 class FHIRServicesExternalModuleTest extends BaseTest{
     public function setUp():void{
         parent::setUp();
 
         $this->setFHIRMapping($this->getFieldName(), null);
         $this->setFHIRMapping($this->getFieldName2(), null);
+        $this->setFHIRMapping(TEST_REPEATING_FIELD_1, null);
         
         $this->setTypeAndEnum($this->getFieldName2(), 'text', '');
     }
 
     private function getFieldName(){
-        return 'test_text_field';
+        return TEST_TEXT_FIELD;
     }
 
     private function getFieldName2(){
-        return 'test_sql_field';
+        return TEST_SQL_FIELD;
     }
     
     private function getFormName(){
@@ -201,8 +213,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         }
 
         // Wrap the action tag in other tags with quotes to make sure parsing still works correctly.
-        $value = "@SOME-PRIOR-TAG-WITH-QUOTES=" . ACTION_TAG_SUFFIX . rand() . ACTION_TAG_SUFFIX . " $value";
-        $value .= "@SOME-LATER-TAG-WITH-QUOTES=" . ACTION_TAG_SUFFIX . rand() . ACTION_TAG_SUFFIX . " $value";
+        $value = "@SOME-PRIOR-TAG-WITH-QUOTES='foo1' $value @SOME-LATER-TAG-WITH-QUOTES='foo2'";
 
         $pid = $this->getTestPID();
 
@@ -854,4 +865,41 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             $resourceName
         );
     }
+
+    // function testObservationMapping_multiple(){
+    //     $this->setFHIRMapping(TEST_REPEATING_FIELD_1, [
+    //         'type' => 'Observation',
+    //         'primaryElementPath' => 'valueString',
+    //         'additionalElements' => [
+    //             [
+    //                 'element' => 'code/text',
+    //                 'field' => TEST_REPEATING_FIELD_2
+    //             ]
+    //         ]
+    //     ]);
+
+    //     $pid = $this->getTestPID();
+    //     $recordId = 1;
+
+    //     \REDCap::saveData($pid, 'json', json_encode([
+    //         [
+    //             TEST_RECORD_ID => $recordId,
+    //             'redcap_repeat_instrument' => TEST_REPEATING_FORM,
+    //             'redcap_repeat_instance' => 1,
+    //             TEST_REPEATING_FIELD_1 => 'a',
+    //             TEST_REPEATING_FIELD_2 => 'b',
+    //         ],
+    //         [
+    //             TEST_RECORD_ID => $recordId,
+    //             'redcap_repeat_instrument' => TEST_REPEATING_FORM,
+    //             'redcap_repeat_instance' => 2,
+    //             TEST_REPEATING_FIELD_1 => 'c',
+    //             TEST_REPEATING_FIELD_2 => 'd',
+    //         ],
+    //     ]), 'overwrite');
+
+    //     $actual = $this->getMappedFieldsAsBundle($pid, $recordId);
+    //     var_dump($actual);
+    //     die();
+    // }
 }
