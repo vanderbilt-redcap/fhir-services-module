@@ -781,7 +781,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             ]
         ];
 
-        $value = rand();
+        $value = 123.45; // Make sure float/decimal values are represented correctly.
         
         $this->assert(
             [

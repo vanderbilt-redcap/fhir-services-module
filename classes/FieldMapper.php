@@ -214,7 +214,7 @@ class FieldMapper{
             }
         }
         else if($ref === 'decimal'){
-            $newValue = (int) $value;
+            $newValue = (float) $value;
             if((string)$newValue === $value){
                 $value = $newValue;
             }
