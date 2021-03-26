@@ -22,6 +22,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $this->setFHIRMapping($this->getFieldName(), null);
         $this->setFHIRMapping($this->getFieldName2(), null);
         $this->setFHIRMapping(TEST_REPEATING_FIELD_1, null);
+        $this->setFHIRMapping(TEST_REPEATING_FIELD_2, null);
         
         $this->setTypeAndEnum($this->getFieldName2(), 'text', '');
     }
@@ -209,6 +210,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             $value = '';
         }
         else{
+            if(is_array($value)){
+                $value = FieldMapper::actionTagEncode($value, JSON_PRETTY_PRINT);
+            }
+
             $value = ACTION_TAG_PREFIX . $value . ACTION_TAG_SUFFIX;
         }
 
@@ -229,14 +234,8 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             $mapping = @$details['mapping'];
             $element = @$details['element'];
             
-            if($mapping !== null){
-                $mapping = FieldMapper::actionTagEncode($mapping, JSON_PRETTY_PRINT);
-            }
-            else if($element !== null){
+            if($element !== null){
                 $mapping = $resource . '/' . $element;
-            }
-            else{
-                $mapping = null;
             }
 
             $this->setFHIRMapping($fieldName, $mapping);
@@ -406,6 +405,53 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 ]
             ]
         );
+    }
+
+    function testGetMappedFieldsAsBundle_patient_telecomComplexity(){
+        $this->setFHIRMapping(TEST_REPEATING_FIELD_1, [
+            'type' => 'Patient',
+            'primaryElementPath' => 'telecom/value',
+        ]);
+
+        $this->setFHIRMapping(TEST_REPEATING_FIELD_2, [
+            'type' => 'Patient',
+            'primaryElementPath' => 'contact/telecom/value',
+        ]);
+
+        $pid = $this->getTestPID();
+        $recordId = 1;
+
+        \REDCap::saveData($pid, 'json', json_encode([
+            [
+                TEST_RECORD_ID => $recordId,
+                'redcap_repeat_instrument' => TEST_REPEATING_FORM,
+                'redcap_repeat_instance' => 1,
+                TEST_REPEATING_FIELD_1 => 'a',
+                TEST_REPEATING_FIELD_2 => 'b',
+            ],
+            [
+                TEST_RECORD_ID => $recordId,
+                'redcap_repeat_instrument' => TEST_REPEATING_FORM,
+                'redcap_repeat_instance' => 2,
+                TEST_REPEATING_FIELD_1 => 'c',
+                TEST_REPEATING_FIELD_2 => 'd',
+            ],
+        ]), 'overwrite');
+
+        $this->assert([], [
+            'telecom' => [
+                ['value' => 'a'],
+                ['value' => 'c'],
+            ],
+            'contact' => [
+                [
+                    'telecom' => [
+                        ['value' => 'b'],
+                        ['value' => 'd'],
+                    ]
+                ]
+            ]
+        ]);
     }
 
     function testGetMappedFieldsAsBundle_duplicateMappings(){

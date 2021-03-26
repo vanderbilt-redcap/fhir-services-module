@@ -102,12 +102,39 @@ class FieldMapper{
         return str_replace(ACTION_TAG_SUFFIX, SINGLE_QUOTE_PLACEHOLDER, $value); 
     }
 
+    private function getNewArrayItemParents($resourceName, $elementParents){
+        $definitions = SchemaParser::getDefinitions();
+        $lastDefinition = $definitions[$resourceName];
+
+        $lastArray = 0;
+        $newArrayItemParents = [];
+        foreach($elementParents as $currentName){
+            $newArrayItemParents[] = $currentName;
+            $current = $lastDefinition['properties'][$currentName];
+            if($current['type'] === 'array'){
+                $lastArray = count($newArrayItemParents);
+            }
+
+            $subResourceName = SchemaParser::getResourceNameFromRef($current);
+            $lastDefinition = $definitions[$subResourceName];
+        }
+        
+        return array_slice($newArrayItemParents, 0, $lastArray);
+    }
+
     private function processElementMapping($fieldName, $value, $mappingString, $addNewArrayItem){
         $parts = explode('/', $mappingString);
         $resourceName = array_shift($parts);
         $elementPath = implode('/', $parts);
         $elementName = array_pop($parts);
         $elementParents = $parts;
+
+        if($addNewArrayItem){
+            $newArrayItemParents = $this->getNewArrayItemParents($resourceName, $elementParents);
+        }
+        else{
+            $newArrayItemParents = null;
+        }
 
         $definitions = SchemaParser::getDefinitions();
 
@@ -126,8 +153,10 @@ class FieldMapper{
         ];
         $parentDefinition = $definitions[$resourceName];
 
+        $parentsSoFar = [];
         foreach($elementParents as $parentName){
             $subPath = &$subPath[$parentName];
+            $parentsSoFar[] = $parentName;
             $parentProperty = $parentDefinition['properties'][$parentName];
             $subResourceName = SchemaParser::getResourceNameFromRef($parentProperty);
             $parentDefinition = $definitions[$subResourceName];
@@ -137,10 +166,10 @@ class FieldMapper{
                     $subPathIndex = 0;
                 }
                 else{
-                    $subPathIndex = count($subPath);
+                    $subPathIndex = count($subPath)-1;
 
-                    if(!$addNewArrayItem){
-                        $subPathIndex--;
+                    if($parentsSoFar === $newArrayItemParents){
+                        $subPathIndex++;
                     }
                 }
 
