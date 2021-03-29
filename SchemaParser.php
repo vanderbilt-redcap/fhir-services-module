@@ -114,6 +114,12 @@ class SchemaParser{
     }
 
     private static function addCodeableConceptValues($pathParts, &$property){
+        if($pathParts === ['Observation', 'code']){
+            // The LOINC code list is way too long.  Just have users manually enter LOINC codes.
+            $property['description'] = "The LOINC code for this Observation.  Visit <a target='_blank' href='https://search.loinc.org/' style='color: #000066'>search.loinc.org</a> to search for valid LOINC codes.";
+            return;
+        }
+
         $dataElement = self::getDataElements()[implode('.', $pathParts)];
         $valueSetUrl = $dataElement->snapshot->element[0]->binding->valueSet;
 

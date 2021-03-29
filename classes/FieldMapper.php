@@ -222,21 +222,28 @@ class FieldMapper{
         $modifiedElementProperty = SchemaParser::getModifiedProperty($resourceName, $elementPath);
 
         $choices = $modifiedElementProperty['redcapChoices'];
-        $ref = SchemaParser::getResourceNameFromRef($modifiedElementProperty);
         if($choices !== null){
             $value = $this->getMatchingChoiceValue($this->getProjectId(), $fieldName, $value, $choices);
-            
-            $elementResourceName = SchemaParser::getResourceNameFromRef($elementProperty);
-            if($elementResourceName === 'CodeableConcept'){
-                $value = [
-                    'coding' => [
-                        [
-                            'system' => $modifiedElementProperty['systemsByCode'][$value],
-                            'code' => $value
-                        ]
-                    ]
-                ];
+        }
+        
+        $ref = SchemaParser::getResourceNameFromRef($modifiedElementProperty);
+        $elementResourceName = SchemaParser::getResourceNameFromRef($elementProperty);
+        if($elementResourceName === 'CodeableConcept'){
+            if($resourceName === 'Observation'){
+                $system = 'http://loinc.org';
             }
+            else{
+                $system = $modifiedElementProperty['systemsByCode'][$value];
+            }
+
+            $value = [
+                'coding' => [
+                    [
+                        'system' => $system,
+                        'code' => $value
+                    ]
+                ]
+            ];
         }
         else if($modifiedElementProperty['type'] === 'boolean'){
             if($value === 'true' || $value === '1'){
