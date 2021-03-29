@@ -55,6 +55,10 @@ const SINGLE_QUOTE_PLACEHOLDER = '<single-quote-placeholder>';
 const INTEGER_PATTERN = "^-?([0]|([1-9][0-9]*))$";
 const DATE_TIME_PATTERN = "^([0-9]([0-9]([0-9][1-9]|[1-9]0)|[1-9]00)|[1-9]000)(-(0[1-9]|1[0-2])(-(0[1-9]|[1-2][0-9]|3[0-1])(T([01][0-9]|2[0-3]):[0-5][0-9]:([0-5][0-9]|60)(\\.[0-9]+)?(Z|(\\+|-)((0[0-9]|1[0-3]):[0-5][0-9]|14:00)))?)?)?$";
 
+const REPEATABLE_RESOURCES = [
+    'Observation' => true
+];
+
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
     function redcap_every_page_top(){
         if($this->isPage('DataEntry/record_home.php')){
@@ -2179,13 +2183,21 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         ]);
 
         foreach($resources as $resource){
-            $bundle['entry'][] = [
-                'fullUrl' => $this->getResourceUrl($resource),
-                'resource' => $resource
-            ];
+            $entry = [];
+            if(!$this->isRepeatableResource($resource['resourceType'])){
+                $entry['fullUrl'] = $this->getResourceUrl($resource);
+            }
+
+            $entry['resource'] = $resource;
+
+            $bundle['entry'][] = $entry;
         }
 
         return $bundle;
+    }
+
+    function isRepeatableResource($type){
+        return isset(REPEATABLE_RESOURCES[$type]);
     }
 
     function formatConsentCategories($values){

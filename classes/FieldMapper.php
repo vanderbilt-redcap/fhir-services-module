@@ -31,8 +31,6 @@ class FieldMapper{
                 }
             }
         }
-
-        return $this->resources;
     }
 
     private function getMappingFieldNames($mappings){
@@ -66,7 +64,15 @@ class FieldMapper{
     }
 
     public function getResources(){
-        return $this->resources;
+        $resources = [];
+
+        foreach($this->resources as $type=>$children){
+            foreach($children as $child){
+                $resources[] = $child;
+            }
+        }
+
+        return $resources;
     }
 
     private function getMappings($projectId){
@@ -122,6 +128,21 @@ class FieldMapper{
         return array_slice($newArrayItemParents, 0, $lastArray);
     }
 
+    private function &getArrayChild(&$array, $addNewIfExists){
+        if(empty($array)){
+            $subPathIndex = 0;
+        }
+        else{
+            $subPathIndex = count($array)-1;
+
+            if($addNewIfExists){
+                $subPathIndex++;
+            }
+        }
+
+        return $array[$subPathIndex];
+    }
+
     private function processElementMapping($fieldName, $value, $mappingString, $addNewArrayItem){
         $parts = explode('/', $mappingString);
         $resourceName = array_shift($parts);
@@ -138,15 +159,14 @@ class FieldMapper{
 
         $definitions = SchemaParser::getDefinitions();
 
-        if(!isset($this->resources[$resourceName])){
-            $this->resources[$resourceName] = [
+        $resource = &$this->getArrayChild($this->resources[$resourceName], $addNewArrayItem && $this->getModule()->isRepeatableResource($resourceName));
+        if(!isset($resource['id'])){
+            $resource = [
                 'resourceType' => $resourceName,
                 'id' => $this->getModule()->getRecordFHIRId($this->getProjectId(), $this->getRecordId())
             ];
         }
 
-        $resource = &$this->resources[$resourceName];
-        
         $subPath = &$resource;
         $parentProperty = [
             'type' => null
@@ -162,18 +182,8 @@ class FieldMapper{
             $parentDefinition = $definitions[$subResourceName];
 
             if($parentProperty['type'] === 'array'){
-                if(empty($subPath)){
-                    $subPathIndex = 0;
-                }
-                else{
-                    $subPathIndex = count($subPath)-1;
-
-                    if($parentsSoFar === $newArrayItemParents){
-                        $subPathIndex++;
-                    }
-                }
-
-                $subPath =& $subPath[$subPathIndex];
+                $addNewIfExists = $parentsSoFar === $newArrayItemParents;
+                $subPath = &$this->getArrayChild($subPath, $addNewIfExists);
             }
         }
 

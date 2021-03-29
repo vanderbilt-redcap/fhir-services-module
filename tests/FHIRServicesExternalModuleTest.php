@@ -263,12 +263,14 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             'id' => $this->getRecordFHIRId($pid, $recordId)
         ], $expectedJSON);
 
-        $expected['entry'] = [
-            [
-                'fullUrl' => $this->getResourceUrl($expectedJSON),
-                'resource' => $expectedJSON
-            ]
-        ];
+        $entry = [];
+        if(!$this->module->isRepeatableResource($resource)){
+            $entry['fullUrl'] = $this->getResourceUrl($expectedJSON);
+        }
+
+        $entry['resource'] = $expectedJSON;
+
+        $expected['entry'] = [$entry];
         
         $actual = $this->getMappedFieldsAsBundle($pid, $recordId);
         
@@ -912,40 +914,90 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         );
     }
 
-    // function testObservationMapping_multiple(){
-    //     $this->setFHIRMapping(TEST_REPEATING_FIELD_1, [
-    //         'type' => 'Observation',
-    //         'primaryElementPath' => 'valueString',
-    //         'additionalElements' => [
-    //             [
-    //                 'element' => 'code/text',
-    //                 'field' => TEST_REPEATING_FIELD_2
-    //             ]
-    //         ]
-    //     ]);
+    function testObservationMapping_bundle(){
+        $this->setFHIRMapping(TEST_TEXT_FIELD, 'Patient/name/family');
+        $this->setFHIRMapping(TEST_REPEATING_FIELD_1, [
+            'type' => 'Observation',
+            'primaryElementPath' => 'valueString',
+            'additionalElements' => [
+                [
+                    'element' => 'code/text',
+                    'field' => TEST_REPEATING_FIELD_2
+                ],
+                [
+                    'element' => 'status',
+                    'value' => 'final'
+                ]
+            ]
+        ]);
 
-    //     $pid = $this->getTestPID();
-    //     $recordId = 1;
+        $pid = $this->getTestPID();
+        $lastName = 'Smith';
 
-    //     \REDCap::saveData($pid, 'json', json_encode([
-    //         [
-    //             TEST_RECORD_ID => $recordId,
-    //             'redcap_repeat_instrument' => TEST_REPEATING_FORM,
-    //             'redcap_repeat_instance' => 1,
-    //             TEST_REPEATING_FIELD_1 => 'a',
-    //             TEST_REPEATING_FIELD_2 => 'b',
-    //         ],
-    //         [
-    //             TEST_RECORD_ID => $recordId,
-    //             'redcap_repeat_instrument' => TEST_REPEATING_FORM,
-    //             'redcap_repeat_instance' => 2,
-    //             TEST_REPEATING_FIELD_1 => 'c',
-    //             TEST_REPEATING_FIELD_2 => 'd',
-    //         ],
-    //     ]), 'overwrite');
+        \REDCap::saveData($pid, 'json', json_encode([
+            [
+                TEST_RECORD_ID => TEST_RECORD_ID,
+                TEST_TEXT_FIELD => $lastName,
+            ],
+            [
+                TEST_RECORD_ID => TEST_RECORD_ID,
+                'redcap_repeat_instrument' => TEST_REPEATING_FORM,
+                'redcap_repeat_instance' => 1,
+                TEST_REPEATING_FIELD_1 => 'a',
+                TEST_REPEATING_FIELD_2 => 'b',
+            ],
+            [
+                TEST_RECORD_ID => TEST_RECORD_ID,
+                'redcap_repeat_instrument' => TEST_REPEATING_FORM,
+                'redcap_repeat_instance' => 2,
+                TEST_REPEATING_FIELD_1 => 'c',
+                TEST_REPEATING_FIELD_2 => 'd',
+            ],
+        ]), 'overwrite');
 
-    //     $actual = $this->getMappedFieldsAsBundle($pid, $recordId);
-    //     var_dump($actual);
-    //     die();
-    // }
+        $expectedPatient = [
+            'resourceType' => 'Patient',
+            'id' => '133-test_record_id',
+            'name' => [
+                [
+                    'family' => 'Smith',
+                ],
+            ],
+        ];
+
+        $expected = [
+            'resourceType' => 'Bundle',
+            'type' => 'collection',
+            'entry' => [
+                [
+                    'fullUrl' => $this->getResourceUrl($expectedPatient),
+                    'resource' => $expectedPatient,
+                ],
+                [
+                    'resource' => [
+                        'resourceType' => 'Observation',
+                        'id' => '133-test_record_id',
+                        'valueString' => 'a',
+                        'code' => [
+                            'text' => 'b',
+                        ],
+                        'status' => 'final',
+                    ],
+                ],
+                [
+                    'resource' => [
+                        'resourceType' => 'Observation',
+                        'id' => '133-test_record_id',
+                        'valueString' => 'c',
+                        'code' => [
+                            'text' => 'd',
+                        ],
+                        'status' => 'final',
+                    ],
+                ],
+            ], 
+        ];
+
+        $this->assertSame($expected,  $this->getMappedFieldsAsBundle($pid, TEST_RECORD_ID));
+    }
 }
