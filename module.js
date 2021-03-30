@@ -7,16 +7,7 @@ $(function(){
         init: function(){
             var elementTypeahead = module.initTypeahead({
                 change: () => {
-                    let mapping
-                    if(elementTypeahead.val() === ''){
-                        mapping = {}
-                    }
-                    else{
-                        // Prevent the current additional elements from being changed.
-                        mapping = undefined
-                    }
-
-                    module.updateAdditionalElementVisibility(mapping)
+                    module.updateAdditionalElementVisibility()
                 }
             })
             
@@ -77,7 +68,8 @@ $(function(){
                 }
                 
                 module.updateRecommendedChoicesVisibility()
-                module.updateAdditionalElementVisibility(mapping)
+                module.setAdditionalElementsFromMapping(mapping)
+                module.updateAdditionalElementVisibility()
 
                 if(resourceTypeahead.val() !== ''){
                     module.showElementTypeahead()
@@ -335,7 +327,7 @@ $(function(){
                         module.hideElementTypeahead()
                     }
 
-                    module.updateAdditionalElementVisibility({})
+                    module.updateAdditionalElementVisibility()
                 }
             })
         },
@@ -427,31 +419,36 @@ $(function(){
                 elementTypeAhead.focus()
             }
         },
-        updateAdditionalElementVisibility: (mapping) => {
-            if(mapping !== undefined){
-                module.removeAdditionalElements()
+        setAdditionalElementsFromMapping: (mapping) => {
+            module.removeAdditionalElements()
     
-                const additionalElements = mapping.additionalElements || []
-                
-                additionalElements.forEach((details) => {
-                    let value = details.field
-                    if(value){
-                        type = module.FIELD
-                    }
-                    else{
-                        type = module.VALUE
-                        value = details.value
-                    }
-    
-                    module.addAdditionalElement(type, details.element, value)
-                })
-            }
+            const additionalElements = mapping.additionalElements || []
+        
+            additionalElements.forEach((details) => {
+                let value = details.field
+                if(value){
+                    type = module.FIELD
+                }
+                else{
+                    type = module.VALUE
+                    value = details.value
+                }
 
+                module.addAdditionalElement(type, details.element, value)
+            })
+        },
+        updateAdditionalElementVisibility: () => {
             if(
                 module.isObservation() && module.ELEMENT_TYPEAHEAD.val() !== ''
                 ||
                 module.isPatient() && module.ELEMENT_TYPEAHEAD.val() === 'telecom/value'
             ){
+                if(module.isObservation() && module.getAdditionalElementMappings().length === 0){
+                    // Add default elements
+                    module.addAdditionalElement(module.VALUE, 'status', 'final')
+                    module.addAdditionalElement(module.VALUE, 'code', '')
+                }
+
                 module.ADDITIONAL_ELEMENT_CONTAINER.show()
             }
             else{
