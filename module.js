@@ -367,7 +367,7 @@ $(function(){
                     module.setValueDropdownOptions(fieldOrValueInput, fieldOrValue, elementTypeAhead)
                 })
             }
-            
+
             fieldOrValueInput.val(fieldOrValue)
 
             elementTypeAhead.change(()=>{
@@ -429,7 +429,7 @@ $(function(){
         },
         updateAdditionalElementVisibility: (mapping) => {
             if(mapping !== undefined){
-                module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements').children().remove()
+                module.removeAdditionalElements()
     
                 const additionalElements = mapping.additionalElements || []
                 
@@ -455,8 +455,12 @@ $(function(){
                 module.ADDITIONAL_ELEMENT_CONTAINER.show()
             }
             else{
+                module.removeAdditionalElements() // remove them so they aren't included in the action tag
                 module.ADDITIONAL_ELEMENT_CONTAINER.hide()
             }
+        },
+        removeAdditionalElements: () => {
+            module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-elements').children().remove()
         },
         updateActionTag: () => {
             module.updateRecommendedChoicesVisibility()
