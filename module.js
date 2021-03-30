@@ -300,7 +300,6 @@ $(function(){
                 },
                 select: function(e, result){
                     typeahead.val(result.item.label)
-                    typeahead.data('selected-value', result.item.value)
                     typeahead.change()
 
                     // Avoid the default action of putting the value of the selected option in the <input>.
@@ -523,11 +522,26 @@ $(function(){
 
                 additionalElements.push({
                     element: elementPath,
-                    [type]: fieldOrValueElement.data('selected-value') // save the value instead of the label
+                    [type]: module.getValueForLabel(fieldOrValueElement, fieldOrValue)
                 })
             })
 
             return additionalElements
+        },
+        getValueForLabel: (fieldOrValueElement, fieldOrValue) => {
+            const options = fieldOrValueElement.autocomplete('option', 'source')
+            if(options.length === 0){
+                return fieldOrValue
+            }
+
+            for(let i in options){
+                let option = options[i]
+                if(option.label === fieldOrValue){
+                    return option.value
+                }
+            }
+
+            alert("Field/Value not found for dropdown:", fieldOrValue)
         },
         updateRecommendedChoicesVisibility: () => {
             if($.isEmptyObject(module.getREDCapChoices())){
