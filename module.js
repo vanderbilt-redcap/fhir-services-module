@@ -299,8 +299,12 @@ $(function(){
                     'ui-autocomplete': 'fhir-services-module'
                 },
                 select: function(e, result){
-                    typeahead.val(result.item.value)
+                    typeahead.val(result.item.label)
+                    typeahead.data('selected-value', result.item.value)
                     typeahead.change()
+
+                    // Avoid the default action of putting the value of the selected option in the <input>.
+                    return false
                 }
             })
             .autocomplete( "instance" )._renderItem = function( ul, item ){
@@ -360,18 +364,11 @@ $(function(){
             }
             else{
                 elementTypeAhead.change(()=>{
-                    const options = []
-                    for(const [value, label] of Object.entries(module.getREDCapChoices(elementTypeAhead.val()))){
-                        options.push({
-                            value: label,
-                            label: label,
-                        })
-                    }
-
-                    fieldOrValueInput.autocomplete('option', 'source', options)
+                    module.setValueDropdownOptions(fieldOrValueInput, fieldOrValue, elementTypeAhead)
                 })
             }
 
+            fieldOrValue = module.setValueDropdownOptions(fieldOrValueInput, fieldOrValue, elementTypeAhead)
             fieldOrValueInput.val(fieldOrValue)
 
             elementTypeAhead.change(()=>{
@@ -380,6 +377,25 @@ $(function(){
             })
 
             return fieldOrValueInput
+        },
+        setValueDropdownOptions: (fieldOrValueInput, selectedValue, elementTypeAhead) => {
+            const options = []
+            let returnValue
+            for(const [value, label] of Object.entries(module.getREDCapChoices(elementTypeAhead.val()))){
+                options.push({
+                    value: value,
+                    label: label,
+                })
+
+                if(value === selectedValue){
+                    // Show the label instead of the value
+                    returnValue = label
+                }
+            }
+
+            fieldOrValueInput.autocomplete('option', 'source', options)
+
+            return returnValue
         },
         addAdditionalElement: (type, elementPath, fieldOrValue) => {
             let elementTypeAhead = module.initTypeahead({})
@@ -507,7 +523,7 @@ $(function(){
 
                 additionalElements.push({
                     element: elementPath,
-                    [type]: fieldOrValue
+                    [type]: fieldOrValueElement.data('selected-value') // save the value instead of the label
                 })
             })
 
