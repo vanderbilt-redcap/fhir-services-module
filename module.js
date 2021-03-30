@@ -362,12 +362,12 @@ $(function(){
                 fieldOrValueInput.autocomplete('option', 'source', options)
             }
             else{
+                fieldOrValue = module.setValueDropdownOptions(fieldOrValueInput, fieldOrValue, elementTypeAhead)
                 elementTypeAhead.change(()=>{
                     module.setValueDropdownOptions(fieldOrValueInput, fieldOrValue, elementTypeAhead)
                 })
             }
-
-            fieldOrValue = module.setValueDropdownOptions(fieldOrValueInput, fieldOrValue, elementTypeAhead)
+            
             fieldOrValueInput.val(fieldOrValue)
 
             elementTypeAhead.change(()=>{
