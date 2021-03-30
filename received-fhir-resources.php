@@ -39,7 +39,7 @@ while($row = $result->fetch_assoc()){
     $rows[$row['log_id']] = $row;
 }
 
-$baseUrl = $module->getUrl('services.php', true) . '&fhir-url=/';
+$baseUrl = $module->getUrl('service.php', true) . '&fhir-url=/';
 
 ?>
 
@@ -57,8 +57,8 @@ $baseUrl = $module->getUrl('services.php', true) . '&fhir-url=/';
     }
 </style>
 
-<p>The <?=$module->getModuleName()?> module allows REDCap to receive resources like any FHIR server, after which they will appear in the list below.  Resources may be posted using the following URL format:</p>
-<pre><?=$baseUrl?>{your-resource-type}</pre>
+<p>The <?=$module->getModuleName()?> module allows REDCap to receive resources like any FHIR server, after which they will appear in the list below.  Resources may be posted to the following FHIR base URL:</p>
+<pre><?=$baseUrl?></pre>
 <p>For example to POST a "Bundle" resource, use the following URL:</p>
 <pre>
 <?=$baseUrl?>Bundle

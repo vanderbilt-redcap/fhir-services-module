@@ -2226,6 +2226,38 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $categories;
     }
 
+    function getEConsentFHIRBundleForInstance($pid, $record, $form, $event, $instance){
+        $formSettings = $this->getEConsentFormSettings($form);
+        $eConsentData = $this->getEConsentData($form, $record, $instance);
+        $responses = $this->getSurveyResponses([
+            'pid' => $pid,
+            'event' => $event,
+            'form' => $form,
+            'record' => $record,
+            'instance' => $instance
+        ]);
+
+        $surveyResponseDetails = $responses->fetch_assoc();
+
+        global $pdf_custom_header_text;
+        $data = REDCap::getPDF($record, $form, $event, false, $instance, true, $pdf_custom_header_text);
+
+        return $this->getEConsentFHIRBundle([
+            'consentId' => $this->getInstanceFHIRId($pid, $record, $event, $form, $instance),
+            'scope' => $formSettings['econsent-scope'],
+            'categories' => $formSettings['econsent-categories'],
+            'dateTime' => $surveyResponseDetails['completion_time'],
+            'data' => $data,
+            'type' => $eConsentData['type'],
+            'version' => $eConsentData['version'],
+            'firstName' => $eConsentData['firstname'],
+            'lastName' => $eConsentData['lastname'],
+            'authority' => $this->getProjectHomeUrl($pid),
+            'patientId' => $this->getRecordFHIRId($pid, $record),
+            'birthDate' => $eConsentData['dob'],
+        ]);
+    }
+
     function getEConsentFHIRBundle($args){
         $type = $args['type'];
         $version = $args['version'];
@@ -2494,4 +2526,64 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
 		return $query->execute();
 	}
+
+    function redcap_survey_acknowledgement_page($project_id, $record, $instrument, $event_id, $group_id, $survey_hash, $response_id, $repeat_instance){
+        if($this->getProjectSetting('send-consents')){
+            $bundle = $this->getEConsentFHIRBundleForInstance($project_id, $record, $instrument, $event_id, $repeat_instance);
+            $this->sendToRemoteFHIRServer($bundle);
+        }
+    }
+
+    function sendToRemoteFHIRServer($resource){
+        if(is_array($resource)){
+            $resourceType = $resource['resourceType'];
+            $json = json_encode($resource, JSON_PRETTY_PRINT);
+        }
+        else{
+            $resourceType = $resource->_getFHIRTypeName();
+            $json = $this->jsonSerialize($resource);
+        }
+
+        $url = rtrim($this->getRemoteFHIRServerUrl(), '/');
+        $response = file_get_contents("$url/$resourceType", false, stream_context_create([
+            'http' => [
+                'method' => 'POST',
+                'header' => "Content-Type: application/fhir+json\r\n",
+                'content' => $json,
+                'ignore_errors' => true
+            ]
+        ]));
+
+        $handleError = function($errorToWrap=null) use ($resourceType, $response){
+            $message = "A $resourceType response was expected, but ";
+            
+            if(empty($response)){
+                $message .= "an empty response was received.";
+            }
+            else{
+                $message .= "the following was received instead: $response";
+            }
+
+            if($errorToWrap){
+                $message .= "\n\nThe following Exception occurred while processing this response: " . $errorToWrap->__toString();
+            }
+
+            throw new \Exception($message);
+        };
+
+        try{
+            $responseResource = $this->parse($response);
+            $responseResourceType = $responseResource->_getFHIRTypeName();
+        }
+        catch(\Throwable $t){
+            $handleError($t);
+        }
+
+        if($responseResourceType === $resourceType){
+            return $responseResource;
+        }
+        else{
+            $handleError();
+        }
+    }
 }

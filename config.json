@@ -13,7 +13,8 @@
     "permissions": [
         "redcap_every_page_top",
         "redcap_module_link_check_display",
-        "redcap_data_entry_form"
+        "redcap_data_entry_form",
+        "redcap_survey_acknowledgement_page"
     ],
     "links": {
 		"project": [
@@ -54,6 +55,11 @@
             "key": "remote-fhir-server-url",
             "name": "Remote FHIR Server URL",
             "type": "text"
+        },
+        {
+            "key": "send-consents",
+            "name": "Automatically send completed eConsents for the forms below to the Remote FHIR Server URL above",
+            "type": "checkbox"
         },
         {
             "key": "econsent-form-settings",
