@@ -955,9 +955,12 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             ],
         ]), 'overwrite');
 
+        // The Observation examples on hl7.org have the id of the associated Patient.
+        $patientAndObservationId = $this->getRecordFHIRId($pid, TEST_RECORD_ID);
+
         $expectedPatient = [
             'resourceType' => 'Patient',
-            'id' => '133-test_record_id',
+            'id' => $patientAndObservationId,
             'name' => [
                 [
                     'family' => 'Smith',
@@ -976,7 +979,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 [
                     'resource' => [
                         'resourceType' => 'Observation',
-                        'id' => '133-test_record_id',
+                        'id' => $patientAndObservationId,
                         'valueString' => 'a',
                         'code' => [
                             'text' => 'b',
@@ -987,7 +990,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 [
                     'resource' => [
                         'resourceType' => 'Observation',
-                        'id' => '133-test_record_id',
+                        'id' => $patientAndObservationId,
                         'valueString' => 'c',
                         'code' => [
                             'text' => 'd',
@@ -999,5 +1002,6 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         ];
 
         $this->assertSame($expected,  $this->getMappedFieldsAsBundle($pid, TEST_RECORD_ID));
+        $this->validate($expected);
     }
 }
