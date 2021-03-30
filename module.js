@@ -380,7 +380,7 @@ $(function(){
         },
         setValueDropdownOptions: (fieldOrValueInput, selectedValue, elementTypeAhead) => {
             const options = []
-            let returnValue
+            let returnValue = selectedValue // return the raw value if no options exist
             for(const [value, label] of Object.entries(module.getREDCapChoices(elementTypeAhead.val()))){
                 options.push({
                     value: value,
