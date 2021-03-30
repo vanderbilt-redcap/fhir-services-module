@@ -22,6 +22,12 @@
                 "url": "questionnaire-options.php",
                 "icon": "fas fa-clipboard-check",
                 "show-header-and-footer": true
+			},
+            {
+				"name": "Received FHIR Resources",
+                "url": "received-fhir-resources.php",
+                "icon": "fas fa-list-alt",
+                "show-header-and-footer": true
 			}
 		]
 	},

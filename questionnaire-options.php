@@ -41,5 +41,3 @@ $getSectionButton = function($section, $label) use ($module){
         })
     })
 </script>
-
-<?=$getSectionButton('received', 'View Received Resources')?>

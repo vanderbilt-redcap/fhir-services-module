@@ -1704,8 +1704,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     function getReceivedResources($whereClause = ''){
         return $this->queryLogs("
             select log_id, timestamp, type, content
-            where project_id is null
-            and message = ?
+            where message = ?
             $whereClause
             order by log_id desc
         ", RESOURCE_RECEIVED);

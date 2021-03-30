@@ -1,7 +1,5 @@
 <?php namespace Vanderbilt\FHIRServicesExternalModule;
 
-use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIRQuestionnaire;
-
 
 $result = $module->getReceivedResources();
 $rows = [];
@@ -42,7 +40,6 @@ while($row = $result->fetch_assoc()){
 }
 
 $baseUrl = $module->getUrl('services.php', true) . '&fhir-url=/';
-$baseUrl = str_replace('&pid=' . $module->getProjectId(), '', $baseUrl);
 
 ?>
 
@@ -59,14 +56,12 @@ $baseUrl = str_replace('&pid=' . $module->getProjectId(), '', $baseUrl);
         margin-bottom: 3px;
     }
 </style>
-
-<p>The <?=$module->getModuleName()?> module allows REDCap to receive resources like any FHIR server, after which they will appear in the list below.  Posted resources are currently shared between ALL REDCap projects (though this may change in the future).  Resources may be posted using the following URL format:</p>
-<pre><?=$baseUrl?>{your-resource-name}</pre>
-<p>Here are examples of a few actual URLs for posting specific resource types:</p>
+<h2>Received FHIR Resources</h2>
+<p>The <?=$module->getModuleName()?> module allows REDCap to receive resources like any FHIR server, after which they will appear in the list below.  Resources may be posted using the following URL format:</p>
+<pre><?=$baseUrl?>{your-resource-type}</pre>
+<p>For example to POST a "Bundle" resource, use the following URL:</p>
 <pre>
-<?=$baseUrl?>Questionnaire
-<?=$baseUrl?>QuestiionnaireResponse
-<?=$baseUrl?>Binary
+<?=$baseUrl?>Bundle
 </pre>
 <br>
 
@@ -80,31 +75,40 @@ $baseUrl = str_replace('&pid=' . $module->getProjectId(), '', $baseUrl);
         <th style='min-width: 300px'></th>
     </tr>
     <?php
-    foreach($rows as $logId=>$row){
-        $type = $row['type'];
+    if(empty($rows)){
         ?>
-        <tr data-log-id="<?=$logId?>">
-            <td><?=$logId?></td>
-            <td><?=$row['timestamp']?></td>
-            <td><?=$type?></td>
-            <td><?=$row['subType']?></td>
-            <td>
-                <button class='download'>Download</button>
-                <?php
-                if($type === 'Questionnaire') {
-                    ?><button class='replace-data-dictionary'>Replace Data Dictionary</button><?php
-                }
-                else if($type === 'QuestionnaireResponse') {
-                    ?><button class='import-record'>Import as Record</button><?php
-                }
-                else if($type === 'Binary') {
-                    ?><button class='binary-download'>Download Binary File</button><?php
-                }
-                ?>
-            </td>
+        <tr>
+            <td colspan='5'>No resources have been received.</td>
         </tr>
         <?php
-    }   
+    }
+    else{
+        foreach($rows as $logId=>$row){
+            $type = $row['type'];
+            ?>
+            <tr data-log-id="<?=$logId?>">
+                <td><?=$logId?></td>
+                <td><?=$row['timestamp']?></td>
+                <td><?=$type?></td>
+                <td><?=$row['subType']?></td>
+                <td>
+                    <button class='download'>Download</button>
+                    <?php
+                    if($type === 'Questionnaire') {
+                        ?><button class='replace-data-dictionary'>Replace Data Dictionary</button><?php
+                    }
+                    else if($type === 'QuestionnaireResponse') {
+                        ?><button class='import-record'>Import as Record</button><?php
+                    }
+                    else if($type === 'Binary') {
+                        ?><button class='binary-download'>Download Binary File</button><?php
+                    }
+                    ?>
+                </td>
+            </tr>
+            <?php
+        }
+    }
     ?>
 </table>
 
