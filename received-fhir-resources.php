@@ -56,7 +56,7 @@ $baseUrl = $module->getUrl('services.php', true) . '&fhir-url=/';
         margin-bottom: 3px;
     }
 </style>
-<h2>Received FHIR Resources</h2>
+
 <p>The <?=$module->getModuleName()?> module allows REDCap to receive resources like any FHIR server, after which they will appear in the list below.  Resources may be posted using the following URL format:</p>
 <pre><?=$baseUrl?>{your-resource-type}</pre>
 <p>For example to POST a "Bundle" resource, use the following URL:</p>
