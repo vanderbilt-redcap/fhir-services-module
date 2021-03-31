@@ -240,7 +240,7 @@ class FieldMapper{
                 'coding' => [
                     [
                         'system' => $system,
-                        'code' => $value
+                        'code' => (string) $value // Must be a string for validation to pass
                     ]
                 ]
             ];

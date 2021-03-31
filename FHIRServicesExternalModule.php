@@ -56,7 +56,8 @@ const INTEGER_PATTERN = "^-?([0]|([1-9][0-9]*))$";
 const DATE_TIME_PATTERN = "^([0-9]([0-9]([0-9][1-9]|[1-9]0)|[1-9]00)|[1-9]000)(-(0[1-9]|1[0-2])(-(0[1-9]|[1-2][0-9]|3[0-1])(T([01][0-9]|2[0-3]):[0-5][0-9]:([0-5][0-9]|60)(\\.[0-9]+)?(Z|(\\+|-)((0[0-9]|1[0-3]):[0-5][0-9]|14:00)))?)?)?$";
 
 const REPEATABLE_RESOURCES = [
-    'Observation' => true
+    'Observation' => true,
+    'Immunization' => true
 ];
 
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
@@ -2187,9 +2188,22 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             'type' => $type,
         ]);
 
+        $patient = null;
         foreach($resources as $resource){
+            if($resource['resourceType'] === 'Patient'){
+                $patient = $resource;
+            }
+        }
+
+        foreach($resources as $resource){
+            $type = $resource['resourceType'];
+
+            if($type === 'Immunization' && $patient !== null){
+                $resource['patient']['reference'] = 'Patient/' . $patient['id'];
+            }
+
             $entry = [];
-            if(!$this->isRepeatableResource($resource['resourceType'])){
+            if(!$this->isRepeatableResource($type)){
                 $entry['fullUrl'] = $this->getResourceUrl($resource);
             }
 

@@ -963,7 +963,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             'id' => $patientAndObservationId,
             'name' => [
                 [
-                    'family' => 'Smith',
+                    'family' => $lastName,
                 ],
             ],
         ];
@@ -1003,5 +1003,65 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
         $this->assertSame($expected,  $this->getMappedFieldsAsBundle($pid, TEST_RECORD_ID));
         $this->validate($expected);
+    }
+
+    function testImmunizationMapping_bundle(){
+        $this->setFHIRMapping($this->getFieldName(), 'Patient/name/family');
+        $this->setFHIRMapping($this->getFieldName2(), 'Immunization/vaccineCode');
+
+        $pid = $this->getTestPID();
+        $lastName = 'Smith';
+        $code = 16;
+
+        \REDCap::saveData($pid, 'json', json_encode([
+            [
+                TEST_RECORD_ID => TEST_RECORD_ID,
+                $this->getFieldName() => $lastName,
+                $this->getFieldName2() => $code,
+            ]
+        ]), 'overwrite');
+
+        $patientId = $this->getRecordFHIRId($pid, TEST_RECORD_ID);
+
+        $expectedPatient = [
+            'resourceType' => 'Patient',
+            'id' => $patientId,
+            'name' => [
+                [
+                    'family' => $lastName,
+                ],
+            ],
+        ];
+
+        $expected = [
+            'resourceType' => 'Bundle',
+            'type' => 'collection',
+            'entry' => [
+                [
+                    'fullUrl' => $this->getResourceUrl($expectedPatient),
+                    'resource' => $expectedPatient,
+                ],
+                [
+                    'resource' => [
+                        'resourceType' => 'Immunization',
+                        'id' => $patientId, // This probably isn't kosher, but we'll make the id match the Patient like Observations for now.
+                        'vaccineCode' => [
+                            'coding' => [
+                                [
+                                    'system' => 'http://hl7.org/fhir/sid/cvx',
+                                    'code' => (string) $code // make sure this is a string!
+                                ]
+                            ]
+                        ],
+                        'patient' => [
+                            'reference' => "Patient/$patientId"
+                        ]
+                    ],
+                ],
+            ], 
+        ];
+
+        $this->assertSame($expected,  $this->getMappedFieldsAsBundle($pid, TEST_RECORD_ID));
+        // $this->validate($expected);
     }
 }
