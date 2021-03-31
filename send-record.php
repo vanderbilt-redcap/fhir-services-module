@@ -10,11 +10,18 @@ else if($module->getProjectType() === 'questionnaire'){
     $resource = $module->getFHIRResourceForRecord($projectId, $_GET['id']);
 }
 else{
-    // This feature likely won't live here long term, but this is a good place for testing.
-    try{
+    $resource = $module->getMappedFieldsAsBundle($projectId, $recordId);
+}
 
-        $bundle = $module->getMappedFieldsAsBundle($projectId, $recordId);
-        $module->validateInBrowserAndDisplay($bundle);
+$resource = $module->toArray($resource);
+
+// Remove the ID since it is not allowed because it will be different on the remote system.
+// The 'identifier' will still contain the id from this system.
+unset($resource['id']);
+
+if(isset($_GET['test'])){
+    try{
+        $module->validateInBrowserAndDisplay($resource);
     }
     catch(\Throwable $t){
         if($t instanceof StackFreeException){
@@ -29,15 +36,6 @@ else{
 }
 
 header('Content-type: application/json'); 
-
-// Remove the ID since it is not allowed because it will be different on the remote system.
-// The 'identifier' will still contain the id from this system.
-$resource->setId(null);
-
-if(isset($_GET['test'])){
-    echo $module->jsonSerialize($resource);
-    die();
-}
 
 $response = $module->sendToRemoteFHIRServer($resource);
 echo json_encode([

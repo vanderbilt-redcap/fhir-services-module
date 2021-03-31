@@ -327,15 +327,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                         }
                     }
 
-                    addOption('Open FHIR ' + resourceName, 'file', openAction)
+                    addOption('Open & validate FHIR ' + resourceName, 'file', openAction)
                 
-                    var projectType = <?=json_encode($projectType)?>;
-                    if(projectType){
-                        // This is one of the projects used by the SIRB features/demo.
-                        addOption('Send FHIR ' + resourceName + ' to remote FHIR server', 'file-export', function(){
-                            sendRecord(false)
-                        })
-                    }
+                    addOption('Send FHIR ' + resourceName + ' to remote FHIR server', 'file-export', function(){
+                        sendRecord(false)
+                    })
                 })
             })()
         </script>
@@ -655,31 +651,39 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $parser = new PHPFHIRResponseParser();
         return $parser->parse($data);
     }
-    
-    function jsonSerialize($FHIRObject){
-        if(empty($FHIRObject)){
-            throw new Exception('A valid FHIR object must be specified.');
+
+    function toArray($fhirObjectOrArray){
+        if(is_array($fhirObjectOrArray)){
+            return $fhirObjectOrArray;
         }
-
-        $a = $FHIRObject->jsonSerialize();
-        $a = json_decode(json_encode($a), true);
-        
-        $handle = function(&$a) use (&$handle){
-           foreach($a as $key=>&$value){
-                if($key[0] === '_'){
-                    // TODO - Contribute this change back.
-                    unset($a[$key]);
-                    continue;
+        else if(is_object($fhirObjectOrArray)){
+            $a = $fhirObjectOrArray->jsonSerialize();
+            $a = json_decode(json_encode($a), true);
+            
+            $handle = function(&$a) use (&$handle){
+               foreach($a as $key=>&$value){
+                    if($key[0] === '_'){
+                        // TODO - Contribute this change back.
+                        unset($a[$key]);
+                        continue;
+                    }
+    
+                    if(is_array($value)){
+                        $handle($value);
+                    }
                 }
-
-                if(is_array($value)){
-                    $handle($value);
-                }
-            }
-        };
-
-        $handle($a);
-
+            };
+    
+            $handle($a);
+            return $a;
+        }
+        else{
+            throw new Exception('A valid FHIR object or array must be specified.');
+        }
+    }
+    
+    function jsonSerialize($fhirObjectOrArray){
+        $a = $this->toArray($fhirObjectOrArray);
         return json_encode($a, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES);
     }
 
@@ -2325,7 +2329,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
                 var draft06 = <?=file_get_contents(__DIR__ . '/fhir/json-schema-draft-06.json')?>;
                 var schema = <?=SchemaParser::getSchemaJSON()?>;
-                var bundle = <?=json_encode($resource, JSON_PRETTY_PRINT)?>;
+                var bundle = <?=$this->jsonSerialize($resource)?>;
 
                 try{
                     // AJV throws a bunch of warnings if I don't remove these (likely because the FHIR schema is not quite valid).
@@ -2535,21 +2539,14 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function sendToRemoteFHIRServer($resource){
-        if(is_array($resource)){
-            $resourceType = $resource['resourceType'];
-            $json = json_encode($resource, JSON_PRETTY_PRINT);
-        }
-        else{
-            $resourceType = $resource->_getFHIRTypeName();
-            $json = $this->jsonSerialize($resource);
-        }
+        $resourceType = $resource['resourceType'];
 
         $url = rtrim($this->getRemoteFHIRServerUrl(), '/');
         $response = file_get_contents("$url/$resourceType", false, stream_context_create([
             'http' => [
                 'method' => 'POST',
                 'header' => "Content-Type: application/fhir+json\r\n",
-                'content' => $json,
+                'content' => $this->jsonSerialize($resource),
                 'ignore_errors' => true
             ]
         ]));
