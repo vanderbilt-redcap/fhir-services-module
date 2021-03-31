@@ -1064,4 +1064,25 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $this->assertSame($expected,  $this->getMappedFieldsAsBundle($pid, TEST_RECORD_ID));
         // $this->validate($expected);
     }
+
+    function testImmunization_booleans(){
+        $value = true;
+        
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'mapping' => 'Immunization/reaction/reported',
+                    'value' => $value
+                ]
+            ],
+            [
+                'reaction' => [
+                    [
+                        'reported' => $value
+                    ]
+                ],
+            ],
+            'Immunization'
+        );
+    }
 }

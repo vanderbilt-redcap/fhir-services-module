@@ -245,7 +245,7 @@ class FieldMapper{
                 ]
             ];
         }
-        else if($modifiedElementProperty['type'] === 'boolean'){
+        else if(in_array('boolean', [$ref, $modifiedElementProperty['type']])){
             if($value === 'true' || $value === '1'){
                 $value = true;
             }
