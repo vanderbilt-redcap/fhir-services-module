@@ -19,7 +19,13 @@ $resource = $module->toArray($resource);
 // The 'identifier' will still contain the id from this system.
 unset($resource['id']);
 
-if(isset($_GET['test'])){
+$action = @$_GET['action'];
+if($action === 'view'){
+    header('Content-type: application/json'); 
+    echo $module->jsonSerialize($resource);
+    return;
+}
+else if($action == 'validate'){
     try{
         $module->validateInBrowserAndDisplay($resource);
     }

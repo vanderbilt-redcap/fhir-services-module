@@ -262,11 +262,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     }
                 }
 
-                var sendRecord = function(testing){
+                var sendRecord = function(action){
                     var url = <?=json_encode($this->getUrl('send-record.php') . "&id=" . $_GET['id'])?>;
 
-                    if(testing){
-                        url = url + '&test'
+                    if(action){
+                        url = url + '&action=' + action
                         window.open(url)
                         return
                     }
@@ -314,8 +314,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     var resourceName = <?=json_encode($resourceName)?>;
                     var openAction
                     if(resourceName === 'Bundle'){
-                        openAction = function(){
-                            sendRecord(true)
+                        openAction = function(action){
+                            sendRecord(action)
                         }
                     }
                     else{
@@ -327,10 +327,12 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                         }
                     }
 
-                    addOption('Open FHIR ' + resourceName + ' & Validate', 'file', openAction)
+                    addOption('View FHIR ' + resourceName, 'file', () => openAction('view'))
+
+                    addOption('Validate FHIR ' + resourceName, 'file', () => openAction('validate'))
                 
                     addOption('Send FHIR ' + resourceName + ' to remote FHIR server', 'file-export', function(){
-                        sendRecord(false)
+                        sendRecord()
                     })
                 })
             })()

@@ -7,7 +7,7 @@ This module is a work in progress prototyping the following FHIR related feature
   * For Resources that required fields to be associated with each other (like Observations), use the **Additional Elements** settings at the bottom of the **FHIR Mapping** section.
   * Not all Resources or complex data structures can be mapped currently, but this module can always be expanded to support more scenarios as needed.
 * Behaving as a FHIR server and sending/receiving FHIR resources
-  * The FHIR resource for the current record can be viewed or sent by going to the **Record Home Page**, clicking **Choose action for record**, and selecting the **Open FHIR...** or **Send FHIR...** options.
+  * The FHIR resource for the current record can be viewed or sent by going to the **Record Home Page**, clicking **Choose action for record**, and selecting the **View FHIR...**, **Validate FHIR...**, or **Send FHIR...** options.
   * The **Send FHIR...** option will send the current record to the **Remote FHIR Server URL** specified in the module configuration.
   * Any FHIR resources can be received under the current project at the "base URL" found at the top of the **Received FHIR Resources** page in the left menu.
   * For easy testing, this module can also send FHIR resources to itself on the current project or another project on the same system.  This can be accomplished by entering the "base URL" at the top of the **Received FHIR Resources** page into the "Remote FHIR Server URL" setting.
