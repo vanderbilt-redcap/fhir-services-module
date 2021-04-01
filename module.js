@@ -257,8 +257,6 @@ $(function(){
             })
 
             typeahead.change(function(){
-                options.change(typeahead)
-
                 var source = typeahead.autocomplete('option', 'source');
                 if(source.length > 0){
                     if(typeof source[0] !== 'string'){
@@ -272,6 +270,8 @@ $(function(){
                     }
                 }
 
+                options.change(typeahead)
+                
                 module.updateActionTag()
             })
 
