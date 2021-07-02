@@ -2,10 +2,14 @@
 
 This module is a work in progress prototyping the following FHIR related features (with more to follow in the future):
 
-* Mapping REDCap fields to FHIR Resources & Elements
+* Mapping REDCap fields to FHIR Resources & Elements (limited, but expanding)
   * To map a field, complete the **FHIR Mapping** section when editing that field in the Online Designer.
   * For Resources that required fields to be associated with each other (like Observations), use the **Additional Elements** settings at the bottom of the **FHIR Mapping** section.
-  * Not all Resources or complex data structures can be mapped currently, but this module can always be expanded to support more scenarios as needed.
+  * Not all Resources or REDCap data structures can be mapped currently, but this module can be expanded to support more scenarios as needed.  Support for some new scenarios can be added in a few hours, while other may take hundreds of hours depending on the specifics.  Here are some technical details on what is and isn't currently supported:
+    * REDCap fields (that are not in events or repeating instances) can currently be mapped to a single instance of any FHIR Resource & element, including a single instance of any child Resources & elements referenced under a given top level Resource.  We have partial support for mapping REDCap events & repeating instances, as well as repeating FHIR Resources & elements.  There too many combinations of edge cases on either side to list, but we are doing one-off implementations of the most commonly used cases until we can invest the time to create more general solutions to cover additional cases automatically.  Multiple instances of the same Resource & element path from the top level can only currently be mapped for Patient/telecom and top level Observations
+    * Observation/code is currently limited to LOINC codes
+    * Relationships between multiple top level resources (in a Bundle) are currently limited to associating Observations & Immunizations with a single Patient by setting the Patient ID *AS* their ID as well (like some of the FHIR examples).
+    * REDCap to FHIR mapping involves an almost infinite number of edge cases... Whether or not this feature will work for you in its current state is highly dependant on the details of your particular project's design.  However, all evidence so far points to any imaginable mapping being feasible.  We anticipate that at some point we will reach a critical mass of test cases and will be able to create generalized solutions that will cover the large majority of data that can be represented in both REDCap & FHIR.  We already have plans for some of those generalized solutions, and are currently looking for partners to help justify, implement, and verify further work.
 * Behaving as a FHIR server and sending/receiving FHIR resources
   * The FHIR resource for the current record can be viewed or sent by going to the **Record Home Page**, clicking **Choose action for record**, and selecting the **View FHIR...**, **Validate FHIR...**, or **Send FHIR...** options.
   * The **Send FHIR...** option will send the current record to the **Remote FHIR Server URL** specified in the module configuration.
