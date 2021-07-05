@@ -214,8 +214,8 @@ class FieldMapper{
                     return;
                 }
             }
-            else if(!$this->getModule()->isRepeatableResource($subResourceName)){
-                throw new StackFreeException("The '$mappingString' element is currently mapped to multiple fields, but should only be mapped to a single field.  It is recommended to view the Codebook and search for '$mappingString' to determine which field mapping(s) need to be modified.");
+            else{
+                throw new StackFreeException("The '$mappingString' element is currently mapped to multiple fields in the same context, but should only be mapped to a single field.  It is recommended to view the Codebook and search for '$mappingString' to determine which field mapping(s) need to be modified.");
             }
         }
 
