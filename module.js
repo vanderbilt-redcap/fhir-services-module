@@ -452,7 +452,7 @@ $(function(){
             })
         },
         addDefaultAdditionalElements: () => {
-            if(module.isObservation() && module.getAdditionalElementMappings().length === 0){
+            if(module.getResourceName() === 'Observation' && module.getAdditionalElementMappings().length === 0){
                 module.addAdditionalElement(module.VALUE, 'status', 'final')
                 module.addAdditionalElement(module.VALUE, 'code', '')
             }
@@ -558,10 +558,6 @@ $(function(){
 
             var options = []
             for(var path in elements){
-                if(!module.isElementVisible(path, primary)){
-                    continue
-                }
-
                 options.push({
                     label: path,
                     value: path,
@@ -570,45 +566,6 @@ $(function(){
             }
 
             typeahead.autocomplete('option', 'source', options)
-        },
-        isObservation: () => {
-            return module.getResourceName() === 'Observation'
-        },
-        isPatient: () => {
-            return module.getResourceName() === 'Patient'
-        },
-        isElementVisible: (path, primary) => {
-            if(module.isObservation()){
-                const isValuePath = [
-                    'valueQuantity/value',
-                    'valueCodeableConcept',
-                    'valueString',
-                    'valueBoolean',
-                    'valueInteger',
-                    'valueRange/low/value',
-                    'valueRange/high/value',
-                    'valueRatio/numerator/value',
-                    'valueRatio/denominator/value',
-                    'valueTime',
-                    'valueDateTime',
-                    'valuePeriod/start',
-                    'valuePeriod/end'
-                ].indexOf(path) !== -1
-
-                return primary ^ !isValuePath
-            }
-            else if(module.isPatient()){
-                if(path.startsWith('telecom/')){
-                    const isValuePath = path === 'telecom/value'
-
-                    return primary ^ !isValuePath
-                }
-                else if(module.ELEMENT_TYPEAHEAD.val() === 'telecom/value'){
-                    return primary
-                }
-            }
-
-            return true
         },
         getResourceName: () => {
             return module.RESOURCE_TYPEAHEAD.val()
