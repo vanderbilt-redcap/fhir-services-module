@@ -313,7 +313,7 @@ $(function(){
                 var label = item.label
 
                 if(item.description){
-                    label = "<b>" + item.label + "</b><br>" + item.description
+                    label = "<b style='font-weight: 600;' title='" + module.htmlEscape(item.description) + "'>" + item.label + "</b>"
                 }
 
                 return $( "<li />" )
@@ -322,6 +322,9 @@ $(function(){
             }
 
             return typeahead
+        },
+        htmlEscape: function(s){
+            return $("<div>").text(s).html()
         },
         initResourceTypeahead: function(elementTypeahead){
             return module.initTypeahead({

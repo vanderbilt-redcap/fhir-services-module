@@ -129,8 +129,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         ?>
         <style>
             .ui-autocomplete.fhir-services-module{
-                max-width: 298px;
-                max-height: 208px;  
+                max-width: 800px;
+                max-height: 208px;
+                position: fixed; /* This allows the typeahead to overflow outside of the edit dialog */
             }
             .ui-autocomplete.fhir-services-module li{
                 white-space: normal !important;
