@@ -226,12 +226,7 @@ class FieldMapper{
             return;
         }
 
-        /**
-         * This can't currently be combined with $elementProperty above
-         * because of special handling (pseudo-elements like Patient/telecom/mobile/phone/value).
-         */
         $modifiedElementProperty = SchemaParser::getModifiedProperty($resourceName, $elementPath);
-
         $choices = $modifiedElementProperty['redcapChoices'];
         if($choices !== null){
             $value = $this->getMatchingChoiceValue($this->getProjectId(), $fieldName, $value, $choices);

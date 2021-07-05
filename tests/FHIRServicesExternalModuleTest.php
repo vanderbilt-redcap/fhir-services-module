@@ -779,6 +779,8 @@ class FHIRServicesExternalModuleTest extends BaseTest{
     }
 
     function validate($resource){
+        // return;
+
         $vendorPath = __DIR__ . '/../vendor';
 
         $validatorPath = realpath("$vendorPath/fhir-validator.jar");
