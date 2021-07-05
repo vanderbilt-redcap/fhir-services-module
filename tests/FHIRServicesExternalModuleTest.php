@@ -779,7 +779,9 @@ class FHIRServicesExternalModuleTest extends BaseTest{
     }
 
     function validate($resource){
-        // return;
+        if(defined('SKIP_VALIDATION')){
+            return;
+        }
 
         $vendorPath = __DIR__ . '/../vendor';
 
