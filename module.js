@@ -5,11 +5,7 @@ $(function(){
         FIELD: 'field',
         VALUE: 'value',
         init: function(){
-            var elementTypeahead = module.initTypeahead({
-                change: () => {
-                    module.updateAdditionalElementVisibility()
-                }
-            })
+            var elementTypeahead = module.initTypeahead({})
             
             var resourceTypeahead = module.initResourceTypeahead(elementTypeahead)
 
@@ -26,7 +22,23 @@ $(function(){
 
             module.ADDITIONAL_ELEMENT_CONTAINER = $(`
                 <div>
-                    <b class='fhir-services-additional-element-header'>Additional Elements</b>
+                    <b class='fhir-services-additional-element-header'>
+                        Additional Elements
+                        <a href='javascript:;' class='help' onclick="simpleDialog(
+                            \`
+                                <p>
+                                    <b>Additional Elements</b> can be used to associate values and/or fields other than the current one with the same <b>Resource</b> instance as the field currently being edited.  This will not necessarily be the top level <b>Resource</b> mapped, depending on whether the <b>Element</b> path references a nested/child <b>Resource</b>.
+                                </p>
+                                <p>
+                                    <b>Additional Elements</b> can also be used to simply include values in the FHIR export that are not stored in a field and are the same for every record.
+                                </p>
+                                <p>
+                                    For <b>Elements</b> that will not exist more than once per record in the FHIR export, it likely makes more sense to edit & map each individually instead of using <b>Additional Elements</b>.
+                                </p>
+                            \`,
+                            'Additional Elements'
+                        )">?</a>
+                    </b>
                     <div id='fhir-services-additional-elements'></div>
                     <div id='fhir-services-additional-element-buttons'></div>
                 </div>
@@ -69,7 +81,6 @@ $(function(){
                 
                 module.updateRecommendedChoicesVisibility()
                 module.setAdditionalElementsFromMapping(mapping)
-                module.updateAdditionalElementVisibility()
 
                 if(resourceTypeahead.val() !== ''){
                     module.showElementTypeahead()
@@ -327,7 +338,7 @@ $(function(){
                         module.hideElementTypeahead()
                     }
 
-                    module.updateAdditionalElementVisibility()
+                    module.addDefaultAdditionalElements()
                 }
             })
         },
@@ -437,23 +448,10 @@ $(function(){
                 module.addAdditionalElement(type, details.element, value)
             })
         },
-        updateAdditionalElementVisibility: () => {
-            if(
-                module.isObservation() && module.ELEMENT_TYPEAHEAD.val() !== ''
-                ||
-                module.isPatient() && module.ELEMENT_TYPEAHEAD.val() === 'telecom/value'
-            ){
-                if(module.isObservation() && module.getAdditionalElementMappings().length === 0){
-                    // Add default elements
-                    module.addAdditionalElement(module.VALUE, 'status', 'final')
-                    module.addAdditionalElement(module.VALUE, 'code', '')
-                }
-
-                module.ADDITIONAL_ELEMENT_CONTAINER.show()
-            }
-            else{
-                module.removeAdditionalElements() // remove them so they aren't included in the action tag
-                module.ADDITIONAL_ELEMENT_CONTAINER.hide()
+        addDefaultAdditionalElements: () => {
+            if(module.isObservation() && module.getAdditionalElementMappings().length === 0){
+                module.addAdditionalElement(module.VALUE, 'status', 'final')
+                module.addAdditionalElement(module.VALUE, 'code', '')
             }
         },
         removeAdditionalElements: () => {

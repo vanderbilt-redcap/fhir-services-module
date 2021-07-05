@@ -8,7 +8,8 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnai
  * These are not intended to be used outside the EM framework,
  * but let's bend that rule a bit for convenience unless/until it becomes a problem.
  */
-const TEST_RECORD_ID = 'test_record_id';
+const TEST_RECORD_ID = '1';
+const TEST_RECORD_ID_FIELD = 'test_record_id';
 const TEST_TEXT_FIELD = 'test_text_field';
 const TEST_SQL_FIELD = 'test_sql_field';
 const TEST_REPEATING_FORM = 'test_repeating_form';
@@ -225,11 +226,12 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $this->query('update redcap_metadata set misc = ? where project_id = ? and field_name = ?', [$value, $pid, $fieldName]);
     }
 
-    function assert($fields, $expectedJSON, $resource = 'Patient'){
+    function assert($fields, $expectedJSON, $resource = 'Patient', $expectingMultipleEntries = null){
         $pid = $this->getTestPID();
         $recordId = 1;
 
-        $data = ['test_record_id' => $recordId];
+        $data = [TEST_RECORD_ID_FIELD => $recordId];
+        $uniqueMappings = [];
         foreach($fields as $fieldName=>$details){
             $mapping = @$details['mapping'];
             $element = @$details['element'];
@@ -238,7 +240,24 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 $mapping = $resource . '/' . $element;
             }
 
+            if($expectingMultipleEntries === null){
+                if(!isset($uniqueMappings[$mapping])){
+                    $uniqueMappings[$mapping] = true;
+                }
+                else{ // if($this->module->isRepeatableResource($resource)){
+                    $expectingMultipleEntries = true;
+                }
+            }
+
             $this->setFHIRMapping($fieldName, $mapping);
+
+            foreach($mapping['additionalElements'] as $additionalElement){
+                $field = @$additionalElement['field'];
+                $value = @$additionalElement['value'];
+                if($field !== null && $value !== null){
+                    $data[$additionalElement['field']] = $value;
+                }
+            }
 
             $value = (string) $details['value'];
             if($value[0] === ' '){
@@ -250,27 +269,34 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             }
         }
 
-        \REDCap::saveData($pid, 'json', json_encode([$data]), 'overwrite');
+        $this->saveData($data);
 
         $expected = [
             'resourceType' => 'Bundle',
             'type' => 'collection',
         ];
 
-        $expectedJSON = array_merge([
-            // Type & id are required to build URLs, which are required by Bundles.
-            'resourceType' => $resource,
-            'id' => $this->getRecordFHIRId($pid, $recordId)
-        ], $expectedJSON);
-
-        $entry = [];
-        if(!$this->module->isRepeatableResource($resource)){
-            $entry['fullUrl'] = $this->getResourceUrl($expectedJSON);
+        if($expectingMultipleEntries !== true){
+            $expectedJSON = [$expectedJSON];
         }
 
-        $entry['resource'] = $expectedJSON;
+        $entries = [];
+        foreach($expectedJSON as $expectedResource){
+            $expectedResource = array_merge([
+                // Type & id are required to build URLs, which are required by Bundles.
+                'resourceType' => $resource,
+                'id' => $this->getRecordFHIRId($pid, $recordId)
+            ], $expectedResource);
 
-        $expected['entry'] = [$entry];
+            $entry = [];
+            $entry['fullUrl'] = $this->getResourceUrl($expectedResource);
+    
+            $entry['resource'] = $expectedResource;
+
+            $entries[] = $entry;
+        }
+
+        $expected['entry'] = $entries;
         
         $actual = $this->getMappedFieldsAsBundle($pid, $recordId);
         
@@ -421,24 +447,24 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         ]);
 
         $pid = $this->getTestPID();
-        $recordId = 1;
+        $recordId = TEST_RECORD_ID;
 
-        \REDCap::saveData($pid, 'json', json_encode([
+        $this->saveData([
             [
-                TEST_RECORD_ID => $recordId,
+                TEST_RECORD_ID_FIELD => $recordId,
                 'redcap_repeat_instrument' => TEST_REPEATING_FORM,
                 'redcap_repeat_instance' => 1,
                 TEST_REPEATING_FIELD_1 => 'a',
                 TEST_REPEATING_FIELD_2 => 'b',
             ],
             [
-                TEST_RECORD_ID => $recordId,
+                TEST_RECORD_ID_FIELD => $recordId,
                 'redcap_repeat_instrument' => TEST_REPEATING_FORM,
                 'redcap_repeat_instance' => 2,
                 TEST_REPEATING_FIELD_1 => 'c',
                 TEST_REPEATING_FIELD_2 => 'd',
             ],
-        ]), 'overwrite');
+        ]);
 
         $this->assert([], [
             'telecom' => [
@@ -457,7 +483,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
     }
 
     function testGetMappedFieldsAsBundle_duplicateMappings(){
-        $path = "Patient/name/family";
+        $path = "Patient/gender";
         foreach([$this->getFieldName(), $this->getFieldName2()] as $fieldName){
             $this->setFHIRMapping($fieldName, $path);
         }
@@ -508,43 +534,91 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         );
     }
 
-    function testGetMappedFieldsAsBundle_elementsMappedTwice(){
+    private function saveData($data){
+        if(!isset($data[0])){
+            $data = [$data];
+        }
+
+        $recordId = TEST_RECORD_ID;
+
+        foreach($data as &$row){
+            $row[TEST_RECORD_ID_FIELD] = $recordId;
+        }
+        
+        $result = \REDCap::saveData($this->getTestPID(), 'json', json_encode($data), 'overwrite');
+        
+        $this->assertSame([], $result['errors']);
+        $this->assertSame([], $result['warnings']);
+        $this->assertSame([$recordId => $recordId], $result['ids']);
+    }
+
+    function testGetMappedFieldsAsBundle_twoFieldsMappedToSamePath(){
+        $name1 = (string) rand();
+        $name2 = (string) rand();
+
+        // This use case is currently lands on the closest parent item that is an 'array', the HumanName Resource in this case.
+        // I'm not sure how useful/common cases like this would be in reality...
         $this->assert(
             [
                 $this->getFieldName() => [
                     'element' => 'name/given',
-                    'value' => 'Billy'
+                    'value' => $name1
                 ],
                 $this->getFieldName2() => [
                     'element' => 'name/given',
-                    'value' => 'John'
+                    'value' => $name2
+                ]
+            ],
+            [
+                [
+                    'name' => [
+                        [
+                            'given' => [
+                                $name1,
+                            ]
+                        ],
+                        [
+                            'given' => [
+                                $name2,
+                            ]
+                        ]
+                    ]
+                ],
+            ]
+        );
+    }
+
+    function testGetMappedFieldsAsBundle_additionalFieldWithSamePathAsPrimary(){
+        $name1 = (string) rand();
+        $name2 = (string) rand();
+
+        $this->assert(
+            [
+                 $this->getFieldName() => [
+                    'mapping' => [
+                        'type' => 'Patient',
+                        'primaryElementPath' => 'name/given',
+                        'additionalElements' => [
+                            [
+                                'element' => 'name/given',
+                                'field' => $this->getFieldName2(),
+                                'value' => $name2
+                            ]
+                        ]
+                    ],
+                    'value' => $name1
                 ]
             ],
             [
                 'name' => [
                     [
                         'given' => [
-                            'Billy',
-                            'John'
+                            $name1,
+                            $name2
                         ]
                     ]
                 ]
             ]
-        );
-
-        $this->expectExceptionMessage('mapped to multiple fields');
-        $this->assert(
-            [
-                $this->getFieldName() => [
-                    'element' => 'name/family',
-                    'value' => 'One'
-                ],
-                $this->getFieldName2() => [
-                    'element' => 'name/family',
-                    'value' => 'Two'
-                ]
-            ],
-            []
         );
     }
 
@@ -605,7 +679,9 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 ],
                 [
                     'deceasedBoolean' => $expected
-                ]
+                ],
+                'Patient',
+                false
             );
         };
 
@@ -934,26 +1010,26 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $pid = $this->getTestPID();
         $lastName = 'Smith';
 
-        \REDCap::saveData($pid, 'json', json_encode([
+        $this->saveData([
             [
-                TEST_RECORD_ID => TEST_RECORD_ID,
+                TEST_RECORD_ID_FIELD => TEST_RECORD_ID,
                 TEST_TEXT_FIELD => $lastName,
             ],
             [
-                TEST_RECORD_ID => TEST_RECORD_ID,
+                TEST_RECORD_ID_FIELD => TEST_RECORD_ID,
                 'redcap_repeat_instrument' => TEST_REPEATING_FORM,
                 'redcap_repeat_instance' => 1,
                 TEST_REPEATING_FIELD_1 => 'a',
                 TEST_REPEATING_FIELD_2 => 'b',
             ],
             [
-                TEST_RECORD_ID => TEST_RECORD_ID,
+                TEST_RECORD_ID_FIELD => TEST_RECORD_ID,
                 'redcap_repeat_instrument' => TEST_REPEATING_FORM,
                 'redcap_repeat_instance' => 2,
                 TEST_REPEATING_FIELD_1 => 'c',
                 TEST_REPEATING_FIELD_2 => 'd',
             ],
-        ]), 'overwrite');
+        ]);
 
         // The Observation examples on hl7.org have the id of the associated Patient.
         $patientAndObservationId = $this->getRecordFHIRId($pid, TEST_RECORD_ID);
@@ -1013,13 +1089,13 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $lastName = 'Smith';
         $code = 16;
 
-        \REDCap::saveData($pid, 'json', json_encode([
+        $this->saveData([
             [
-                TEST_RECORD_ID => TEST_RECORD_ID,
+                TEST_RECORD_ID_FIELD => TEST_RECORD_ID,
                 $this->getFieldName() => $lastName,
                 $this->getFieldName2() => $code,
             ]
-        ]), 'overwrite');
+        ]);
 
         $patientId = $this->getRecordFHIRId($pid, TEST_RECORD_ID);
 
@@ -1083,6 +1159,30 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 ],
             ],
             'Immunization'
+        );
+    }
+
+    function testMultipleInstancesOfRepeatableResources(){
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'element' => 'clinicalStatus',
+                    'value' => 'active'
+                ],
+                $this->getFieldName2() => [
+                    'element' => 'clinicalStatus',
+                    'value' => 'recurrence'
+                ]
+            ],
+            [
+                [
+                    'clinicalStatus' => 'active'
+                ],
+                [
+                    'clinicalStatus' => 'recurrence'
+                ],
+            ],
+            'SomeRepeatableResource'
         );
     }
 }

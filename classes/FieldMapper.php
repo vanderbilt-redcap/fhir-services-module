@@ -1,6 +1,7 @@
 <?php namespace Vanderbilt\FHIRServicesExternalModule;
 
 use REDCap;
+use Exception;
 
 class FieldMapper{
     function __construct($module, $projectId, $recordId){
@@ -21,13 +22,18 @@ class FieldMapper{
                 if($value === '' || $mapping === null){
                     continue;
                 }
-    
+
                 if(is_array($mapping)){
-                    $this->processElementMapping($fieldName, $value, $mapping['type'] . '/' . $mapping['primaryElementPath'], true);
-                    $this->processAdditionalElements($mapping, $data);
+                    $primaryMapping = $mapping['type'] . '/' . $mapping['primaryElementPath'];
                 }
                 else{
-                    $this->processElementMapping($fieldName, $value, $mapping, false);
+                    $primaryMapping = $mapping;
+                }
+
+                $this->processElementMapping($fieldName, $value, $primaryMapping, true);
+
+                if(is_array($mapping)){
+                    $this->processAdditionalElements($mapping, $data);
                 }
             }
         }
@@ -150,6 +156,10 @@ class FieldMapper{
         $elementName = array_pop($parts);
         $elementParents = $parts;
 
+        if(empty($resourceName)){
+            throw new Exception('Mapping is missing the resource type!');
+        }
+
         if($addNewArrayItem){
             $newArrayItemParents = $this->getNewArrayItemParents($resourceName, $elementParents);
         }
@@ -168,6 +178,7 @@ class FieldMapper{
         }
 
         $subPath = &$resource;
+        $subResourceName = $resourceName;
         $parentProperty = [
             'type' => null
         ];
@@ -203,7 +214,7 @@ class FieldMapper{
                     return;
                 }
             }
-            else{
+            else if(!$this->getModule()->isRepeatableResource($subResourceName)){
                 throw new StackFreeException("The '$mappingString' element is currently mapped to multiple fields, but should only be mapped to a single field.  It is recommended to view the Codebook and search for '$mappingString' to determine which field mapping(s) need to be modified.");
             }
         }

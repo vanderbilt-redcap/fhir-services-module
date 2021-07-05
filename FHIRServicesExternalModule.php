@@ -55,11 +55,6 @@ const SINGLE_QUOTE_PLACEHOLDER = '<single-quote-placeholder>';
 const INTEGER_PATTERN = "^-?([0]|([1-9][0-9]*))$";
 const DATE_TIME_PATTERN = "^([0-9]([0-9]([0-9][1-9]|[1-9]0)|[1-9]00)|[1-9]000)(-(0[1-9]|1[0-2])(-(0[1-9]|[1-2][0-9]|3[0-1])(T([01][0-9]|2[0-3]):[0-5][0-9]:([0-5][0-9]|60)(\\.[0-9]+)?(Z|(\\+|-)((0[0-9]|1[0-3]):[0-5][0-9]|14:00)))?)?)?$";
 
-const REPEATABLE_RESOURCES = [
-    'Observation' => true,
-    'Immunization' => true
-];
-
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
     function redcap_every_page_top(){
         if($this->isPage('DataEntry/record_home.php')){
@@ -191,7 +186,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             #fhir-services-additional-element-buttons button{
                 margin: 0px 2px;
             }
-            #fhir-services-mapping-field-settings a,
+            #fhir-services-mapping-field-settings a.fhir-services-recommended-choices-link,
             #fhir-services-invalid-choices-dialog a{
                 text-decoration: underline;
                 outline : none;
@@ -2197,13 +2192,15 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         foreach($resources as $resource){
             $type = $resource['resourceType'];
+            $patientId = $patient['id'];
 
             if($type === 'Immunization' && $patient !== null){
-                $resource['patient']['reference'] = 'Patient/' . $patient['id'];
+                $resource['patient']['reference'] = 'Patient/' . $patientId;
             }
 
             $entry = [];
-            if(!$this->isRepeatableResource($type)){
+            $resourceId = @$resource['id'];
+            if($resourceId && ($type === 'Patient' || $resourceId !== $patientId)){
                 $entry['fullUrl'] = $this->getResourceUrl($resource);
             }
 
@@ -2216,7 +2213,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function isRepeatableResource($type){
-        return isset(REPEATABLE_RESOURCES[$type]);
+        return $type !== 'Patient';
     }
 
     function formatConsentCategories($values){
