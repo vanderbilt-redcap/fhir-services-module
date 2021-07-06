@@ -1340,7 +1340,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             return null;
         }
 
-        while(method_exists($o, 'getValue')){
+        while(method_exists((Object)$o, 'getValue')){
             $o = $o->getValue();
         }
 

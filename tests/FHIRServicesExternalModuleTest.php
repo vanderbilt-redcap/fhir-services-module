@@ -239,6 +239,15 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             if($element !== null){
                 $mapping = $resource . '/' . $element;
             }
+            else{                
+                foreach($mapping['additionalElements'] as $additionalElement){
+                    $field = @$additionalElement['field'];
+                    $value = @$additionalElement['value'];
+                    if($field !== null && $value !== null){
+                        $data[$additionalElement['field']] = $value;
+                    }
+                }
+            }
 
             if($expectingMultipleEntries === null){
                 if(!isset($uniqueMappings[$mapping])){
@@ -250,14 +259,6 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             }
 
             $this->setFHIRMapping($fieldName, $mapping);
-
-            foreach($mapping['additionalElements'] as $additionalElement){
-                $field = @$additionalElement['field'];
-                $value = @$additionalElement['value'];
-                if($field !== null && $value !== null){
-                    $data[$additionalElement['field']] = $value;
-                }
-            }
 
             $value = (string) $details['value'];
             if($value[0] === ' '){
