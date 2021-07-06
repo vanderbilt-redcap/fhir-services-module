@@ -52,7 +52,7 @@ class SchemaParser{
         foreach($properties as $propertyName=>$property){
             if(
                 // Skip meta-properties
-                in_array($propertyName, ['resourceType', 'id', 'meta', 'implicitRules', 'language', 'text', 'contained', 'extension', 'modifierExtension', 'identifier'])
+                in_array($propertyName, ['resourceType', 'id', 'meta', 'implicitRules', 'contained', 'extension', 'modifierExtension', 'identifier'])
                 ||
                 // Ignore recursive loops
                 // This currently falsely matches things like code/coding/code.
