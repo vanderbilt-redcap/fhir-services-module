@@ -55,6 +55,8 @@ class SchemaParser{
                 in_array($propertyName, ['resourceType', 'id', 'meta', 'implicitRules', 'language', 'text', 'contained', 'extension', 'modifierExtension', 'identifier'])
                 ||
                 // Ignore recursive loops
+                // This currently falsely matches things like code/coding/code.
+                // We should modify this to match types instead of just the property name.
                 in_array($propertyName, $parents)
                 ||
                 // Are these related to extensions?
