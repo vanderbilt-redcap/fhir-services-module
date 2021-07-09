@@ -544,8 +544,25 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $this->assert(
             [
                 $this->getFieldName() => [
-                    'element' => 'category/coding/display',
-                    'value' => 'foo'
+                    'mapping' => [
+                        'type' => 'Consent',
+                        'primaryElementPath' => 'category/coding/code',
+                        'additionalElements' => [
+                            [
+                                'element' => 'status',
+                                'value' => 'active'
+                            ],
+                            [
+                                'element' => 'scope',
+                                'value' => 'research'
+                            ],
+                            [
+                                'element' => 'policyRule',
+                                'value' => 'cric'
+                            ],
+                        ]
+                    ],
+                    'value' => 'acd'
                 ]
             ],
             [
@@ -553,11 +570,28 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                     [
                         'coding' => [
                             [
-                                'display' => 'foo'
+                                'code' => 'acd'
                             ]
                         ]
                     ]
-                ]
+                ],
+                'status' => 'active',
+                'scope' => [
+                    'coding' => [
+                        [
+                            'system' => 'http://terminology.hl7.org/CodeSystem/consentscope',
+                            'code' => 'research'
+                        ]
+                    ]
+                ],
+                'policyRule' => [
+                    'coding' => [
+                        [
+                            'system' => 'http://terminology.hl7.org/CodeSystem/consentpolicycodes',
+                            'code' => 'cric'
+                        ]
+                    ]
+                ],
             ],
             'Consent'
         );
