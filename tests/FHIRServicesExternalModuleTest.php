@@ -17,6 +17,42 @@ const TEST_REPEATING_FIELD_1 = 'test_repeating_field_1';
 const TEST_REPEATING_FIELD_2 = 'test_repeating_field_2';
 
 class FHIRServicesExternalModuleTest extends BaseTest{
+    static function setUpBeforeClass():void{
+        if(!defined('SKIP_VALIDATION')){
+            self::echo("Tests are running with full validation, which may take several minutes.  To quickly run all tests without full validation, pass the following arguments to the phpunit command: --bootstrap tests/skip-validation.php");
+        }
+    }
+
+    // Adapted from here: https://stackoverflow.com/a/45699470/2044597
+    protected static function echo($message)
+    {
+        // if output buffer has not started yet
+        if (ob_get_level() == 0) {
+            // current buffer existence
+            $hasBuffer = false;
+            // start the buffer
+            ob_start();
+        } else {
+            // current buffer existence
+            $hasBuffer = true;
+        }
+
+        // echo to output
+        echo $message;
+
+        // flush current buffer to output stream
+        ob_flush();
+        flush();
+        ob_end_flush();
+
+        // if there were a buffer before this method was called
+        //      in my version of PHPUNIT it has its own buffer running
+        if ($hasBuffer) {
+            // start the output buffer again
+            ob_start();
+        }
+    }
+
     public function setUp():void{
         parent::setUp();
 
