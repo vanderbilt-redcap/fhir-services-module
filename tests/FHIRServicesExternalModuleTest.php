@@ -447,26 +447,35 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $this->setFHIRMapping(TEST_REPEATING_FIELD_1, [
             'type' => 'Patient',
             'primaryElementPath' => 'telecom/value',
+            'additionalElements' => [
+                [
+                    'element' => 'telecom/system',
+                    'value' => 'phone'
+                ]
+            ]
         ]);
 
         $this->setFHIRMapping(TEST_REPEATING_FIELD_2, [
             'type' => 'Patient',
             'primaryElementPath' => 'contact/telecom/value',
+            'additionalElements' => [
+                [
+                    'element' => 'contact/telecom/system',
+                    'value' => 'email'
+                ]
+            ]
         ]);
-
-        $pid = $this->getTestPID();
-        $recordId = TEST_RECORD_ID;
 
         $this->saveData([
             [
-                TEST_RECORD_ID_FIELD => $recordId,
+                TEST_RECORD_ID_FIELD => TEST_RECORD_ID,
                 'redcap_repeat_instrument' => TEST_REPEATING_FORM,
                 'redcap_repeat_instance' => 1,
                 TEST_REPEATING_FIELD_1 => 'a',
                 TEST_REPEATING_FIELD_2 => 'b',
             ],
             [
-                TEST_RECORD_ID_FIELD => $recordId,
+                TEST_RECORD_ID_FIELD => TEST_RECORD_ID,
                 'redcap_repeat_instrument' => TEST_REPEATING_FORM,
                 'redcap_repeat_instance' => 2,
                 TEST_REPEATING_FIELD_1 => 'c',
@@ -476,14 +485,26 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
         $this->assert([], [
             'telecom' => [
-                ['value' => 'a'],
-                ['value' => 'c'],
+                [
+                    'value' => 'a',
+                    'system' => 'phone'
+                ],
+                [
+                    'value' => 'c',
+                    'system' => 'phone'
+                ],
             ],
             'contact' => [
                 [
                     'telecom' => [
-                        ['value' => 'b'],
-                        ['value' => 'd'],
+                        [
+                            'value' => 'b',
+                            'system' => 'email'
+                        ],
+                        [
+                            'value' => 'd',
+                            'system' => 'email'
+                        ],
                     ]
                 ]
             ]
