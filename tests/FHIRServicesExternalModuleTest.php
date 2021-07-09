@@ -19,7 +19,7 @@ const TEST_REPEATING_FIELD_2 = 'test_repeating_field_2';
 class FHIRServicesExternalModuleTest extends BaseTest{
     static function setUpBeforeClass():void{
         if(!defined('SKIP_VALIDATION')){
-            self::echo("Tests are running with full validation, which may take several minutes.  To quickly run all tests without full validation, pass the following arguments to the phpunit command: --bootstrap tests/skip-validation.php");
+            self::echo("Tests are running with full validation, which may take several minutes.  To quickly run all tests without full validation, pass the following arguments to the phpunit command: --bootstrap tests/skip-validation.php\n\n");
         }
     }
 
