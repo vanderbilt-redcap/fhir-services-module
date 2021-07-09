@@ -2195,8 +2195,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $type = $resource['resourceType'];
             $patientId = $patient['id'];
 
-            if($type === 'Immunization' && $patient !== null){
-                $resource['patient']['reference'] = 'Patient/' . $patientId;
+            if($patient !== null){
+                $elementName = SchemaParser::getTargetProfiles()['Patient'][$type] ?? null;
+                if($elementName !== null){
+                    $resource[$elementName]['reference'] = 'Patient/' . $patientId;
+                }
             }
 
             $entry = [];

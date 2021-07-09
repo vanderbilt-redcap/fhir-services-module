@@ -48,4 +48,13 @@ class SchemaParserTest extends BaseTest{
         // Every test needs an assertion, even though the equals check above should already cover this.
         $this->assertSame($expected, $actual);
     }
+
+    function testGetTargetProfiles(){
+        $targetProfiles = SchemaParser::getTargetProfiles()['Patient'];
+        
+        // Make sure a few of the most commonly used Patient references exist
+        $this->assertSame('subject', $targetProfiles['Observation']);
+        $this->assertSame('subject', $targetProfiles['Condition']);
+        $this->assertSame('patient', $targetProfiles['Immunization']);
+    }
 }

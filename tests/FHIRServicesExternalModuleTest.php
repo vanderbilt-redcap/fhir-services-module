@@ -1066,6 +1066,9 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                             'text' => 'b',
                         ],
                         'status' => 'final',
+                        'subject' => [
+                            'reference' => "Patient/$patientAndObservationId"
+                        ]
                     ],
                 ],
                 [
@@ -1077,6 +1080,9 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                             'text' => 'd',
                         ],
                         'status' => 'final',
+                        'subject' => [
+                            'reference' => "Patient/$patientAndObservationId"
+                        ]
                     ],
                 ],
             ], 

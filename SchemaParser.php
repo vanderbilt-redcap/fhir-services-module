@@ -1,12 +1,14 @@
 <?php namespace Vanderbilt\FHIRServicesExternalModule;
 
 use Exception;
+use Throwable;
 
 class SchemaParser{
     private static $definitions;
     private static $dataElements;
     private static $expansions;
     private static $modifiedSchema;
+    private static $targetProfiles;
 
     private static function getFhirJSON($filename){
         $path = __DIR__ . "/fhir/4.0.1/$filename";
@@ -32,6 +34,7 @@ class SchemaParser{
     static function getModifiedSchema(){
         if(self::$modifiedSchema === null){
             self::$modifiedSchema = [];
+            self::$targetProfiles = [];
 
             foreach(self::getDefinitions() as $definition){
                 $properties = @$definition['properties'];
@@ -46,6 +49,14 @@ class SchemaParser{
         }
 
         return self::$modifiedSchema;
+    }
+
+    static function getTargetProfiles(){
+        if(self::$targetProfiles === null){
+            self::getModifiedSchema();
+        }
+
+        return self::$targetProfiles;
     }
 
     static function handleProperties($parents, $properties){
@@ -77,9 +88,110 @@ class SchemaParser{
                     self::addCodeableConceptValues($parts, $property);
                     self::handleProperty($parts, $property);
                 }
+                else if($refDefinitionName === 'Reference'){
+                    self::indexReference($parts);
+                }
                 else{
                     self::handleProperties($parts, $subProperties);
                 }
+            }
+        }
+    }
+
+    private static function getLeafDataElement($pathParts){
+        $dataElements = self::getDataElements();
+
+        $path = implode('.', $pathParts);
+        $element = $dataElements[$path];
+
+        if($element === null){
+            if(count($pathParts) === 2){
+                // We can't dig any deeper.
+                return null;
+            }
+
+            $lastPart = array_pop($pathParts);
+            $element = self::getLeafDataElement($pathParts);
+            if($element === null){
+                return null;
+            }
+
+            $types = self::getDataElementTypes($element);
+            foreach($types as $type){
+                $element = $dataElements[$type->code . '.' . $lastPart];
+                if($element !== null){
+                    // Don't check any other types.
+                    break;
+                }
+            }
+        }
+
+        return $element;
+    }
+
+    private static function getDataElementTypes($dataElement){
+        $elements = $dataElement->snapshot->element;
+        if(count($elements) !== 1){
+            throw new Exception("Unexpected number of elements: " . count($elements));
+        }
+
+        return $elements[0]->type;
+    }
+
+    private static function getDataElementType($pathParts, $typeString){
+        try{
+            $dataElement = self::getLeafDataElement($pathParts);
+            if($dataElement === null){
+                return null;
+            }
+
+            foreach(self::getDataElementTypes($dataElement) as $type){
+                if($type->code === $typeString){
+                    return $type;
+                }
+            };
+        }
+        catch(Throwable $t){
+            $path = implode('.', $pathParts);
+            throw new Exception("Wrapped Exception for path: $path", 0, $t);
+        }
+
+        throw new Exception("Could not find the $typeString type in $path");
+    }
+
+    private static function indexReference($pathParts){
+        $type = self::getDataElementType($pathParts, 'Reference');
+        if($type === null){
+            /**
+             * Some reference relationships cannot be detected currently.
+             * They seem to be limited to the ones that have a little chain icon
+             * in the FHIR docs, like Contract/term/group.
+             */
+            return;
+        }
+
+        $pathResource = array_shift($pathParts);
+        $elementPath = implode('/', $pathParts);
+        $lastPart = $pathParts[count($pathParts)-1];
+        
+        foreach($type->targetProfile as $profile){
+            $profileResource = explode('http://hl7.org/fhir/StructureDefinition/', $profile)[1];
+
+            if(
+                $profileResource === 'Patient'
+                &&
+                in_array($lastPart, ['subject', 'patient', 'individual'])
+            ){
+                if(count($pathParts) > 1){
+                    throw new Exception("Patient references with multiple path parts are not yet implemented (though support should be very easy to add): $pathResource/$elementPath");
+                }
+
+                $existingPath = @self::$targetProfiles[$profileResource][$pathResource];
+                if($existingPath !== null){
+                    throw new Exception("Tried to set a Patient path of $elementPath for $pathResource, but $existingPath was already set.");
+                }
+
+                self::$targetProfiles[$profileResource][$pathResource] = $elementPath;
             }
         }
     }
@@ -143,7 +255,22 @@ class SchemaParser{
             $elements = json_decode(self::getFhirJSON('dataelements.json'))->entry;
             foreach($elements as $element){
                 $element = $element->resource;
-                self::$dataElements[$element->name] = $element;
+                $name = $element->name;
+                $parts = explode('[x]', $name);
+
+                if(count($parts) === 2){
+                    $subElements = $element->snapshot->element;
+                    if(count($subElements) !== 1){
+                        throw new Exception("Unexpected number of elements for $name: " . count($subElements));
+                    }
+
+                    foreach($subElements[0]->type as $type){
+                        self::$dataElements[$parts[0] . $type->code] = $element;
+                    }
+                }
+                else{
+                    self::$dataElements[$name] = $element;
+                }
             }
         }
 
