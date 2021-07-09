@@ -226,13 +226,28 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $this->query('update redcap_metadata set misc = ? where project_id = ? and field_name = ?', [$value, $pid, $fieldName]);
     }
 
+    private function setResourceTypeAndId($resourceName, $firstFieldName, $instance, $resource){
+        return array_merge([
+            // Type & id are required to build URLs, which are required by Bundles.
+            'resourceType' => $resourceName,
+            'id' => $this->module->getResourceId($resourceName, $this->getTestPID(), TEST_RECORD_ID, $firstFieldName, [
+                'redcap_repeat_instance' => $instance
+            ])
+        ], $resource);
+    }
+
     function assert($fields, $expectedJSON, $resource = 'Patient', $expectingMultipleEntries = null){
         $pid = $this->getTestPID();
         $recordId = 1;
 
         $data = [TEST_RECORD_ID_FIELD => $recordId];
         $uniqueMappings = [];
+        $firstFieldName = null;
         foreach($fields as $fieldName=>$details){
+            if($firstFieldName === null){
+                $firstFieldName = $fieldName;
+            }
+
             $mapping = @$details['mapping'];
             $element = @$details['element'];
             
@@ -283,25 +298,17 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
         $entries = [];
         foreach($expectedJSON as $expectedResource){
-            $expectedResource = array_merge([
-                // Type & id are required to build URLs, which are required by Bundles.
-                'resourceType' => $resource,
-                'id' => $this->getRecordFHIRId($pid, $recordId)
-            ], $expectedResource);
+            $expectedResource = $this->setResourceTypeAndId($resource, $firstFieldName, null, $expectedResource);
 
             $entry = [];
-            $entry['fullUrl'] = $this->getResourceUrl($expectedResource);
-    
             $entry['resource'] = $expectedResource;
 
             $entries[] = $entry;
         }
 
         $expected['entry'] = $entries;
-        
-        $actual = $this->getMappedFieldsAsBundle($pid, $recordId);
-        
-        $this->assertSame($expected, $actual);
+
+        $this->assertMappedExport($expected);
 
         // TODO - Make this work on all calls.  AJV is not comprehensive.
         // Instead of spinning up a new java process on each test, we could write resources to a files and scan them all at once in tearDown().
@@ -995,6 +1002,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         );
     }
 
+    private function getResourceId($fieldName){
+        return parent::getResourceId('SomethingOtherThanPatient', $this->getTestPID(), TEST_RECORD_ID, $fieldName, []);
+    }
+
     function testObservationMapping_bundle(){
         $this->setFHIRMapping(TEST_TEXT_FIELD, 'Patient/name/family');
         $this->setFHIRMapping(TEST_REPEATING_FIELD_1, [
@@ -1036,60 +1047,60 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             ],
         ]);
 
-        // The Observation examples on hl7.org have the id of the associated Patient.
-        $patientAndObservationId = $this->getRecordFHIRId($pid, TEST_RECORD_ID);
-
-        $expectedPatient = [
-            'resourceType' => 'Patient',
-            'id' => $patientAndObservationId,
+        $expectedPatient = $this->setResourceTypeAndId('Patient', null, null, [
             'name' => [
                 [
                     'family' => $lastName,
                 ],
             ],
-        ];
+        ]);
 
         $expected = [
             'resourceType' => 'Bundle',
             'type' => 'collection',
             'entry' => [
                 [
-                    'fullUrl' => $this->getResourceUrl($expectedPatient),
                     'resource' => $expectedPatient,
                 ],
                 [
-                    'resource' => [
-                        'resourceType' => 'Observation',
-                        'id' => $patientAndObservationId,
+                    'resource' => $this->setResourceTypeAndId('Observation', TEST_REPEATING_FIELD_1, 1, [
                         'valueString' => 'a',
                         'code' => [
                             'text' => 'b',
                         ],
                         'status' => 'final',
                         'subject' => [
-                            'reference' => "Patient/$patientAndObservationId"
+                            'reference' => "Patient/" . $expectedPatient['id']
                         ]
-                    ],
+                    ]),
                 ],
                 [
-                    'resource' => [
-                        'resourceType' => 'Observation',
-                        'id' => $patientAndObservationId,
+                    'resource' => $this->setResourceTypeAndId('Observation', TEST_REPEATING_FIELD_1, 2, [
                         'valueString' => 'c',
                         'code' => [
                             'text' => 'd',
                         ],
                         'status' => 'final',
                         'subject' => [
-                            'reference' => "Patient/$patientAndObservationId"
+                            'reference' => "Patient/" . $expectedPatient['id']
                         ]
-                    ],
+                    ]),
                 ],
             ], 
         ];
 
-        $this->assertSame($expected,  $this->getMappedFieldsAsBundle($pid, TEST_RECORD_ID));
-        $this->validate($expected);
+        $this->assertMappedExport($expected);
+    }
+
+    private function setFullUrls($bundle){
+        for($i=0; $i<count($bundle['entry']); $i++){
+            $entry = $bundle['entry'][$i];
+            $bundle['entry'][$i] = array_merge([
+                'fullUrl' => $this->getResourceUrl($entry['resource'])
+            ], $entry);
+        }
+
+        return $bundle;
     }
 
     function testImmunizationMapping_bundle(){
@@ -1125,13 +1136,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             'type' => 'collection',
             'entry' => [
                 [
-                    'fullUrl' => $this->getResourceUrl($expectedPatient),
                     'resource' => $expectedPatient,
                 ],
                 [
-                    'resource' => [
-                        'resourceType' => 'Immunization',
-                        'id' => $patientId, // This probably isn't kosher, but we'll make the id match the Patient like Observations for now.
+                    'resource' => $this->setResourceTypeAndId('Immunization', $this->getFieldName2(), null, [
                         'vaccineCode' => [
                             'coding' => [
                                 [
@@ -1143,13 +1151,19 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                         'patient' => [
                             'reference' => "Patient/$patientId"
                         ]
-                    ],
+                    ]),
                 ],
             ], 
         ];
 
-        $this->assertSame($expected,  $this->getMappedFieldsAsBundle($pid, TEST_RECORD_ID));
-        // $this->validate($expected);
+        $this->assertMappedExport($expected);
+    }
+
+    private function assertMappedExport($bundle){
+        $bundle = $this->setFullUrls($bundle);
+
+        $this->assertSame($bundle,  $this->getMappedFieldsAsBundle($this->getTestPID(), TEST_RECORD_ID));
+        $this->validate($bundle);
     }
 
     function testImmunization_booleans(){
@@ -1190,6 +1204,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                     'clinicalStatus' => 'active'
                 ],
                 [
+                    'id' => $this->getResourceId($this->getFieldName2()),
                     'clinicalStatus' => 'recurrence'
                 ],
             ],

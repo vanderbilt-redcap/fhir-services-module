@@ -30,7 +30,7 @@ class FieldMapper{
                     $primaryMapping = $mapping;
                 }
 
-                $this->processElementMapping($fieldName, $value, $primaryMapping, true);
+                $this->processElementMapping($data, $fieldName, $value, $primaryMapping, true);
 
                 if(is_array($mapping)){
                     $this->processAdditionalElements($mapping, $data);
@@ -149,7 +149,7 @@ class FieldMapper{
         return $array[$subPathIndex];
     }
 
-    private function processElementMapping($fieldName, $value, $mappingString, $addNewArrayItem){
+    private function processElementMapping($data, $fieldName, $value, $mappingString, $addNewArrayItem){
         $parts = explode('/', $mappingString);
         $resourceName = array_shift($parts);
         $elementPath = implode('/', $parts);
@@ -173,7 +173,8 @@ class FieldMapper{
         if(!isset($resource['id'])){
             $resource = [
                 'resourceType' => $resourceName,
-                'id' => $this->getModule()->getRecordFHIRId($this->getProjectId(), $this->getRecordId())
+                'id' => $this->getModule()->getResourceId($resourceName, $this->getProjectId(), $this->getRecordId(), $fieldName, $data)
+                
             ];
         }
 
@@ -303,7 +304,7 @@ class FieldMapper{
                 $value = $data[$fieldName];
             }
             
-            $this->processElementMapping($fieldName, $value, "$resource/{$details['element']}", false);
+            $this->processElementMapping($data, $fieldName, $value, "$resource/{$details['element']}", false);
         }
     }
 
