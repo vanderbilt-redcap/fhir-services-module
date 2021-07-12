@@ -1285,27 +1285,30 @@ class FHIRServicesExternalModuleTest extends BaseTest{
     }
 
     function testMultipleInstancesOfRepeatableResources(){
+        $value1 = (string) rand();
+        $value2 = (string) rand();
+
         $this->assert(
             [
                 $this->getFieldName() => [
-                    'element' => 'clinicalStatus',
-                    'value' => 'active'
+                    'element' => 'name',
+                    'value' => $value1
                 ],
                 $this->getFieldName2() => [
-                    'element' => 'clinicalStatus',
-                    'value' => 'recurrence'
+                    'element' => 'name',
+                    'value' => $value2
                 ]
             ],
             [
                 [
-                    'clinicalStatus' => 'active'
+                    'name' => $value1
                 ],
                 [
                     'id' => $this->getResourceId($this->getFieldName2()),
-                    'clinicalStatus' => 'recurrence'
+                    'name' => $value2
                 ],
             ],
-            'SomeRepeatableResource'
+            'Organization' // We could have chosen any repeatable resource to test this.
         );
     }
 }
