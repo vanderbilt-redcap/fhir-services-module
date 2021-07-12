@@ -586,6 +586,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                         'primaryElementPath' => 'category/coding/code',
                         'additionalElements' => [
                             [
+                                'element' => 'category/coding/system',
+                                'value' => 'http://terminology.hl7.org/CodeSystem/consentcategorycodes'
+                            ],
+                            [
                                 'element' => 'status',
                                 'value' => 'active'
                             ],
@@ -607,7 +611,8 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                     [
                         'coding' => [
                             [
-                                'code' => 'acd'
+                                'code' => 'acd',
+                                'system' => 'http://terminology.hl7.org/CodeSystem/consentcategorycodes'
                             ]
                         ]
                     ]
