@@ -911,6 +911,36 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         if($exitCode !== 0){
             die("\n\nValidation failed. See output for details:\n\n" . implode("\n", $output));
         }
+        
+        $successPaths = [];
+        $successPrefix = 'Success...validating';
+        foreach($output as $line){
+            $parts = explode(' ', $line);
+            if($parts[0] !== $successPrefix){
+                continue;
+            }
+
+            $path = realpath(rtrim($parts[1], ':'));
+            $successPaths[$path] = true;
+
+            self::assertSame('', $parts[2]);
+            self::assertSame(6, count($parts));
+
+            if(
+                $parts[3] !== 'error:0' ||
+                $parts[4] !== 'warn:0' ||
+                $parts[5] !== 'info:0'
+            ){
+                echo "\n\n";
+                echo implode("\n", $output);
+                die("\nPlease fix the above validation warnings or info messages.\n");
+            }
+        }
+        
+        foreach(glob(RESOURCES_PATH . '*') as $path){
+            $path = realpath($path);
+            self::assertTrue($successPaths[$path], 'Validation success line not found for path: ' . $path);
+        }
     }
 
     function testObservationMapping(){
