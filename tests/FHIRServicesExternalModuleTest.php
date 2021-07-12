@@ -21,8 +21,6 @@ const RESOURCES_PATH = VENDOR_PATH . 'resource-to-validate/';
 class FHIRServicesExternalModuleTest extends BaseTest{
     static function setUpBeforeClass():void{
         if(!defined('SKIP_VALIDATION')){
-            self::echo("Tests are running with full validation, which may take several minutes.  To quickly run all tests without full validation, pass the following arguments to the phpunit command: --bootstrap tests/skip-validation.php\n\n");
-            
             foreach(glob(RESOURCES_PATH . '*') as $path){
                 // Removed files from the previous test run
                 unlink($path);
