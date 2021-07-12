@@ -1193,20 +1193,11 @@ class FHIRServicesExternalModuleTest extends BaseTest{
     }
 
     function testImmunizationMapping_bundle(){
-        $this->setFHIRMapping($this->getFieldName(), 'Patient/name/family');
-        $this->setFHIRMapping($this->getFieldName2(), 'Immunization/vaccineCode');
 
         $pid = $this->getTestPID();
         $lastName = 'Smith';
         $code = 16;
-
-        $this->saveData([
-            [
-                TEST_RECORD_ID_FIELD => TEST_RECORD_ID,
-                $this->getFieldName() => $lastName,
-                $this->getFieldName2() => $code,
-            ]
-        ]);
+        $occurrence = (string) rand();
 
         $patientId = $this->getRecordFHIRId($pid, TEST_RECORD_ID);
 
@@ -1220,32 +1211,51 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             ],
         ];
 
-        $expected = [
-            'resourceType' => 'Bundle',
-            'type' => 'collection',
-            'entry' => [
-                [
-                    'resource' => $expectedPatient,
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'mapping' => 'Patient/name/family',
+                    'value' => $lastName
                 ],
-                [
-                    'resource' => $this->setResourceTypeAndId('Immunization', $this->getFieldName2(), null, [
-                        'vaccineCode' => [
-                            'coding' => [
-                                [
-                                    'system' => 'http://hl7.org/fhir/sid/cvx',
-                                    'code' => (string) $code // make sure this is a string!
-                                ]
-                            ]
-                        ],
-                        'patient' => [
-                            'reference' => "Patient/$patientId"
+                $this->getFieldName2() => [
+                    'mapping' => [
+                        'type' => 'Immunization',
+                        'primaryElementPath' => 'vaccineCode',
+                        'additionalElements' => [
+                            [
+                                'element' => 'status',
+                                'value' => 'completed',
+                            ],
+                            [
+                                'element' => 'occurrenceString',
+                                'value' => $occurrence,
+                            ],
                         ]
-                    ]),
-                ],
-            ], 
-        ];
-
-        $this->assertMappedExport($expected);
+                    ],
+                    'value' => $code
+                ]
+            ],
+            [
+                $expectedPatient,
+                $this->setResourceTypeAndId('Immunization', $this->getFieldName2(), null, [
+                    'vaccineCode' => [
+                        'coding' => [
+                            [
+                                'system' => 'http://hl7.org/fhir/sid/cvx',
+                                'code' => (string) $code // make sure this is a string!
+                            ]
+                        ]
+                    ],
+                    'status' => 'completed',
+                    'occurrenceString' => $occurrence,
+                    'patient' => [
+                        'reference' => "Patient/$patientId"
+                    ]
+                ])
+            ],
+            null,
+            true
+        );
     }
 
     private function assertMappedExport($bundle = []){
