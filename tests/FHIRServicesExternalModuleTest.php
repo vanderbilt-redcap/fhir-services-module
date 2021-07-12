@@ -344,13 +344,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
         $expected['entry'] = $entries;
 
-        $this->assertMappedExport($expected);
-
-        // TODO - Make this work on all calls.  AJV is not comprehensive.
-        // Instead of spinning up a new java process on each test, we could write resources to a files and scan them all at once in tearDown().
-        // $this->validate($actual);
-
-        return $actual;
+        return $this->assertMappedExport($expected);
     }
 
     function getTestPID(){
@@ -554,7 +548,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         }
 
         $this->expectExceptionMessage('currently mapped to multiple fields');
-        $this->getMappedFieldsAsBundle($this->getTestPID(), 1);
+        $this->assertMappedExport();
     }
 
     function testGetMappedFieldsAsBundle_blankValue(){
@@ -877,6 +871,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $this->validate($actual);
     }
 
+    /**
+     * This is important becaus AJV (the browser based validation feature) is not comprehensive or FHIR specific.
+     * Instead of spinning up a new java process on each test, we could write resources to a folder and scan them all at once in tearDown().
+     */
     function validate($resource){
         if(defined('SKIP_VALIDATION')){
             return;
@@ -1250,11 +1248,14 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $this->assertMappedExport($expected);
     }
 
-    private function assertMappedExport($bundle){
+    private function assertMappedExport($bundle = []){
         $bundle = $this->setFullUrls($bundle);
+        $actual = $this->getMappedFieldsAsBundle($this->getTestPID(), TEST_RECORD_ID);
 
-        $this->assertSame($bundle,  $this->getMappedFieldsAsBundle($this->getTestPID(), TEST_RECORD_ID));
+        $this->assertSame($bundle, $actual);
         $this->validate($bundle);
+
+        return $actual;
     }
 
     function testImmunization_booleans(){
