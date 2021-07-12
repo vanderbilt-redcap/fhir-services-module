@@ -15,11 +15,18 @@ const TEST_SQL_FIELD = 'test_sql_field';
 const TEST_REPEATING_FORM = 'test_repeating_form';
 const TEST_REPEATING_FIELD_1 = 'test_repeating_field_1';
 const TEST_REPEATING_FIELD_2 = 'test_repeating_field_2';
+const VENDOR_PATH = __DIR__ . '/../vendor/';
+const RESOURCES_PATH = VENDOR_PATH . 'resource-to-validate/';
 
 class FHIRServicesExternalModuleTest extends BaseTest{
     static function setUpBeforeClass():void{
         if(!defined('SKIP_VALIDATION')){
             self::echo("Tests are running with full validation, which may take several minutes.  To quickly run all tests without full validation, pass the following arguments to the phpunit command: --bootstrap tests/skip-validation.php\n\n");
+            
+            foreach(glob(RESOURCES_PATH . '*') as $path){
+                // Removed files from the previous test run
+                unlink($path);
+            }
         }
     }
 
@@ -868,41 +875,41 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $actual = $this->getEConsentFHIRBundle($args);
 
         $this->assertSame($expected, $actual);
-        $this->validate($actual);
+        $this->queueForValidation($actual);
+    }
+
+    private function queueForValidation($resource){
+        @mkdir(RESOURCES_PATH);
+        file_put_contents(RESOURCES_PATH . $this->getName() . '.json', json_encode($resource));
+    }
+
+    static function teardownAfterClass():void{
+        self::validate();
     }
 
     /**
      * This is important becaus AJV (the browser based validation feature) is not comprehensive or FHIR specific.
      * Instead of spinning up a new java process on each test, we could write resources to a folder and scan them all at once in tearDown().
      */
-    function validate($resource){
+    static function validate(){
         if(defined('SKIP_VALIDATION')){
             return;
         }
 
-        $vendorPath = __DIR__ . '/../vendor';
-
-        $validatorPath = realpath("$vendorPath/fhir-validator.jar");
+        $validatorPath = realpath(VENDOR_PATH . "fhir-validator.jar");
         if(!file_exists($validatorPath)){
             file_put_contents($validatorPath, file_get_contents('https://storage.googleapis.com/ig-build/org.hl7.fhir.validator.jar'));
         }
 
-        $resourcePath = realpath("$vendorPath/resource-to-validate.json");
+        $profileArg = '';
+        // if($resource['resourceType'] === 'Patient'){
+        //     $profileArg = '-ig hl7.fhir.us.core -profile http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient';
+        // }
 
-        $resourceJson = json_encode($resource, JSON_PRETTY_PRINT);
-        file_put_contents($resourcePath, $resourceJson);
-        
-        if($resource['resourceType'] === 'Patient'){
-            $profileArg = '-ig hl7.fhir.us.core -profile http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient';
-        }
-        else{
-            $profileArg = '';
-        }
-
-        $cmd = "java -Xmx3g -jar $validatorPath $resourcePath -version 4.0.1 $profileArg 2>&1";
+        $cmd = "java -Xmx3g -jar $validatorPath " . RESOURCES_PATH . " -version 4.0.1 $profileArg 2>&1";
         exec($cmd, $output, $exitCode);
         if($exitCode !== 0){
-            throw new \Exception("Validation of the following resource failed with the following output:\n\n$resourceJson\n\n" . implode("\n", $output));
+            die("\n\nValidation failed. See output for details:\n\n" . implode("\n", $output));
         }
     }
 
@@ -1263,7 +1270,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $actual = $this->getMappedFieldsAsBundle($this->getTestPID(), TEST_RECORD_ID);
 
         $this->assertSame($bundle, $actual);
-        $this->validate($bundle);
+        $this->queueForValidation($bundle);
 
         return $actual;
     }
