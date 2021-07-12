@@ -44,7 +44,7 @@ class SchemaParser{
                     continue;
                 }
 
-                self::handleProperties([$resourceName], $properties);    
+                self::handleProperties([$resourceName], null, $properties);    
             }
         }
 
@@ -59,7 +59,7 @@ class SchemaParser{
         return self::$targetProfiles;
     }
 
-    static function handleProperties($parents, $properties){
+    static function handleProperties($parents, $parentProperty, $properties){
         foreach($properties as $propertyName=>$property){
             if(
                 // Skip meta-properties
@@ -74,6 +74,11 @@ class SchemaParser{
                 $propertyName[0] === '_'
             ){
                 continue;
+            }
+
+            $property['description'] = $propertyName . ' - ' . $property['description'];
+            if($parentProperty !== null){
+                $property['description'] = $parentProperty['description'] . "\n\n" . $property['description'];
             }
 
             $refDefinitionName = self::getResourceNameFromRef($property);
@@ -92,7 +97,7 @@ class SchemaParser{
                     self::indexReference($parts);
                 }
                 else{
-                    self::handleProperties($parts, $subProperties);
+                    self::handleProperties($parts, $property, $subProperties);
                 }
             }
         }
