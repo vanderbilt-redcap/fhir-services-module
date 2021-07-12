@@ -1237,6 +1237,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                                 'element' => 'occurrenceString',
                                 'value' => $occurrence,
                             ],
+                            [
+                                'element' => 'reaction/reported',
+                                'value' => true,
+                            ],
                         ]
                     ],
                     'value' => $code
@@ -1255,6 +1259,11 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                     ],
                     'status' => 'completed',
                     'occurrenceString' => $occurrence,
+                    'reaction' => [
+                        [
+                            'reported' => true // Test booleans
+                        ]
+                    ],
                     'patient' => [
                         'reference' => "Patient/$patientId"
                     ]
@@ -1273,27 +1282,6 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $this->queueForValidation($bundle);
 
         return $actual;
-    }
-
-    function testImmunization_booleans(){
-        $value = true;
-        
-        $this->assert(
-            [
-                $this->getFieldName() => [
-                    'mapping' => 'Immunization/reaction/reported',
-                    'value' => $value
-                ]
-            ],
-            [
-                'reaction' => [
-                    [
-                        'reported' => $value
-                    ]
-                ],
-            ],
-            'Immunization'
-        );
     }
 
     function testMultipleInstancesOfRepeatableResources(){
