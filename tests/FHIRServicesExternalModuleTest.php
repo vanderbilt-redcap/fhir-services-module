@@ -678,11 +678,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                         [
                             'given' => [
                                 $name1,
-                            ]
-                        ],
-                        [
-                            'given' => [
-                                $name2,
+                                $name2
                             ]
                         ]
                     ]
@@ -1317,18 +1313,24 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         return $actual;
     }
 
-    function testMultipleInstancesOfRepeatableResources(){
+    function testArrayMappingsBecomeSeparateResources(){
         $value1 = (string) rand();
         $value2 = (string) rand();
 
         $this->assert(
             [
                 $this->getFieldName() => [
-                    'element' => 'name',
+                    'mapping' => [
+                        'type' => 'Organization',
+                        'primaryElementPath' => 'name',
+                    ],
                     'value' => $value1
                 ],
                 $this->getFieldName2() => [
-                    'element' => 'name',
+                    'mapping' => [
+                        'type' => 'Organization',
+                        'primaryElementPath' => 'name',
+                    ],
                     'value' => $value2
                 ]
             ],
@@ -1340,6 +1342,29 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                     'id' => $this->getResourceId($this->getFieldName2()),
                     'name' => $value2
                 ],
+            ],
+            'Organization', // We could have chosen any repeatable resource to test this.
+            true
+        );
+    }
+
+    function testNonArrayMappingsMergedIntoSingleResource(){
+        $value1 = (string) rand();
+
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'element' => 'name',
+                    'value' => $value1
+                ],
+                $this->getFieldName2() => [
+                    'element' => 'active',
+                    'value' => true
+                ]
+            ],
+            [
+                'name' => $value1,
+                'active' => true
             ],
             'Organization' // We could have chosen any repeatable resource to test this.
         );

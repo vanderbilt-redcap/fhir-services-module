@@ -23,16 +23,17 @@ class FieldMapper{
                     continue;
                 }
 
-                if(is_array($mapping)){
+                $isArrayMapping = is_array($mapping);
+                if($isArrayMapping){
                     $primaryMapping = $mapping['type'] . '/' . $mapping['primaryElementPath'];
                 }
                 else{
                     $primaryMapping = $mapping;
                 }
 
-                $this->processElementMapping($data, $fieldName, $value, $primaryMapping, true);
+                $this->processElementMapping($data, $fieldName, $value, $primaryMapping, $isArrayMapping);
 
-                if(is_array($mapping)){
+                if($isArrayMapping){
                     $this->processAdditionalElements($mapping, $data);
                 }
             }
@@ -174,7 +175,6 @@ class FieldMapper{
             $resource = [
                 'resourceType' => $resourceName,
                 'id' => $this->getModule()->getResourceId($resourceName, $this->getProjectId(), $this->getRecordId(), $fieldName, $data)
-                
             ];
         }
 
