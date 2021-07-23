@@ -911,12 +911,12 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $cmd = "java -Xmx3g -jar $validatorPath " . RESOURCES_PATH . " -version 4.0.1 $profileArg 2>&1";
         exec($cmd, $output, $exitCode);
 
-        $onValidationFailed = function() use ($output){
-            die("\n\nValidation failed. See output for details:\n\n" . implode("\n", $output));
+        $onValidationFailed = function($message) use ($output){
+            die(implode("\n", $output) . "\n\nCould not verify validator output.  $message\n\n");
         };
 
         if($exitCode !== 0){
-            $onValidationFailed();
+            $onValidationFailed("Validation failed with exit code $exitCode");
         }
         
         $validatedPaths = [];
@@ -933,14 +933,16 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                     $output[$lineIndex+1] !== 'Success: 0 errors, 0 warnings, 1 notes' ||
                     $output[$lineIndex+2] !== '  Information @ ?? : All OK'
                 ){
-                    $onValidationFailed();
+                    $onValidationFailed("Did not find expected success lines for path: $path");
                 }
             }
         }
         
         foreach(glob(RESOURCES_PATH . '*') as $path){
             $path = realpath($path);
-            self::assertTrue($validatedPaths[$path], 'Validation line not found for path: ' . $path);
+            if($validatedPaths[$path] !== true){
+                $onValidationFailed('Validation line not found for path: ' . $path);
+            }
         }
     }
 
