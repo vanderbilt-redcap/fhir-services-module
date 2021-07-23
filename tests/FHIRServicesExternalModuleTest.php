@@ -478,6 +478,95 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         );
     }
 
+    function testRaceAndEthnicityValidation(){
+        $resource = '{
+            "resourceType" : "Patient",
+            "meta" : {
+              "profile" : [
+                "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+              ]
+            },
+            "extension" : [
+              {
+                "extension" : [
+                  {
+                    "url" : "ombCategory",
+                    "valueCoding" : {
+                      "system" : "urn:oid:2.16.840.1.113883.6.238",
+                      "code" : "2106-3",
+                      "display" : "White"
+                    }
+                  },
+                  {
+                    "url" : "ombCategory",
+                    "valueCoding" : {
+                      "system" : "urn:oid:2.16.840.1.113883.6.238",
+                      "code" : "1002-5",
+                      "display" : "American Indian or Alaska Native"
+                    }
+                  },
+                  {
+                    "url" : "text",
+                    "valueString" : "I think this is a text summary of the entire race extension for this record."
+                  }
+                ],
+                "url" : "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race"
+              },
+              {
+                "extension" : [
+                  {
+                    "url" : "ombCategory",
+                    "valueCoding" : {
+                      "system" : "urn:oid:2.16.840.1.113883.6.238",
+                      "code" : "2135-2",
+                      "display" : "Hispanic or Latino"
+                    }
+                  },
+                  {
+                    "url" : "detailed",
+                    "valueCoding" : {
+                      "system" : "urn:oid:2.16.840.1.113883.6.238",
+                      "code" : "2184-0",
+                      "display" : "Dominican"
+                    }
+                  },
+                  {
+                    "url" : "detailed",
+                    "valueCoding" : {
+                      "system" : "urn:oid:2.16.840.1.113883.6.238",
+                      "code" : "2148-5",
+                      "display" : "Mexican"
+                    }
+                  },
+                  {
+                    "url" : "text",
+                    "valueString" : "I think this is a text summary of the entire ethnicity extension for this record."
+                  }
+                ],
+                "url" : "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity"
+              }
+            ],
+            "identifier" : [
+              {
+                "system" : "http://some.url",
+                "value": "some value"
+              }
+            ],
+            "name" : [
+              {
+                "family": "Smith",
+                "given": [
+                    "John"
+                ]
+              }
+            ],
+            "gender" : "male"
+        }';
+
+        $this->queueForValidation(json_decode($resource, true));
+        $this->expectNotToPerformAssertions();
+    }
+
     function testGetMappedFieldsAsBundle_patient_telecomComplexity(){
         $this->setFHIRMapping(TEST_REPEATING_FIELD_1, [
             'type' => 'Patient',
@@ -909,12 +998,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         // Normalize the path so it matches paths in the output.
         $validatorPath = realpath($validatorPath);
 
-        $profileArg = '';
-        // if($resource['resourceType'] === 'Patient'){
-        //     $profileArg = '-ig hl7.fhir.us.core -profile http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient';
-        // }
-
-        $cmd = "java -Xmx3g -jar $validatorPath " . RESOURCES_PATH . " -version 4.0.1 $profileArg 2>&1";
+        $cmd = "java -Xmx3g -jar $validatorPath " . RESOURCES_PATH . " -version 4.0.1 2>&1";
         exec($cmd, $output, $exitCode);
 
         $onValidationFailed = function($message) use ($output){
