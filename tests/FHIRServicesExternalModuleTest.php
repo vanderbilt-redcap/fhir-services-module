@@ -895,10 +895,13 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             return;
         }
 
-        $validatorPath = realpath(VENDOR_PATH . "fhir-validator.jar");
+        $validatorPath = VENDOR_PATH . "fhir-validator.jar";
         if(!file_exists($validatorPath)){
-            file_put_contents($validatorPath, file_get_contents('https://storage.googleapis.com/ig-build/org.hl7.fhir.validator.jar'));
+            file_put_contents($validatorPath, file_get_contents('https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar'));
         }
+
+        // Normalize the path so it matches paths in the output.
+        $validatorPath = realpath($validatorPath);
 
         $profileArg = '';
         // if($resource['resourceType'] === 'Patient'){
@@ -907,38 +910,37 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
         $cmd = "java -Xmx3g -jar $validatorPath " . RESOURCES_PATH . " -version 4.0.1 $profileArg 2>&1";
         exec($cmd, $output, $exitCode);
-        if($exitCode !== 0){
+
+        $onValidationFailed = function() use ($output){
             die("\n\nValidation failed. See output for details:\n\n" . implode("\n", $output));
+        };
+
+        if($exitCode !== 0){
+            $onValidationFailed();
         }
         
-        $successPaths = [];
-        $successPrefix = 'Success...validating';
-        foreach($output as $line){
+        $validatedPaths = [];
+        for($lineIndex=0; $lineIndex<count($output); $lineIndex++){
+            $line = $output[$lineIndex];
             $parts = explode(' ', $line);
-            if($parts[0] !== $successPrefix){
-                continue;
-            }
-
-            $path = realpath(rtrim($parts[1], ':'));
-            $successPaths[$path] = true;
-
-            self::assertSame('', $parts[2]);
-            self::assertSame(6, count($parts));
-
-            if(
-                $parts[3] !== 'error:0' ||
-                $parts[4] !== 'warn:0' ||
-                $parts[5] !== 'info:0'
-            ){
-                echo "\n\n";
-                echo implode("\n", $output);
-                die("\nPlease fix the above validation warnings or info messages.\n");
+            if($parts[0] === '--'){
+                $path = $parts[1];
+                $path = str_replace('\\', '/', $path);
+                $path = realpath($path);
+                $validatedPaths[$path] = true;
+                
+                if(
+                    $output[$lineIndex+1] !== 'Success: 0 errors, 0 warnings, 1 notes' ||
+                    $output[$lineIndex+2] !== '  Information @ ?? : All OK'
+                ){
+                    $onValidationFailed();
+                }
             }
         }
         
         foreach(glob(RESOURCES_PATH . '*') as $path){
             $path = realpath($path);
-            self::assertTrue($successPaths[$path], 'Validation success line not found for path: ' . $path);
+            self::assertTrue($validatedPaths[$path], 'Validation line not found for path: ' . $path);
         }
     }
 
