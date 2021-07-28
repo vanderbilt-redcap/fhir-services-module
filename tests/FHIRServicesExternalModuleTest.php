@@ -967,7 +967,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
     }
 
     private function queueForValidation($resource){
-        @mkdir(RESOURCES_PATH);
+        if(!is_dir(RESOURCES_PATH)){
+            mkdir(RESOURCES_PATH);
+        }
+        
         file_put_contents(RESOURCES_PATH . $this->getName() . '.json', json_encode($resource));
     }
 
