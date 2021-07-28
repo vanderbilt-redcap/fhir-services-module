@@ -37,8 +37,8 @@ class SchemaParser{
             self::$targetProfiles = [];
 
             foreach(self::getDefinitions() as $definition){
-                $properties = @$definition['properties'];
-                $resourceName = @$properties['resourceType']['const'];
+                $properties = $definition['properties'] ?? null;
+                $resourceName = $properties['resourceType']['const'] ?? null;
                 if(in_array($resourceName, [null])){
                     // Skip definitions that aren't resources.
                     continue;
@@ -82,7 +82,7 @@ class SchemaParser{
             }
 
             $refDefinitionName = self::getResourceNameFromRef($property);
-            $subProperties = @self::$definitions[$refDefinitionName]['properties'];
+            $subProperties = self::$definitions[$refDefinitionName]['properties'] ?? null;
             $parts = array_merge($parents, [$propertyName]);
 
             if($subProperties === null){
@@ -107,7 +107,7 @@ class SchemaParser{
         $dataElements = self::getDataElements();
 
         $path = implode('.', $pathParts);
-        $element = $dataElements[$path];
+        $element = $dataElements[$path] ?? null;
 
         if($element === null){
             if(count($pathParts) === 2){
@@ -123,7 +123,7 @@ class SchemaParser{
 
             $types = self::getDataElementTypes($element);
             foreach($types as $type){
-                $element = $dataElements[$type->code . '.' . $lastPart];
+                $element = $dataElements[$type->code . '.' . $lastPart] ?? null;
                 if($element !== null){
                     // Don't check any other types.
                     break;
@@ -179,7 +179,7 @@ class SchemaParser{
         $elementPath = implode('/', $pathParts);
         $lastPart = $pathParts[count($pathParts)-1];
         
-        foreach($type->targetProfile as $profile){
+        foreach(($type->targetProfile ?? []) as $profile){
             $profileResource = explode('http://hl7.org/fhir/StructureDefinition/', $profile)[1];
 
             if(
@@ -191,7 +191,7 @@ class SchemaParser{
                     throw new Exception("Patient references with multiple path parts are not yet implemented (though support should be very easy to add): $pathResource/$elementPath");
                 }
 
-                $existingPath = @self::$targetProfiles[$profileResource][$pathResource];
+                $existingPath = self::$targetProfiles[$profileResource][$pathResource] ?? null;
                 if($existingPath !== null){
                     throw new Exception("Tried to set a Patient path of $elementPath for $pathResource, but $existingPath was already set.");
                 }
@@ -202,19 +202,19 @@ class SchemaParser{
     }
 
     static function getResourceNameFromRef($property){
-        $items = @$property['items'];
+        $items = $property['items'] ?? null;
         if($items !== null){
-            $ref = @$items['$ref'];
+            $ref = $items['$ref'] ?? null;
         }
         else{
-            $ref = @$property['$ref'];
+            $ref = $property['$ref'] ?? null;
         }
         
-        return @explode('/', $ref)[2];
+        return explode('/', $ref)[2] ?? null;
     }
 
     private static function handleProperty($parts, $property){
-        $enum = @$property['enum'];
+        $enum = $property['enum'] ?? null;
         if($enum){
             $choices = [];
             foreach($enum as $value){
@@ -229,7 +229,7 @@ class SchemaParser{
     }
 
     static function getModifiedProperty($resourceName, $elementPath){
-        return self::getModifiedSchema()[$resourceName][$elementPath];
+        return self::getModifiedSchema()[$resourceName][$elementPath] ?? null;
     }
 
     private static function addCodeableConceptValues($pathParts, &$property){
@@ -239,15 +239,15 @@ class SchemaParser{
             return;
         }
 
-        $dataElement = self::getDataElements()[implode('.', $pathParts)];
-        $valueSetUrl = $dataElement->snapshot->element[0]->binding->valueSet;
+        $dataElement = self::getDataElements()[implode('.', $pathParts)] ?? null;
+        $valueSetUrl = $dataElement->snapshot->element[0]->binding->valueSet ?? null;
 
-        $expansion = self::getExpansions()[$valueSetUrl];
+        $expansion = self::getExpansions()[$valueSetUrl] ?? null;
 
         $choices = [];
-        foreach($expansion->expansion->contains as $option){
+        foreach(($expansion->expansion->contains ?? []) as $option){
             $code = $option->code;
-            $choices[$code] = $option->display;
+            $choices[$code] = $option->display ?? null;
             $property['systemsByCode'][$code] = $option->system;
         }
 

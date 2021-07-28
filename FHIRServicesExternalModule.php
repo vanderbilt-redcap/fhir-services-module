@@ -771,7 +771,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function getResourceUrl($resource){
-        $originalPid = $_GET['pid'];
+        $originalPid = $_GET['pid'] ?? null;
         unset($_GET['pid']);
 
         // Get the URL without the pid.

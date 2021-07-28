@@ -289,8 +289,8 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 $firstFieldName = $fieldName;
             }
 
-            $mapping = @$details['mapping'];
-            $element = @$details['element'];
+            $mapping = $details['mapping'] ?? null;
+            $element = $details['element'] ?? null;
             
             if($element !== null){
                 $mapping = $resource . '/' . $element;

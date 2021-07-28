@@ -18,7 +18,7 @@ class FieldMapper{
         $rows = json_decode(REDCap::getData($projectId, 'json', $recordId, $fields), true);
         foreach($rows as $data){
             foreach($data as $fieldName=>$value){
-                $mapping = @$mappings[$fieldName];
+                $mapping = $mappings[$fieldName] ?? null;
                 if($value === '' || $mapping === null){
                     continue;
                 }
@@ -189,18 +189,18 @@ class FieldMapper{
         foreach($elementParents as $parentName){
             $subPath = &$subPath[$parentName];
             $parentsSoFar[] = $parentName;
-            $parentProperty = $parentDefinition['properties'][$parentName];
+            $parentProperty = $parentDefinition['properties'][$parentName] ?? null;
             $subResourceName = SchemaParser::getResourceNameFromRef($parentProperty);
-            $parentDefinition = $definitions[$subResourceName];
+            $parentDefinition = $definitions[$subResourceName] ?? null;
 
-            if($parentProperty['type'] === 'array'){
+            if(($parentProperty['type'] ?? null) === 'array'){
                 $addNewIfExists = $parentsSoFar === $newArrayItemParents;
                 $subPath = &$this->getArrayChild($subPath, $addNewIfExists);
             }
         }
 
-        $elementProperty = $parentDefinition['properties'][$elementName];
-        if($elementProperty['type'] !== 'array' && isset($subPath[$elementName])){
+        $elementProperty = $parentDefinition['properties'][$elementName] ?? null;
+        if(($elementProperty['type'] ?? null) !== 'array' && isset($subPath[$elementName])){
             if(
                 $resourceName === 'Patient'
                 &&
@@ -228,7 +228,7 @@ class FieldMapper{
         }
 
         $modifiedElementProperty = SchemaParser::getModifiedProperty($resourceName, $elementPath);
-        $choices = $modifiedElementProperty['redcapChoices'];
+        $choices = $modifiedElementProperty['redcapChoices'] ?? null;
         if($choices !== null){
             $value = $this->getMatchingChoiceValue($this->getProjectId(), $fieldName, $value, $choices);
         }
@@ -252,7 +252,7 @@ class FieldMapper{
                 ]
             ];
         }
-        else if(in_array('boolean', [$ref, $modifiedElementProperty['type']])){
+        else if(in_array('boolean', [$ref, $modifiedElementProperty['type'] ?? null])){
             if($value === 'true' || $value === '1'){
                 $value = true;
             }
@@ -260,11 +260,11 @@ class FieldMapper{
                 $value = false;
             }
         }
-        else if(in_array($ref, ['dateTime', 'instant']) || $modifiedElementProperty['pattern'] === DATE_TIME_PATTERN){
+        else if(in_array($ref, ['dateTime', 'instant']) || ($modifiedElementProperty['pattern'] ?? null) === DATE_TIME_PATTERN){
             $value = $this->getModule()->formatFHIRDateTime($value);
         }
         else if(
-            $modifiedElementProperty['pattern'] === INTEGER_PATTERN
+            ($modifiedElementProperty['pattern'] ?? null) === INTEGER_PATTERN
             ||
             $ref === 'positiveInt'
         ){
@@ -285,7 +285,7 @@ class FieldMapper{
             }
         }
 
-        if($elementProperty['type'] === 'array'){
+        if(($elementProperty['type'] ?? null) === 'array'){
             $subPath[$elementName][] = $value;
         }
         else{
