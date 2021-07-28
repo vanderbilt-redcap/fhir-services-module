@@ -724,7 +724,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $matches[1];
     }
 
-    function getData($pid, $record){
+    function getData(){
+        $args = func_get_args();
+        $pid = $args[0];
+        $record = $args[1];
+
         if(empty($record)){
             throw new Exception('A record ID is required.');
         }
