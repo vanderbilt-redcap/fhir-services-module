@@ -989,9 +989,11 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
         // Add a basic resource to guarantee that multiple resources are always being validated
         // so that the validator always prints the "--" lines for each file (we depend on them for parsing output).
-        file_put_contents(RESOURCES_PATH . 'guaranteed-second-file.json', json_encode([
-            'resourceType' => 'HumanName'
-        ]));
+        foreach([1, 2] as $number){
+            file_put_contents(RESOURCES_PATH . "guaranteed-file-$number.json", json_encode([
+                'resourceType' => 'HumanName'
+            ]));
+        }
 
         $validatorPath = VENDOR_PATH . "fhir-validator.jar";
         if(!file_exists($validatorPath)){
@@ -1033,7 +1035,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         
         foreach(glob(RESOURCES_PATH . '*') as $path){
             $path = realpath($path);
-            if($validatedPaths[$path] !== true){
+            if(($validatedPaths[$path] ?? null) !== true){
                 $onValidationFailed('Validation line not found for path: ' . $path);
             }
         }
