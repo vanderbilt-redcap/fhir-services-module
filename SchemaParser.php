@@ -93,10 +93,16 @@ class SchemaParser{
                     self::addCodeableConceptValues($parts, $property);
                     self::handleProperty($parts, $property);
                 }
-                else if($refDefinitionName === 'Reference'){
-                    self::indexReference($parts);
-                }
                 else{
+                    if($refDefinitionName === 'Reference'){
+                        self::indexReference($parts);
+
+                        // Ignore all sub-properties except display.
+                        $subProperties = [
+                            'display' => $subProperties['display']
+                        ];
+                    }
+
                     self::handleProperties($parts, $property, $subProperties);
                 }
             }
