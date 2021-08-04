@@ -2607,17 +2607,20 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
     function getResourceId($resourceName, $pid, $recordId, $fieldName, $data){
         $id = $this->getRecordFHIRId($pid, $recordId);
-        if($resourceName !== 'Patient'){
-            $id .= "-$fieldName";
 
-            $eventName = $data['redcap_event_name'] ?? '';
-            if($eventName !== ''){
-                $id .= "-$eventName";
+        $append = function($value) use (&$id){
+            if($value === ''){
+                return;
             }
 
-            $instance = $data['redcap_repeat_instance'] ?? '';
-            if($instance !== ''){
-                $id .= "-$instance";
+            $id .= '.' . str_replace('_', '-', $value);
+        };
+
+        if($resourceName !== 'Patient'){
+            $append($fieldName);
+
+            foreach(['redcap_event_name', 'redcap_repeat_instance'] as $idFieldName){
+                $append($data[$idFieldName] ?? '');
             }
         }
 

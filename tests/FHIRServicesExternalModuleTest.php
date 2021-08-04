@@ -971,7 +971,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             mkdir(RESOURCES_PATH);
         }
         
-        file_put_contents(RESOURCES_PATH . $this->getName() . '.json', json_encode($resource));
+        file_put_contents(RESOURCES_PATH . $this->getName() . '.json', json_encode($resource, JSON_PRETTY_PRINT));
     }
 
     static function teardownAfterClass():void{
@@ -1003,7 +1003,8 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         // Normalize the path so it matches paths in the output.
         $validatorPath = realpath($validatorPath);
 
-        $cmd = "java -Xmx3g -jar $validatorPath " . RESOURCES_PATH . " -version 4.0.1 2>&1";
+        // Version 4.1 is used here instead of 4.0.1 to make sure IDs are checked for invalid characters.
+        $cmd = "java -Xmx3g -jar $validatorPath " . RESOURCES_PATH . " -version 4.1 2>&1";
         exec($cmd, $output, $exitCode);
 
         $onValidationFailed = function($message) use ($output){
