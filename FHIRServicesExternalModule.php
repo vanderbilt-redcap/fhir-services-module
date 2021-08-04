@@ -2207,10 +2207,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             }
 
             $entry = [];
-            $resourceId = @$resource['id'];
-            if($resourceId && ($type === 'Patient' || $resourceId !== $patientId)){
+            $resourceId = $resource['id'] ?? null;
+            if($resourceId){
                 $entry['fullUrl'] = $this->getResourceUrl($resource);
             }
+
+            // Now that full URLs have been set, IDs can be removed (since they might be over the 64 char limit).
+            unset($resource['id']);
 
             $entry['resource'] = $resource;
 

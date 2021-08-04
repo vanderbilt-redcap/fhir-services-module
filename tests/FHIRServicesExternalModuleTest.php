@@ -564,7 +564,6 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         }';
 
         $this->queueForValidation(json_decode($resource, true));
-        $this->expectNotToPerformAssertions();
     }
 
     function testGetMappedFieldsAsBundle_patient_telecomComplexity(){
@@ -967,11 +966,27 @@ class FHIRServicesExternalModuleTest extends BaseTest{
     }
 
     private function queueForValidation($resource){
+        /**
+         * The IDs REDCap uses internally and for URLs can be longer than the 64 char limit.
+         * Make sure these don't end up in any exported resources.
+         */
+        $this->assertIDNotSet($resource);
+
         if(!is_dir(RESOURCES_PATH)){
             mkdir(RESOURCES_PATH);
         }
         
         file_put_contents(RESOURCES_PATH . $this->getName() . '.json', json_encode($resource, JSON_PRETTY_PRINT));
+    }
+
+    private function assertIDNotSet($resource){
+        $this->assertFalse(isset($resource['id']));
+
+        if($resource['resourceType'] === 'Bundle'){
+            foreach($resource['entry'] as $entry){
+                $this->assertIDNotSet($entry['resource']);
+            }
+        }
     }
 
     static function teardownAfterClass():void{
@@ -1405,6 +1420,12 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
     private function assertMappedExport($bundle = []){
         $bundle = $this->setFullUrls($bundle);
+
+        foreach($bundle['entry'] as &$entry){
+            // Now that full URLs have been set, IDs can be removed (since they might be over the 64 char limit).
+            unset($entry['resource']['id']);
+        }
+
         $actual = $this->getMappedFieldsAsBundle($this->getTestPID(), TEST_RECORD_ID);
 
         $this->assertSame($bundle, $actual);
