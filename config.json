@@ -38,7 +38,7 @@
     "project-settings": [
         {
             "key": "top-description",
-            "name": "Make sure read the documentation available at the 'View Documentation' link in the list of modules.",
+            "name": "Make sure to read the documentation available at the 'View Documentation' link in the list of modules.",
             "type": "descriptive"
         },
         {
