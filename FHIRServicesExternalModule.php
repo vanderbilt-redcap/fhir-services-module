@@ -11,6 +11,8 @@ use MetaData;
 use Exception;
 use Form;
 
+use Firebase\JWT\JWT;
+
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource;
 use DCarbone\PHPFHIRGenerated\R4\PHPFHIRResponseParser;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRCoding;
@@ -2562,6 +2564,55 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
     }
 
+    private function getAuthorizationHeader(){
+        $keyJson = $this->getProjectSetting('jwt-key-json');
+        if(!$keyJson){
+            return false;
+        }
+
+        $keyDetails = json_decode($keyJson, true);
+
+        $payload = [
+            "iss" => $keyDetails['client_email'],
+            "aud" => $keyDetails['token_uri'],
+            "scope" => $this->getProjectSetting('jwt-scope'),
+            "iat" => time(),
+            "exp" => time() + 60*20
+        ];
+
+        $jwt = JWT::encode($payload, $keyDetails['private_key'], 'RS256');
+
+        $postData = http_build_query([
+            'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            'assertion' => $jwt,
+            'response_type' => 'code'
+        ]);
+        
+        $response = file_get_contents($keyDetails['token_uri'], false, stream_context_create([
+            'http' => [
+                'method'  => 'POST',
+                'header' => 'Content-length: ' . strlen($postData) . "\r\n"
+                    . "Content-type: application/x-www-form-urlencoded\r\n",
+                'content' => $postData
+            ]
+        ]));
+
+        $response = json_decode($response, true);
+
+        return 'Authorization: Bearer ' . $response['access_token'];
+    }
+
+    private function getHeaders(){
+        $headers = ['Content-Type: application/fhir+json'];
+
+        $authorization = $this->getAuthorizationHeader();
+        if($authorization){
+            $headers[] = $authorization;
+        }
+
+        return implode("\r\n", $headers);
+    }
+
     function sendToRemoteFHIRServer($resource){
         $resourceType = $resource['resourceType'];
 
@@ -2569,7 +2620,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $response = file_get_contents("$url/$resourceType", false, stream_context_create([
             'http' => [
                 'method' => 'POST',
-                'header' => "Content-Type: application/fhir+json\r\n",
+                'header' => $this->getHeaders(),
                 'content' => $this->jsonSerialize($resource),
                 'ignore_errors' => true
             ]

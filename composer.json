@@ -5,8 +5,7 @@
         }
     },
     "require": {
-        "dcarbone/php-fhir-generated": "^2"
-    },
-    "require-dev": {
+        "dcarbone/php-fhir-generated": "^2",
+        "firebase/php-jwt": "^5.4"
     }
 }

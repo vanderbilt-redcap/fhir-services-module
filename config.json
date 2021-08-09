@@ -47,6 +47,16 @@
             "type": "text"
         },
         {
+            "key": "jwt-key-json",
+            "name": "JWT Key JSON",
+            "type": "password"
+        },
+        {
+            "key": "jwt-scope",
+            "name": "JWT Scope",
+            "type": "text"
+        },
+        {
             "key": "send-consents",
             "name": "Automatically send completed eConsents for the forms below to the Remote FHIR Server URL above",
             "type": "checkbox"
