@@ -25,10 +25,50 @@ class SchemaParser{
 
     static function getDefinitions(){
         if(self::$definitions === null){
-            self::$definitions = json_decode(self::getSchemaJSON(), true)['definitions'];
+            $definitions = json_decode(self::getSchemaJSON(), true)['definitions'];
+            self::applyExtensions($definitions);
+            self::$definitions = $definitions;
         }
 
         return self::$definitions;
+    }
+
+    private static function applyExtensions(&$definitions){
+        $patientExtension = 'PatientExtension';
+        $patientExtensionRace = "{$patientExtension}Race";
+
+        $definitions[$patientExtension] = [
+            'properties' => [
+                'race' => [
+                    '$ref' => "#/definitions/$patientExtensionRace"
+                ]
+            ],
+        ];
+
+        $definitions[$patientExtensionRace] = [
+            'properties' => [
+                'ombCategory' => [
+                    'items' => [
+                        '$ref' => "#/definitions/string"
+                    ],
+                    'type' => 'array'
+                ],
+                'detailed' => [
+                    'items' => [
+                        '$ref' => "#/definitions/string"
+                    ],
+                    'type' => 'array'
+                ],
+                'text' => [
+                    '$ref' => "#/definitions/string"
+                ]
+            ],
+        ];
+      
+        $definitions['Patient']['properties']['extension'] = [
+            '$ref' => "#/definitions/$patientExtension",
+            'added-by-this-module' => true
+        ];
     }
 
     static function getModifiedSchema(){
@@ -63,7 +103,9 @@ class SchemaParser{
         foreach($properties as $propertyName=>$property){
             if(
                 // Skip meta-properties
-                in_array($propertyName, ['resourceType', 'id', 'meta', 'implicitRules', 'contained', 'extension', 'modifierExtension', 'identifier'])
+                in_array($propertyName, ['resourceType', 'id', 'meta', 'implicitRules', 'contained', 'modifierExtension', 'identifier'])
+                ||
+                ($propertyName === 'extension' && ($property['added-by-this-module'] ?? null) !== true)
                 ||
                 // Ignore recursive loops
                 // This currently falsely matches things like code/coding/code.
@@ -82,7 +124,7 @@ class SchemaParser{
             }
 
             $refDefinitionName = self::getResourceNameFromRef($property);
-            $subProperties = self::$definitions[$refDefinitionName]['properties'] ?? null;
+            $subProperties = self::getDefinitions()[$refDefinitionName]['properties'] ?? null;
             $parts = array_merge($parents, [$propertyName]);
 
             if($subProperties === null){

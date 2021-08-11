@@ -772,7 +772,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return [$projectId, $recordId]; 
     }
 
-    function getResourceUrl($resource){
+    function getResourceUrlPrefix(){
         $originalPid = $_GET['pid'] ?? null;
         unset($_GET['pid']);
 
@@ -781,7 +781,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $_GET['pid'] = $originalPid;
 
-        return "$urlPrefix&fhir-url=/" . $this->getRelativeResourceUrl($resource);
+        return "$urlPrefix&fhir-url=/";
+    }
+
+    function getResourceUrl($resource){
+        return $this->getResourceUrlPrefix() . $this->getRelativeResourceUrl($resource);
     }
 
     function getRelativeResourceUrl($resource){

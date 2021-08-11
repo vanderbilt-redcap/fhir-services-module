@@ -38,6 +38,49 @@ class FieldMapper{
                 }
             }
         }
+
+        $this->processExtensions();
+    }
+
+    private function processExtensions(){
+        foreach($this->resources as $type=>&$resources){
+            foreach($resources as &$resource){
+                if($type === 'Patient'){
+                    $race = $resource['extension']['race'] ?? null;
+                    if($race){
+                        unset($resource['extension']['race']);
+
+                        $resource['meta']['profile'][] = "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient";
+    
+                        $extension = [];
+    
+                        $extension['url'] = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-race';
+    
+                        foreach(['ombCategory', 'detailed'] as $url){
+                            foreach($race[$url] ?? [] as $code){
+                                $extension['extension'][] = [
+                                    'url' => $url,
+                                    'valueCoding' => [
+                                        "system" => "urn:oid:2.16.840.1.113883.6.238",
+                                        "code" => $code,
+                                    ]
+                                ];
+                            }    
+                        }
+
+                        $text = $race['text'] ?? null;
+                        if($text){
+                            $extension['extension'][] = [
+                                'url' => 'text',
+                                'valueString' => $text
+                            ];
+                        }
+    
+                        $resource['extension'][] = $extension;
+                    }
+                }
+            }
+        }
     }
 
     private function getMappingFieldNames($mappings){
@@ -172,9 +215,15 @@ class FieldMapper{
 
         $resource = &$this->getArrayChild($this->resources[$resourceName], $addNewArrayItem && $this->getModule()->isRepeatableResource($resourceName));
         if(!isset($resource['id'])){
+            $id = $this->getModule()->getResourceId($resourceName, $this->getProjectId(), $this->getRecordId(), $fieldName, $data);
             $resource = [
                 'resourceType' => $resourceName,
-                'id' => $this->getModule()->getResourceId($resourceName, $this->getProjectId(), $this->getRecordId(), $fieldName, $data)
+                'id' => $id
+            ];
+
+            $resource['identifier'][] = [
+                'system' => $this->getModule()->getResourceUrlPrefix(),
+                'value' => $this->getModule()->getRelativeResourceUrl($resource)
             ];
         }
 
@@ -190,6 +239,10 @@ class FieldMapper{
             $subPath = &$subPath[$parentName];
             $parentsSoFar[] = $parentName;
             $parentProperty = $parentDefinition['properties'][$parentName] ?? null;
+            if($parentProperty === null){
+                throw new Exception("Property named '$parentName' not found in element path for the '$subResourceName' resource: " . json_encode($parentsSoFar, JSON_PRETTY_PRINT));
+            }
+            
             $subResourceName = SchemaParser::getResourceNameFromRef($parentProperty);
             $parentDefinition = $definitions[$subResourceName] ?? null;
 
@@ -200,6 +253,10 @@ class FieldMapper{
         }
 
         $elementProperty = $parentDefinition['properties'][$elementName] ?? null;
+        if($elementProperty === null){
+            throw new Exception("The following mapping is not valid: $mappingString");
+        }
+
         if(($elementProperty['type'] ?? null) !== 'array' && isset($subPath[$elementName])){
             if(
                 $resourceName === 'Patient'

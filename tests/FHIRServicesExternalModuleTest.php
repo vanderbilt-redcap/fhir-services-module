@@ -3,6 +3,7 @@
 use DateTime;
 use DateTimeZone;
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaire\FHIRQuestionnaireItem;
+use Exception;
 
 /**
  * These are not intended to be used outside the EM framework,
@@ -16,7 +17,7 @@ const TEST_REPEATING_FORM = 'test_repeating_form';
 const TEST_REPEATING_FIELD_1 = 'test_repeating_field_1';
 const TEST_REPEATING_FIELD_2 = 'test_repeating_field_2';
 const VENDOR_PATH = __DIR__ . '/../vendor/';
-const RESOURCES_PATH = VENDOR_PATH . 'resource-to-validate/';
+const RESOURCES_PATH = VENDOR_PATH . 'resources-to-validate/';
 
 class FHIRServicesExternalModuleTest extends BaseTest{
     static function setUpBeforeClass():void{
@@ -268,13 +269,20 @@ class FHIRServicesExternalModuleTest extends BaseTest{
     }
 
     private function setResourceTypeAndId($resourceName, $firstFieldName, $instance, $resource){
-        return array_merge([
+        $newResource = [
             // Type & id are required to build URLs, which are required by Bundles.
             'resourceType' => $resourceName,
             'id' => $this->module->getResourceId($resourceName, $this->getTestPID(), TEST_RECORD_ID, $firstFieldName, [
                 'redcap_repeat_instance' => $instance
             ])
-        ], $resource);
+        ];
+
+        $newResource['identifier'][] = [
+            'system' => $this->getResourceUrlPrefix(),
+            'value' => $this->getRelativeResourceUrl($newResource)
+        ];
+
+        return array_merge($newResource, $resource);
     }
 
     function assert($fields, $expectedJSON, $resource = 'Patient', $expectingMultipleEntries = null){
@@ -283,12 +291,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
         $data = [TEST_RECORD_ID_FIELD => $recordId];
         $uniqueMappings = [];
-        $firstFieldName = null;
         foreach($fields as $fieldName=>$details){
-            if($firstFieldName === null){
-                $firstFieldName = $fieldName;
-            }
-
             $mapping = $details['mapping'] ?? null;
             $element = $details['element'] ?? null;
             
@@ -338,8 +341,16 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         }
 
         $entries = [];
-        foreach($expectedJSON as $expectedResource){
-            $expectedResource = $this->setResourceTypeAndId($resource, $firstFieldName, null, $expectedResource);
+        $fieldNames = array_keys($fields);
+        for($i=0; $i<count($expectedJSON); $i++){
+            if($expectingMultipleEntries){
+                $fieldNameIndex = $i;
+            }
+            else{
+                $fieldNameIndex = 0;
+            }
+
+            $expectedResource = $this->setResourceTypeAndId($resource, $fieldNames[$fieldNameIndex], null, $expectedJSON[$i]);
 
             $entry = [];
             $entry['resource'] = $expectedResource;
@@ -566,6 +577,113 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $this->queueForValidation(json_decode($resource, true));
     }
 
+    function testRace(){
+        $category1 = '2106-3';
+        $category2 = '1002-5';
+        $detailed1 = '1041-3';
+        $detailed2 = '1044-7';
+        $text = 'some text';
+        $gender = 'female';
+        $firstName = 'John';
+        $lastName = 'Jones';
+
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'value' => $category1,
+                    'mapping' => [
+                        'type' => 'Patient',
+                        'primaryElementPath' => 'extension/race/ombCategory',
+                        'additionalElements' => [
+                            [
+                                'element' => 'extension/race/ombCategory',
+                                'value' => $category2
+                            ],
+                            [
+                                'element' => 'extension/race/detailed',
+                                'value' => $detailed1
+                            ],
+                            [
+                                'element' => 'extension/race/detailed',
+                                'value' => $detailed2
+                            ],
+                            [
+                                'element' => 'extension/race/text',
+                                'value' => $text
+                            ],
+                            [
+                                'element' => 'gender',
+                                'value' => $gender
+                            ],
+                            [
+                                'element' => 'name/given',
+                                'value' => $firstName
+                            ],
+                            [
+                                'element' => 'name/family',
+                                'value' => $lastName
+                            ],
+                        ]
+                    ]
+                ]
+            ],
+            [
+                "extension" => [
+                    [
+                        "url" => "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race",
+                        "extension" => [
+                            [
+                                "url" => "ombCategory",
+                                "valueCoding" => [
+                                    "system" => "urn:oid:2.16.840.1.113883.6.238",
+                                    "code" => $category1,
+                                ]
+                            ],
+                            [
+                                "url" => "ombCategory",
+                                "valueCoding" => [
+                                    "system" => "urn:oid:2.16.840.1.113883.6.238",
+                                    "code" => $category2,
+                                ]
+                            ],
+                            [
+                                "url" => "detailed",
+                                "valueCoding" => [
+                                    "system" => "urn:oid:2.16.840.1.113883.6.238",
+                                    "code" => $detailed1,
+                                ]
+                            ],
+                            [
+                                "url" => "detailed",
+                                "valueCoding" => [
+                                    "system" => "urn:oid:2.16.840.1.113883.6.238",
+                                    "code" => $detailed2,
+                                ]
+                            ],
+                            [
+                                "url" => "text",
+                                "valueString" => $text
+                            ]
+                        ]
+                    ]
+                ],
+                "gender" => $gender,
+                "name" => [
+                    [
+                        "given" => [
+                            $firstName
+                        ],
+                        "family" => $lastName
+                    ]
+                ],
+                "meta" => [
+                    "profile" => [
+                        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+                    ]
+                ]
+            ]
+        );
+    }
     function testGetMappedFieldsAsBundle_patient_telecomComplexity(){
         $this->setFHIRMapping(TEST_REPEATING_FIELD_1, [
             'type' => 'Patient',
@@ -998,17 +1116,15 @@ class FHIRServicesExternalModuleTest extends BaseTest{
      * Instead of spinning up a new java process on each test, we could write resources to a folder and scan them all at once in tearDown().
      */
     static function validate(){
-        if(defined('SKIP_VALIDATION')){
+        if(defined('SKIP_VALIDATION') || empty(glob(RESOURCES_PATH . '*'))){
             return;
         }
 
         // Add a basic resource to guarantee that multiple resources are always being validated
         // so that the validator always prints the "--" lines for each file (we depend on them for parsing output).
-        foreach([1, 2] as $number){
-            file_put_contents(RESOURCES_PATH . "guaranteed-file-$number.json", json_encode([
-                'resourceType' => 'HumanName'
-            ]));
-        }
+        file_put_contents(RESOURCES_PATH . "guaranteed-file.json", json_encode([
+            'resourceType' => 'HumanName'
+        ]));
 
         $validatorPath = VENDOR_PATH . "fhir-validator.jar";
         if(!file_exists($validatorPath)){
@@ -1413,7 +1529,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                     ]
                 ])
             ],
-            null,
+            'Patient',
             true
         );
     }
