@@ -1224,7 +1224,13 @@ class FHIRServicesExternalModuleTest extends BaseTest{
      * Instead of spinning up a new java process on each test, we could write resources to a folder and scan them all at once in tearDown().
      */
     static function validate(){
-        if(defined('SKIP_VALIDATION') || self::$failing){
+        if(
+            defined('SKIP_VALIDATION')
+            ||
+            self::$failing
+            ||
+            empty(glob(RESOURCES_PATH . '*'))
+        ){
             return;
         }
 
