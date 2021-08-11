@@ -489,94 +489,6 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         );
     }
 
-    function testRaceAndEthnicityValidation(){
-        $resource = '{
-            "resourceType" : "Patient",
-            "meta" : {
-              "profile" : [
-                "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
-              ]
-            },
-            "extension" : [
-              {
-                "extension" : [
-                  {
-                    "url" : "ombCategory",
-                    "valueCoding" : {
-                      "system" : "urn:oid:2.16.840.1.113883.6.238",
-                      "code" : "2106-3",
-                      "display" : "White"
-                    }
-                  },
-                  {
-                    "url" : "ombCategory",
-                    "valueCoding" : {
-                      "system" : "urn:oid:2.16.840.1.113883.6.238",
-                      "code" : "1002-5",
-                      "display" : "American Indian or Alaska Native"
-                    }
-                  },
-                  {
-                    "url" : "text",
-                    "valueString" : "I think this is a text summary of the entire race extension for this record."
-                  }
-                ],
-                "url" : "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race"
-              },
-              {
-                "extension" : [
-                  {
-                    "url" : "ombCategory",
-                    "valueCoding" : {
-                      "system" : "urn:oid:2.16.840.1.113883.6.238",
-                      "code" : "2135-2",
-                      "display" : "Hispanic or Latino"
-                    }
-                  },
-                  {
-                    "url" : "detailed",
-                    "valueCoding" : {
-                      "system" : "urn:oid:2.16.840.1.113883.6.238",
-                      "code" : "2184-0",
-                      "display" : "Dominican"
-                    }
-                  },
-                  {
-                    "url" : "detailed",
-                    "valueCoding" : {
-                      "system" : "urn:oid:2.16.840.1.113883.6.238",
-                      "code" : "2148-5",
-                      "display" : "Mexican"
-                    }
-                  },
-                  {
-                    "url" : "text",
-                    "valueString" : "I think this is a text summary of the entire ethnicity extension for this record."
-                  }
-                ],
-                "url" : "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity"
-              }
-            ],
-            "identifier" : [
-              {
-                "system" : "http://some.url",
-                "value": "some value"
-              }
-            ],
-            "name" : [
-              {
-                "family": "Smith",
-                "given": [
-                    "John"
-                ]
-              }
-            ],
-            "gender" : "male"
-        }';
-
-        $this->queueForValidation(json_decode($resource, true));
-    }
-
     function assertUSCore($mappings, $expected){
         // The values are required for US Core patients to validate.
         $gender = 'female';
@@ -678,6 +590,73 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                                 "valueCoding" => [
                                     "system" => "urn:oid:2.16.840.1.113883.6.238",
                                     "code" => $category2,
+                                ]
+                            ],
+                            [
+                                "url" => "detailed",
+                                "valueCoding" => [
+                                    "system" => "urn:oid:2.16.840.1.113883.6.238",
+                                    "code" => $detailed1,
+                                ]
+                            ],
+                            [
+                                "url" => "detailed",
+                                "valueCoding" => [
+                                    "system" => "urn:oid:2.16.840.1.113883.6.238",
+                                    "code" => $detailed2,
+                                ]
+                            ],
+                            [
+                                "url" => "text",
+                                "valueString" => $text
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        );
+    }
+
+    function testEthnicity(){
+        $category = '2135-2';
+        $detailed1 = '2184-0';
+        $detailed2 = '2148-5';
+        $text = (string) rand();
+        
+        $this->assertUSCore(
+            [
+                $this->getFieldName() => [
+                    'value' => $category,
+                    'mapping' => [
+                        'type' => 'Patient',
+                        'primaryElementPath' => 'extension/ethnicity/ombCategory',
+                        'additionalElements' => [
+                            [
+                                'element' => 'extension/ethnicity/detailed',
+                                'value' => $detailed1
+                            ],
+                            [
+                                'element' => 'extension/ethnicity/detailed',
+                                'value' => $detailed2
+                            ],
+                            [
+                                'element' => 'extension/ethnicity/text',
+                                'value' => $text
+                            ],
+                        ]
+                    ]
+                ]
+            ],
+            [
+                "extension" => [
+                    [
+                        "url" => "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity",
+                        "extension" => [
+                            [
+                                "url" => "ombCategory",
+                                "valueCoding" => [
+                                    "system" => "urn:oid:2.16.840.1.113883.6.238",
+                                    "code" => $category,
                                 ]
                             ],
                             [

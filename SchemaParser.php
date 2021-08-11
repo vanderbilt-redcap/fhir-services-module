@@ -36,35 +36,41 @@ class SchemaParser{
     private static function applyExtensions(&$definitions){
         $patientExtension = 'PatientExtension';
         $patientExtensionRace = "{$patientExtension}Race";
+        $patientExtensionEthnicity = "{$patientExtension}Ethnicity";
 
         $definitions[$patientExtension] = [
             'properties' => [
                 'race' => [
                     '$ref' => "#/definitions/$patientExtensionRace"
+                ],
+                'ethnicity' => [
+                    '$ref' => "#/definitions/$patientExtensionEthnicity"
                 ]
             ],
         ];
 
-        $definitions[$patientExtensionRace] = [
-            'properties' => [
-                'ombCategory' => [
-                    'items' => [
-                        '$ref' => "#/definitions/string"
+        foreach([$patientExtensionRace, $patientExtensionEthnicity] as $name){
+            $definitions[$name] = [
+                'properties' => [
+                    'ombCategory' => [
+                        'items' => [
+                            '$ref' => "#/definitions/string"
+                        ],
+                        'type' => 'array'
                     ],
-                    'type' => 'array'
-                ],
-                'detailed' => [
-                    'items' => [
-                        '$ref' => "#/definitions/string"
+                    'detailed' => [
+                        'items' => [
+                            '$ref' => "#/definitions/string"
+                        ],
+                        'type' => 'array'
                     ],
-                    'type' => 'array'
+                    'text' => [
+                        '$ref' => "#/definitions/string"
+                    ]
                 ],
-                'text' => [
-                    '$ref' => "#/definitions/string"
-                ]
-            ],
-        ];
-      
+            ];
+        }
+
         $definitions['Patient']['properties']['extension'] = [
             '$ref' => "#/definitions/$patientExtension",
             'added-by-this-module' => true

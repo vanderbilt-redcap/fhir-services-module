@@ -46,43 +46,45 @@ class FieldMapper{
         foreach($this->resources as $type=>&$resources){
             foreach($resources as &$resource){
                 if($type === 'Patient'){
-                    $race = $resource['extension']['race'] ?? null;
-                    if($race){
-                        unset($resource['extension']['race']);
-
-                        $this->getModule()->setAssociativeArrayValues($resource, 'identifier', [
-                            'meta' => [
-                                'profile' => [
-                                    "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
-                                ]
-                            ]
-                        ]);
+                    foreach(['race', 'ethnicity'] as $extensionName){
+                        $mappedData = $resource['extension'][$extensionName] ?? null;
+                        if($mappedData){
+                            unset($resource['extension'][$extensionName]);
     
-                        $extension = [];
-    
-                        $extension['url'] = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-race';
-    
-                        foreach(['ombCategory', 'detailed'] as $url){
-                            foreach($race[$url] ?? [] as $code){
-                                $extension['extension'][] = [
-                                    'url' => $url,
-                                    'valueCoding' => [
-                                        "system" => "urn:oid:2.16.840.1.113883.6.238",
-                                        "code" => $code,
+                            $this->getModule()->setAssociativeArrayValues($resource, 'identifier', [
+                                'meta' => [
+                                    'profile' => [
+                                        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
                                     ]
-                                ];
-                            }    
-                        }
-
-                        $text = $race['text'] ?? null;
-                        if($text){
-                            $extension['extension'][] = [
-                                'url' => 'text',
-                                'valueString' => $text
-                            ];
-                        }
+                                ]
+                            ]);
+        
+                            $extension = [];
+        
+                            $extension['url'] = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-' . $extensionName;
+        
+                            foreach(['ombCategory', 'detailed'] as $url){
+                                foreach($mappedData[$url] ?? [] as $code){
+                                    $extension['extension'][] = [
+                                        'url' => $url,
+                                        'valueCoding' => [
+                                            "system" => "urn:oid:2.16.840.1.113883.6.238",
+                                            "code" => $code,
+                                        ]
+                                    ];
+                                }
+                            }
     
-                        $resource['extension'][] = $extension;
+                            $text = $mappedData['text'] ?? null;
+                            if($text){
+                                $extension['extension'][] = [
+                                    'url' => 'text',
+                                    'valueString' => $text
+                                ];
+                            }
+        
+                            $resource['extension'][] = $extension;
+                        }
                     }
                 }
             }
