@@ -20,6 +20,8 @@ const VENDOR_PATH = __DIR__ . '/../vendor/';
 const RESOURCES_PATH = VENDOR_PATH . 'resources-to-validate/';
 
 class FHIRServicesExternalModuleTest extends BaseTest{
+    static $failing = false;
+
     static function setUpBeforeClass():void{
         if(!defined('SKIP_VALIDATION')){
             foreach(glob(RESOURCES_PATH . '*') as $path){
@@ -62,10 +64,8 @@ class FHIRServicesExternalModuleTest extends BaseTest{
     public function setUp():void{
         parent::setUp();
 
-        $this->setFHIRMapping($this->getFieldName(), null);
-        $this->setFHIRMapping($this->getFieldName2(), null);
-        $this->setFHIRMapping(TEST_REPEATING_FIELD_1, null);
-        $this->setFHIRMapping(TEST_REPEATING_FIELD_2, null);
+        // Remove all FHIR Mappings
+        $this->query('update redcap_metadata set misc = "" where project_id = ?', $this->getTestPID());
         
         $this->setTypeAndEnum($this->getFieldName2(), 'text', '');
     }
@@ -577,17 +577,63 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $this->queueForValidation(json_decode($resource, true));
     }
 
+    function assertUSCore($mappings, $expected){
+        // The values are required for US Core patients to validate.
+        $gender = 'female';
+        $firstName = 'John';
+        $lastName = 'Jones';
+
+        $firstFieldName = array_keys($mappings)[0];
+        $additionalElements = &$mappings[$firstFieldName]['mapping']['additionalElements'];
+
+        $additionalElements[] = [
+            'element' => 'gender',
+            'value' => $gender
+        ];
+
+        $additionalElements[] = [
+            'element' => 'name/given',
+            'value' => $firstName
+        ];
+
+        $additionalElements[] = [
+            'element' => 'name/family',
+            'value' => $lastName
+        ];
+
+        $expected = array_merge(
+            [
+                "meta" => [
+                    "profile" => [
+                        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+                    ]
+                ]
+            ],
+            $expected,
+            [
+                "gender" => $gender,
+                "name" => [
+                    [
+                        "given" => [
+                            $firstName
+                        ],
+                        "family" => $lastName
+                    ]
+                ],
+            ]
+        );
+        
+        $this->assert($mappings, $expected);
+    }
+
     function testRace(){
         $category1 = '2106-3';
         $category2 = '1002-5';
         $detailed1 = '1041-3';
         $detailed2 = '1044-7';
         $text = 'some text';
-        $gender = 'female';
-        $firstName = 'John';
-        $lastName = 'Jones';
 
-        $this->assert(
+        $this->assertUSCore(
             [
                 $this->getFieldName() => [
                     'value' => $category1,
@@ -610,18 +656,6 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                             [
                                 'element' => 'extension/race/text',
                                 'value' => $text
-                            ],
-                            [
-                                'element' => 'gender',
-                                'value' => $gender
-                            ],
-                            [
-                                'element' => 'name/given',
-                                'value' => $firstName
-                            ],
-                            [
-                                'element' => 'name/family',
-                                'value' => $lastName
                             ],
                         ]
                     ]
@@ -666,24 +700,11 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                             ]
                         ]
                     ]
-                ],
-                "gender" => $gender,
-                "name" => [
-                    [
-                        "given" => [
-                            $firstName
-                        ],
-                        "family" => $lastName
-                    ]
-                ],
-                "meta" => [
-                    "profile" => [
-                        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
-                    ]
                 ]
             ]
         );
     }
+
     function testGetMappedFieldsAsBundle_patient_telecomComplexity(){
         $this->setFHIRMapping(TEST_REPEATING_FIELD_1, [
             'type' => 'Patient',
@@ -1107,6 +1128,12 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         }
     }
 
+    function teardown():void{
+        if($this->getStatus() !== \PHPUnit\Runner\BaseTestRunner::STATUS_PASSED){
+            self::$failing = true;
+        }
+    }
+
     static function teardownAfterClass():void{
         self::validate();
     }
@@ -1116,7 +1143,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
      * Instead of spinning up a new java process on each test, we could write resources to a folder and scan them all at once in tearDown().
      */
     static function validate(){
-        if(defined('SKIP_VALIDATION') || empty(glob(RESOURCES_PATH . '*'))){
+        if(defined('SKIP_VALIDATION') || self::$failing){
             return;
         }
 

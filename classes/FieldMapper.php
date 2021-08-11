@@ -50,7 +50,13 @@ class FieldMapper{
                     if($race){
                         unset($resource['extension']['race']);
 
-                        $resource['meta']['profile'][] = "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient";
+                        $this->getModule()->setAssociativeArrayValues($resource, 'identifier', [
+                            'meta' => [
+                                'profile' => [
+                                    "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+                                ]
+                            ]
+                        ]);
     
                         $extension = [];
     

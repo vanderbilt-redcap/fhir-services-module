@@ -2684,4 +2684,18 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         return $id;
     }
+
+    function setAssociativeArrayValues(&$array, $keyToInsertAfter, $newValues){
+        foreach($array as $key=>$value){
+            // Move the value to the end;
+            unset($array[$key]);
+            $array[$key] = $value;
+
+            if($key === $keyToInsertAfter){
+                foreach($newValues as $newKey=>$newValue){
+                    $array[$newKey] = $newValue;
+                }
+            }
+        }
+    }
 }
