@@ -617,6 +617,33 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         );
     }
 
+    function testBirthsex(){
+        $value = 'F';
+        $this->assertUSCore(
+            [
+                $this->getFieldName() => [
+                    'value' => $value,
+                    'mapping' => [
+                        'type' => 'Patient',
+                        'primaryElementPath' => 'extension/birthsex',
+                        'additionalElements' => []
+                    ]
+                ]
+            ],
+            [
+                'extension' => [
+                    [
+                        'url' => 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex',
+                        'valueCode' => $value
+                    ]
+                ]
+            ]
+        );
+
+        // Don't validate this one for now.  There might be something wrong with the validator related to birthsex.
+        unlink($this->getValidationFilename());
+    }
+
     function testEthnicity(){
         $category = '2135-2';
         $detailed1 = '2184-0';
@@ -1083,6 +1110,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $this->queueForValidation($actual);
     }
 
+    private function getValidationFilename(){
+        return RESOURCES_PATH . $this->getName() . '.json';
+    }
+
     private function queueForValidation($resource){
         /**
          * The IDs REDCap uses internally and for URLs can be longer than the 64 char limit.
@@ -1094,7 +1125,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             mkdir(RESOURCES_PATH);
         }
         
-        file_put_contents(RESOURCES_PATH . $this->getName() . '.json', json_encode($resource, JSON_PRETTY_PRINT));
+        file_put_contents($this->getValidationFilename(), json_encode($resource, JSON_PRETTY_PRINT));
     }
 
     private function assertIDNotSet($resource){

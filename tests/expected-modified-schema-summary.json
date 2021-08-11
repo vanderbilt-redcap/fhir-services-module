@@ -8035,6 +8035,7 @@
         "extension\/ethnicity\/ombCategory",
         "extension\/ethnicity\/detailed",
         "extension\/ethnicity\/text",
+        "extension\/birthsex\/valueCode",
         "active",
         "name\/use",
         "name\/text",

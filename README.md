@@ -11,6 +11,7 @@ This module is a work in progress prototyping the following FHIR related feature
     * It is currently assumed that only a single instance of the Patient Resource will ever be mapped per REDCap record. This Patient will be automatically linked to other Resources in Bundles via the subject/patient reference elements on each Resource.
     * Observation/code is currently limited to LOINC codes
     * REDCap to FHIR mapping involves an almost infinite number of edge cases... Whether or not this feature will work for you in its current state is highly dependant on the details of your particular project's design.  However, all evidence so far points to any imaginable mapping being feasible.  We anticipate that at some point we will reach a critical mass of test cases and generalized solutions that will cover the large majority of data that can be represented in both REDCap & FHIR.  We are currently looking for partners to help justify, implement, and verify further work.
+    * The only extensions currently supported are those in the US Core Patient profile.
 * Behaving as a FHIR server and sending/receiving FHIR resources
   * The FHIR resource for the current record can be viewed or sent by going to the **Record Home Page**, clicking **Choose action for record**, and selecting the **View FHIR...**, **Validate FHIR...**, or **Send FHIR...** options.
   * The **Send FHIR...** option will send the current record to the **Remote FHIR Server URL** specified in the module configuration.
