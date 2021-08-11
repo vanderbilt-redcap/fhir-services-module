@@ -37,7 +37,6 @@ class SchemaParser{
         $patientExtension = 'PatientExtension';
         $patientExtensionRace = "{$patientExtension}Race";
         $patientExtensionEthnicity = "{$patientExtension}Ethnicity";
-        $patientExtensionBirthsex = "{$patientExtension}Birthsex";
 
         $definitions[$patientExtension] = [
             'properties' => [
@@ -48,7 +47,7 @@ class SchemaParser{
                     '$ref' => "#/definitions/$patientExtensionEthnicity"
                 ],
                 'birthsex' => [
-                    '$ref' => "#/definitions/$patientExtensionBirthsex"
+                    '$ref' => "#/definitions/string"
                 ],
             ],
         ];
@@ -74,15 +73,7 @@ class SchemaParser{
                 ],
             ];
         }
-
-        $definitions[$patientExtensionBirthsex] = [
-            'properties' => [
-                'valueCode' => [
-                    '$ref' => "#/definitions/string"
-                ]
-            ],
-        ];
-
+        
         $definitions['Patient']['properties']['extension'] = [
             '$ref' => "#/definitions/$patientExtension",
             'added-by-this-module' => true
