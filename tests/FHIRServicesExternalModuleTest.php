@@ -711,6 +711,77 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         );
     }
 
+    function testRaceAndEthnicity(){
+        // Make sure they play nicely together.
+
+        $category1 = '2106-3';
+        $category2 = '2135-2';
+        $text1 = (string) rand();
+        $text2 = (string) rand(); 
+
+        $this->assertUSCore(
+            [
+                $this->getFieldName() => [
+                    'value' => $category1,
+                    'mapping' => [
+                        'type' => 'Patient',
+                        'primaryElementPath' => 'extension/race/ombCategory',
+                        'additionalElements' => [
+                            [
+                                'element' => 'extension/race/text',
+                                'value' => $text1
+                            ],
+                            [
+                                'element' => 'extension/ethnicity/ombCategory',
+                                'value' => $category2
+                            ],
+                            [
+                                'element' => 'extension/ethnicity/text',
+                                'value' => $text2
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            [
+                "extension" => [
+                    [
+                        "url" => "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race",
+                        "extension" => [
+                            [
+                                "url" => "ombCategory",
+                                "valueCoding" => [
+                                    "system" => "urn:oid:2.16.840.1.113883.6.238",
+                                    "code" => $category1,
+                                ]
+                            ],
+                            [
+                                "url" => "text",
+                                "valueString" => $text1
+                            ]
+                        ]
+                    ],
+                    [
+                        "url" => "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity",
+                        "extension" => [
+                            [
+                                "url" => "ombCategory",
+                                "valueCoding" => [
+                                    "system" => "urn:oid:2.16.840.1.113883.6.238",
+                                    "code" => $category2,
+                                ]
+                            ],
+                            [
+                                "url" => "text",
+                                "valueString" => $text2
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        );
+    }
+
     function testGetMappedFieldsAsBundle_patient_telecomComplexity(){
         $this->setFHIRMapping(TEST_REPEATING_FIELD_1, [
             'type' => 'Patient',
