@@ -240,17 +240,17 @@ class SchemaParser{
             $profileResource = explode('http://hl7.org/fhir/StructureDefinition/', $profile)[1];
 
             if(
-                $profileResource === 'Patient'
-                &&
-                in_array($lastPart, ['subject', 'patient', 'individual'])
+                ($profileResource === 'Patient' && in_array($lastPart, ['subject', 'patient', 'individual']))
+                ||
+                ($profileResource === 'ResearchStudy' && in_array($lastPart, ['study']))
             ){
                 if(count($pathParts) > 1){
-                    throw new Exception("Patient references with multiple path parts are not yet implemented (though support should be very easy to add): $pathResource/$elementPath");
+                    throw new Exception("References with multiple path parts are not yet implemented (though support should be very easy to add): $pathResource/$elementPath");
                 }
 
                 $existingPath = self::$targetProfiles[$profileResource][$pathResource] ?? null;
                 if($existingPath !== null){
-                    throw new Exception("Tried to set a Patient path of $elementPath for $pathResource, but $existingPath was already set.");
+                    throw new Exception("Tried to set a path of $elementPath for $pathResource, but $existingPath was already set.");
                 }
 
                 self::$targetProfiles[$profileResource][$pathResource] = $elementPath;

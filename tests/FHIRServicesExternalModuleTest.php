@@ -12,6 +12,7 @@ use Exception;
 const TEST_RECORD_ID = '1';
 const TEST_RECORD_ID_FIELD = 'test_record_id';
 const TEST_TEXT_FIELD = 'test_text_field';
+const TEST_TEXT_FIELD_2 = 'test_text_field_2';
 const TEST_SQL_FIELD = 'test_sql_field';
 const TEST_REPEATING_FORM = 'test_repeating_form';
 const TEST_REPEATING_FIELD_1 = 'test_repeating_field_1';
@@ -76,6 +77,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
     private function getFieldName2(){
         return TEST_SQL_FIELD;
+    }
+
+    private function getFieldName3(){
+        return TEST_TEXT_FIELD_2;
     }
     
     private function getFormName(){
@@ -1718,6 +1723,54 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 'active' => true
             ],
             'Organization' // We could have chosen any repeatable resource to test this.
+        );
+    }
+
+    function testResearchSubject(){
+        $lastName = 'Smith';
+
+        $patient = $this->setResourceTypeAndId('Patient', null, null, [
+            'name' => [
+                [
+                    'family' => $lastName,
+                ],
+            ],
+        ]);
+
+        $study = $this->setResourceTypeAndId('ResearchStudy', $this->getFieldName3(), null, [
+            'status' => 'active'
+        ]);
+
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'mapping' => 'Patient/name/family',
+                    'value' => $lastName
+                ],
+                $this->getFieldName2() => [
+                    'mapping' => 'ResearchSubject/status',
+                    'value' => 'candidate'
+                ],
+                $this->getFieldName3() => [
+                    'mapping' => 'ResearchStudy/status',
+                    'value' => 'active'
+                ],
+            ],
+            [
+                $patient,
+                $study,
+                $this->setResourceTypeAndId('ResearchSubject', $this->getFieldName2(), null, [
+                    'status' => 'candidate',
+                    'individual' => [
+                        'reference' => $this->getRelativeResourceUrl($patient)
+                    ],
+                    'study' => [
+                        'reference' => $this->getRelativeResourceUrl($study)
+                    ],
+                ]),
+            ],
+            'Patient',
+            true
         );
     }
 }

@@ -2194,21 +2194,24 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             'type' => $type,
         ]);
 
-        $patient = null;
+        $resourcesByType = [];
         foreach($resources as $resource){
-            if($resource['resourceType'] === 'Patient'){
-                $patient = $resource;
-            }
+            $resourcesByType[$resource['resourceType']][] = $resource;
         }
 
         foreach($resources as $resource){
             $type = $resource['resourceType'];
-            $patientId = $patient['id'];
+            
+            foreach($resourcesByType as $referencedType=>$referencedResources){
+                if(count($referencedResources) !== 1){
+                    // We don't have a way of knowing which one to reference, so don't reference anything.
+                    continue;
+                }
 
-            if($patient !== null){
-                $elementName = SchemaParser::getTargetProfiles()['Patient'][$type] ?? null;
+                $referencedResource = $referencedResources[0];
+                $elementName = SchemaParser::getTargetProfiles()[$referencedType][$type] ?? null;
                 if($elementName !== null){
-                    $resource[$elementName]['reference'] = 'Patient/' . $patientId;
+                    $resource[$elementName]['reference'] = $referencedType . '/' . $referencedResource['id'];
                 }
             }
 
