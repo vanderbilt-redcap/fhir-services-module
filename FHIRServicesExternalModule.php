@@ -279,8 +279,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                             console.log('Remote Response: ' + response['remote-response'])
                         }
                         else{
-                            alert('An error ocurred.  See the browser log for details.')
-                            console.log(response)
+                            simpleDialog('An error response was returned:<br><br><pre>' + response.responseText + '</pre>')
                         }
 
                         dialog.modal('hide')
