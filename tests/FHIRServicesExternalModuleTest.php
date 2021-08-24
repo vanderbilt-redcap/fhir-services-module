@@ -303,7 +303,17 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             if($element !== null){
                 $mapping = $resource . '/' . $element;
             }
-            else{                
+            else{
+                if($mapping !== null){
+                    if(is_array($mapping)){
+                        $resource = $mapping['type'];
+                    }
+                    else{
+                        $parts = explode('/', $mapping);
+                        $resource = $parts[0];
+                    }
+                }
+                
                 foreach($mapping['additionalElements'] as $additionalElement){
                     $field = @$additionalElement['field'];
                     $value = @$additionalElement['value'];
@@ -355,7 +365,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 $fieldNameIndex = 0;
             }
 
-            $expectedResource = $this->setResourceTypeAndId($resource, $fieldNames[$fieldNameIndex], null, $expectedJSON[$i]);
+            $expectedResource = $expectedJSON[$i];
+            if(!isset($expectedResource['resourceType'])){
+                $expectedResource = $this->setResourceTypeAndId($resource, $fieldNames[$fieldNameIndex], null, $expectedResource);
+            }
 
             $entry = [];
             $entry['resource'] = $expectedResource;
@@ -1579,23 +1592,17 @@ class FHIRServicesExternalModuleTest extends BaseTest{
     }
 
     function testImmunizationMapping_bundle(){
-
-        $pid = $this->getTestPID();
         $lastName = 'Smith';
         $code = 16;
         $occurrence = (string) rand();
 
-        $patientId = $this->getRecordFHIRId($pid, TEST_RECORD_ID);
-
-        $expectedPatient = [
-            'resourceType' => 'Patient',
-            'id' => $patientId,
+        $expectedPatient = $this->setResourceTypeAndId('Patient', null, null, [
             'name' => [
                 [
                     'family' => $lastName,
                 ],
             ],
-        ];
+        ]);
 
         $this->assert(
             [
@@ -1644,7 +1651,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                         ]
                     ],
                     'patient' => [
-                        'reference' => "Patient/$patientId"
+                        'reference' => "Patient/" . $expectedPatient['id']
                     ]
                 ])
             ],
