@@ -1780,4 +1780,52 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             true
         );
     }
+
+    function testCondition_verificationStatus(){
+        /**
+         * Condition/verificationStatus has a version appended to the valueSet URL in dataelements.json.
+         * This test ensures that that version gets removed so that the system url can be matched.
+         */
+
+        $family = 'Jetson';
+
+        $patient = $this->setResourceTypeAndId('Patient', null, null, [
+            'name' => [
+                [
+                    'family' => $family,
+                ],
+            ],
+        ]);
+
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'mapping' => 'Condition/verificationStatus',
+                    'value' => 'confirmed'
+                ],
+                $this->getFieldName2() => [
+                    'mapping' => 'Patient/name/family',
+                    'value' => $family,
+                ]
+            ],
+            [
+                $this->setResourceTypeAndId('Condition', $this->getFieldName(), null, [
+                    'verificationStatus' => [
+                        'coding' => [
+                            [
+                                'system' => 'http://terminology.hl7.org/CodeSystem/condition-ver-status',
+                                'code' => 'confirmed'
+                            ]
+                        ]
+                    ],
+                    'subject' => [
+                        'reference' => "Patient/" . $patient['id']
+                    ]
+                ]),
+                $patient
+            ],
+            null,
+            true
+        );
+    }
 }

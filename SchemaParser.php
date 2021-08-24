@@ -297,7 +297,8 @@ class SchemaParser{
         }
 
         $dataElement = self::getDataElements()[implode('.', $pathParts)] ?? null;
-        $valueSetUrl = $dataElement->snapshot->element[0]->binding->valueSet ?? null;
+        $parts = explode('|', $dataElement->snapshot->element[0]->binding->valueSet ?? null); // trim off the version string
+        $valueSetUrl = $parts[0];
 
         $expansion = self::getExpansions()[$valueSetUrl] ?? null;
 
@@ -308,7 +309,6 @@ class SchemaParser{
             $property['systemsByCode'][$code] = $option->system;
         }
 
-        
         $property['redcapChoices'] = $choices;
     }
 
