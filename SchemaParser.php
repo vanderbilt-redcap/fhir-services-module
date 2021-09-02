@@ -127,7 +127,7 @@ class SchemaParser{
                 continue;
             }
 
-            $property['description'] = $propertyName . ' - ' . $property['description'];
+            $property['description'] = $propertyName . ' - ' . ($property['description'] ?? '');
             if($parentProperty !== null){
                 $property['description'] = $parentProperty['description'] . "\n\n" . $property['description'];
             }

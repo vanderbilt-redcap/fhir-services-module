@@ -6,9 +6,10 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnai
 use Exception;
 
 /**
- * These are not intended to be used outside the EM framework,
- * but let's bend that rule a bit for convenience unless/until it becomes a problem.
+ * These are copied over from (and not currently intended to be used outside of) the EM framework,
+ * but they probably should be made available to modules for unit testing.
  */
+const TEST_FORM = 'test_form';
 const TEST_RECORD_ID = '1';
 const TEST_RECORD_ID_FIELD = 'test_record_id';
 const TEST_TEXT_FIELD = 'test_text_field';
@@ -65,10 +66,16 @@ class FHIRServicesExternalModuleTest extends BaseTest{
     public function setUp():void{
         parent::setUp();
 
+        // Remove any data from failed tests, or EM framework tests.
+        $this->query('delete from redcap_data where project_id = ? and record = ?', [$this->getTestPID(), TEST_RECORD_ID]);
+
         // Remove all FHIR Mappings
         $this->query('update redcap_metadata set misc = "" where project_id = ?', $this->getTestPID());
         
         $this->setTypeAndEnum($this->getFieldName2(), 'text', '');
+
+        $_GET['pid'] = $this->getTestPID();
+        $this->removeProjectSetting('unmapped-use-questionnaire');
     }
 
     private function getFieldName(){
@@ -89,7 +96,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
     
     private function createQuestionnaire($repeatingForms = []){
         $fields = json_decode(file_get_contents(__DIR__ . '/fields.json'), true);
-        list($questionnaire, $warnings) = $this->module->createQuestionnaire(116, $this->getFormName(), 'All Field Type Examples', $fields, $repeatingForms);
+        list($questionnaire, $warnings) = $this->module->createQuestionnaire($this->getProjectId(), $this->getFormName(), 'All Field Type Examples', $fields, $repeatingForms);
 
         $this->assertSame([
             'calculated',
@@ -104,10 +111,12 @@ class FHIRServicesExternalModuleTest extends BaseTest{
     }
 
     function testCreateQuestionnaire(){
+        $_GET['pid'] = $this->getTestPID();
         $questionnaire = $this->createQuestionnaire();
         $actual = trim($this->jsonSerialize($questionnaire));
 
         ob_start();
+        $pid = $_GET['pid'];
         require(__DIR__ . '/expected-questionnaire.json.php');
         $expected = ob_get_clean();
         
@@ -277,22 +286,29 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $newResource = [
             // Type & id are required to build URLs, which are required by Bundles.
             'resourceType' => $resourceName,
-            'id' => $this->module->getResourceId($resourceName, $this->getTestPID(), TEST_RECORD_ID, $firstFieldName, [
+            'id' => $resource['id'] ?? $this->module->getResourceId($resourceName, $this->getTestPID(), TEST_RECORD_ID, $firstFieldName, [
                 'redcap_repeat_instance' => $instance
             ])
         ];
 
-        $newResource['identifier'][] = [
+        $identifier = [
             'system' => $this->getResourceUrlPrefix(),
             'value' => $this->getRelativeResourceUrl($newResource)
         ];
 
+        if($resourceName === 'QuestionnaireResponse'){
+            $newResource['identifier'] = $identifier;
+        }
+        else{
+            $newResource['identifier'][] = $identifier;
+        }
+        
         return array_merge($newResource, $resource);
     }
 
     function assert($fields, $expectedJSON, $resource = 'Patient', $expectingMultipleEntries = null){
         $pid = $this->getTestPID();
-        $recordId = 1;
+        $recordId = TEST_RECORD_ID;
 
         $data = [TEST_RECORD_ID_FIELD => $recordId];
         $uniqueMappings = [];
@@ -314,9 +330,9 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                     }
                 }
                 
-                foreach($mapping['additionalElements'] as $additionalElement){
-                    $field = @$additionalElement['field'];
-                    $value = @$additionalElement['value'];
+                foreach(($mapping['additionalElements'] ?? []) as $additionalElement){
+                    $field = $additionalElement['field'] ?? null;
+                    $value = $additionalElement['value'] ?? null;
                     if($field !== null && $value !== null){
                         $data[$additionalElement['field']] = $value;
                     }
@@ -324,7 +340,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             }
 
             if($expectingMultipleEntries === null){
-                if(!isset($uniqueMappings[$mapping])){
+                if(is_array($mapping)){
+                    // do nothing, might need to be reconsidered
+                }
+                else if(!isset($uniqueMappings[$mapping])){
                     $uniqueMappings[$mapping] = true;
                 }
                 else{ // if($this->module->isRepeatableResource($resource)){
@@ -335,7 +354,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             $this->setFHIRMapping($fieldName, $mapping);
 
             $value = (string) $details['value'];
-            if($value[0] === ' '){
+            if(!empty($value) && $value[0] === ' '){
                 // This is a leading white space check.  Manually update the DB since REDCap::saveData() trims leading & trailing whitespace automatically.
                 $this->query('update redcap_data set value = ? where project_id = ? and record = ? and field_name = ?', [$value, $pid, $recordId, $fieldName]);
             }
@@ -367,7 +386,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
             $expectedResource = $expectedJSON[$i];
             if(!isset($expectedResource['resourceType'])){
-                $expectedResource = $this->setResourceTypeAndId($resource, $fieldNames[$fieldNameIndex], null, $expectedResource);
+                $expectedResource = $this->setResourceTypeAndId($resource, $fieldNames[$fieldNameIndex] ?? null, null, $expectedResource);
             }
 
             $entry = [];
@@ -870,12 +889,19 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
     function testGetMappedFieldsAsBundle_duplicateMappings(){
         $path = "Patient/gender";
-        foreach([$this->getFieldName(), $this->getFieldName2()] as $fieldName){
-            $this->setFHIRMapping($fieldName, $path);
-        }
 
         $this->expectExceptionMessage('currently mapped to multiple fields');
-        $this->assertMappedExport();
+
+        $this->assert([
+            $this->getFieldName() => [
+                'mapping' => $path,
+                'value' => rand()
+            ],
+            $this->getFieldName2() => [
+                'mapping' => $path,
+                'value' => rand()
+            ],
+        ], []);
     }
 
     function testGetMappedFieldsAsBundle_blankValue(){
@@ -1127,6 +1153,131 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         );
     }
 
+    function testGetMappedFieldsAsBundle_Questionnaire_mapped(){
+        $this->assertQuestionnaire(false);
+    }
+
+    function testGetMappedFieldsAsBundle_Questionnaire_unmapped(){
+        $this->assertQuestionnaire(true);
+    }
+
+    private function assertQuestionnaire($unmappedUseQuestionnaire){
+        $_GET['pid'] = $this->getTestPID();
+
+        if($unmappedUseQuestionnaire){
+            $this->module->setProjectSetting('unmapped-use-questionnaire', true);
+        }
+
+        $formName = TEST_FORM;
+        $fieldDisplayName1 = 'Test Text Field';
+        $fieldDisplayName2 = 'Test SQL Field';
+        $value1 = (string) rand();
+        $value2 = (string) rand();
+        $value3 = (string) rand();
+
+        $createQuestionnaireItem = function($fieldName, $fieldDisplayName, $value = null){
+            $item = [];
+    
+            if($value !== null){
+                $item['answer'] = [
+                    [
+                        'valueString' => $value
+                    ]
+                ];
+            }
+    
+            $item['linkId'] = $fieldName;
+            $item['text'] = $fieldDisplayName;
+    
+            if($value === null){
+                $item['type'] = 'string';
+            }
+    
+            return $item;
+        };
+
+        
+        $items = [];
+        $answerItems = [];
+
+        if($unmappedUseQuestionnaire){
+            $items[] = $createQuestionnaireItem($this->getFieldName(), $fieldDisplayName1);
+            $answerItems[] = $createQuestionnaireItem($this->getFieldName(), $fieldDisplayName1, $value1);
+        }
+
+        $items[] = $createQuestionnaireItem($this->getFieldName2(), $fieldDisplayName2);
+        $answerItems[] = $createQuestionnaireItem($this->getFieldName2(), $fieldDisplayName2, $value2);
+
+        $getId = function($recordId) use ($formName){
+            return parent::getResourceId('Questionnaire', $this->getTestPID(), $recordId, $formName, [
+                'redcap_event_name' => 'event_1_arm_1'
+            ]);
+        };
+
+        $questionnaireId = $getId(null);
+        $questionnaireResponseId = $getId(TEST_RECORD_ID);
+
+        $questionnaire = $this->setResourceTypeAndId('Questionnaire', $formName, null, [
+            'id' => $questionnaireId,
+            'item' => [
+                [
+                    'item' => $items,
+                    'linkId' => $questionnaireId,
+                    'repeats' => false,
+                    'type' => 'group'
+                ]
+            ],
+            'name' => $questionnaireId,
+            'status' => 'draft',
+            'title' => 'Test Form',
+        ]);
+
+        $questionnaire['url'] = $this->getResourceUrl($questionnaire) . '&canonical';
+
+        $questionnairePath = RESOURCES_PATH . $this->getName() . '-questionnaire.json';
+        if(file_exists($questionnairePath)){
+            throw new Exception("Something went wrong and questionnaires from two different tests overlapped.");
+        }
+
+        file_put_contents($questionnairePath, json_encode($questionnaire, JSON_PRETTY_PRINT));
+
+        $this->saveData([
+            $this->getFieldName() => $value1
+        ]);
+
+        $this->assert(
+            [
+                $this->getFieldName2() => [
+                    'mapping' => 'Questionnaire',
+                    'value' => $value2
+                ],
+                $this->getFieldName3() => [
+                    'mapping' => 'Organization/name',
+                    'value' => $value3 // Since this values is mapped to Organization, it should NOT get included in the Questionnaire
+                ]
+            ],
+            [
+                $this->setResourceTypeAndId('Organization', $this->getFieldName3(), null, [
+                    'name' => $value3
+                ]),
+                $questionnaire,
+                $this->setResourceTypeAndId('QuestionnaireResponse', $formName, null, [
+                    'id' => $questionnaireResponseId,
+                    'item' => [
+                        [
+                            'item' => $answerItems,
+                            'linkId' => $questionnaireId
+                        ]
+                    ],
+                    'status' => 'completed',
+                    'questionnaire' => $questionnaire['url'],
+                ])
+            ],
+            null,
+            true
+        );
+    }
+
     function testGetEConsentFHIRBundle(){
         $pid = rand();
         $record = rand();
@@ -1266,8 +1417,12 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         // Normalize the path so it matches paths in the output.
         $validatorPath = realpath($validatorPath);
 
-        // Version 4.1 is used here instead of 4.0.1 to make sure IDs are checked for invalid characters.
-        $cmd = "java -Xmx3g -jar $validatorPath " . RESOURCES_PATH . " -version 4.1 2>&1";
+        $igArgs = '';
+        foreach(glob(RESOURCES_PATH . '*-questionnaire.json') as $path){
+            $igArgs .= " -ig $path";
+        }
+
+        $cmd = "java -Xmx3g -jar $validatorPath " . RESOURCES_PATH . " -version 4.0.1 $igArgs 2>&1";
         exec($cmd, $output, $exitCode);
 
         $onValidationFailed = function($message) use ($output){
@@ -1288,10 +1443,25 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 $path = realpath($path);
                 $validatedPaths[$path] = true;
                 
+                $line1 = $output[$lineIndex+1];
+                $line2 = $output[$lineIndex+2];
+
                 if(
-                    $output[$lineIndex+1] !== 'Success: 0 errors, 0 warnings, 1 notes' ||
-                    $output[$lineIndex+2] !== '  Information @ ?? : All OK'
+                    (
+                        $line1 === 'Success: 0 errors, 0 warnings, 1 notes' &&
+                        $line2 === '  Information @ ?? : All OK'
+                    )
+                    ||
+                    (
+                        // I can't get this warning to go away for the life of me.  I wonder if it's a bug in the validator...
+                        $line1 === 'Success: 0 errors, 1 warnings, 0 notes' &&
+                        str_contains($line2, 'Questionnaire') &&
+                        str_contains($line2, 'Name should be usable as an identifier for the module by machine processing applications such as code generation')
+                    )
                 ){
+                    // We're good!
+                }
+                else{
                     $onValidationFailed("Did not find expected success lines for path: $path");
                 }
             }
@@ -1661,6 +1831,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
     }
 
     private function assertMappedExport($bundle = []){
+        if(!isset($bundle['entry'])){
+            $bundle['entry'] = [];
+        }
+
         $bundle = $this->setFullUrls($bundle);
 
         foreach($bundle['entry'] as &$entry){

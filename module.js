@@ -73,17 +73,21 @@ $(function(){
                     mapping = module.parseMapping(details.value)
 
                     resourceTypeahead.val(mapping.type)
-                    elementTypeahead.val(mapping.primaryElementPath)
 
-                    module.initElementAutocomplete(elementTypeahead, true)
-                    module.showElementTypeahead()
+                    if(mapping.type !== 'Questionnaire'){
+                        elementTypeahead.val(mapping.primaryElementPath)
+                        module.initElementAutocomplete(elementTypeahead, true)
+                        module.showElementTypeahead()
+                    }
                 }
                 
                 module.updateRecommendedChoicesVisibility()
                 module.setAdditionalElementsFromMapping(mapping)
 
                 if(resourceTypeahead.val() !== ''){
-                    module.showElementTypeahead()
+                    if(resourceTypeahead.val() !== 'Questionnaire'){
+                        module.showElementTypeahead()
+                    }
                 }
             }
 
@@ -331,7 +335,7 @@ $(function(){
                 source: Object.keys(module.schema),
                 change: function(typeahead){
                     var elements = module.getElementsForResource()
-                    if(elements){
+                    if(elements && module.getResourceName() !== 'Questionnaire'){
                         module.initElementAutocomplete(module.ELEMENT_TYPEAHEAD, true)
                         module.showElementTypeahead()
                         elementTypeahead.val('')
@@ -488,22 +492,27 @@ $(function(){
             const element = module.ELEMENT_TYPEAHEAD.val()
 
             let newTag = ''
-            if(resource != '' && element != ''){
-                const additionalElements = module.getAdditionalElementMappings()
-
-                let content
-                if($.isEmptyObject(additionalElements)){
-                    content = resource + '/' + element
+            if(resource != ''){
+                if(element != '' || resource === 'Questionnaire'){
+                    const additionalElements = module.getAdditionalElementMappings()
+    
+                    let content
+                    if($.isEmptyObject(additionalElements)){
+                        content = resource
+                        if(element != ''){
+                            content += '/' + element
+                        }
+                    }
+                    else{
+                        content = module.actionTagEncode({
+                            type: resource,
+                            primaryElementPath: element,
+                            additionalElements: additionalElements
+                        })
+                    }
+    
+                    newTag = module.ACTION_TAG_PREFIX + content + module.ACTION_TAG_SUFFIX
                 }
-                else{
-                    content = module.actionTagEncode({
-                        type: resource,
-                        primaryElementPath: element,
-                        additionalElements: additionalElements
-                    })
-                }
-
-                newTag = module.ACTION_TAG_PREFIX + content + module.ACTION_TAG_SUFFIX
             }
 
             return newTag

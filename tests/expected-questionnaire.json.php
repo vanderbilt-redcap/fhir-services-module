@@ -1,5 +1,6 @@
 {
     "resourceType": "Questionnaire",
+    "id": "<?=$pid?>.all-field-type-examples",
     "item": [
         {
             "item": [
@@ -152,7 +153,7 @@
                     ],
                     "linkId": "radio___section_header",
                     "text": "Section Example One",
-                    "type": "fhir-group"
+                    "type": "group"
                 },
                 {
                     "item": [
@@ -174,16 +175,16 @@
                     ],
                     "linkId": "file___section_header",
                     "text": "Section Example Two",
-                    "type": "fhir-group"
+                    "type": "group"
                 }
             ],
-            "linkId": "form___all_field_type_examples",
+            "linkId": "<?=$pid?>.all-field-type-examples",
             "repeats": false,
             "type": "group"
         }
     ],
-    "name": "all_field_type_examples",
+    "name": "<?=$pid?>.all-field-type-examples",
     "status": "draft",
     "title": "All Field Type Examples",
-    "url": "<?=$this->getREDCapVersionDirURL()?>Design/online_designer.php?pid=116&page=all_field_type_examples"
+    "url": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/Questionnaire/<?=$pid?>.all-field-type-examples&canonical"
 }

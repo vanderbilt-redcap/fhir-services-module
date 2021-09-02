@@ -57,6 +57,11 @@
             "type": "text"
         },
         {
+            "key": "unmapped-use-questionnaire",
+            "name": "Include any unmapped fields under the Questionnaire resource",
+            "type": "checkbox"
+        },
+        {
             "key": "send-consents",
             "name": "Automatically send completed eConsents for the forms below to the Remote FHIR Server URL above",
             "type": "checkbox"

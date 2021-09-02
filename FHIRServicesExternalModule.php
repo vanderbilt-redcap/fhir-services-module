@@ -41,7 +41,7 @@ use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnai
 use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIRQuestionnaireResponse\FHIRQuestionnaireResponseAnswer;
 
 const RESOURCE_RECEIVED = 'Resource Received';
-const FHIR_GROUP = 'fhir-group';
+const FHIR_GROUP = 'group';
 const SUPPORTED_ACTION_TAGS = [
     '@DEFAULT',
     '@CHARLIMIT',
@@ -56,6 +56,12 @@ const SINGLE_QUOTE_PLACEHOLDER = '<single-quote-placeholder>';
 
 const INTEGER_PATTERN = "^-?([0]|([1-9][0-9]*))$";
 const DATE_TIME_PATTERN = "^([0-9]([0-9]([0-9][1-9]|[1-9]0)|[1-9]00)|[1-9]000)(-(0[1-9]|1[0-2])(-(0[1-9]|[1-2][0-9]|3[0-1])(T([01][0-9]|2[0-3]):[0-5][0-9]:([0-5][0-9]|60)(\\.[0-9]+)?(Z|(\\+|-)((0[0-9]|1[0-3]):[0-5][0-9]|14:00)))?)?)?$";
+
+if (!function_exists('str_contains')) {
+    function str_contains($haystack, $needle) {
+        return $needle !== '' && mb_strpos($haystack, $needle) !== false;
+    }
+}
 
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
     function redcap_every_page_top(){
@@ -667,7 +673,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             
             $handle = function(&$a) use (&$handle){
                foreach($a as $key=>&$value){
-                    if($key[0] === '_'){
+                    if(gettype($key) === 'string' && $key[0] === '_'){
                         // TODO - Contribute this change back.
                         unset($a[$key]);
                         continue;
@@ -793,12 +799,22 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function getRelativeResourceUrl($resource){
-        $type = $resource['resourceType'];
+        if(is_array($resource)){
+            $type = $resource['resourceType'];
+            $id = $resource['id'];
+        }
+        else if(is_object($resource)){
+            $type = $resource->_getFHIRTypeName();
+            $id = $resource->getId();
+        }
+        else{
+            throw new Exception("Expecting an object or array");
+        }
+
         if(empty($type)){
             throw new Exception("A 'resourceType' is required to build URLs.");
         }
 
-        $id = $resource['id'];
         if(empty($id)){
             throw new Exception("An 'id' is required to build URLs.");
         }
@@ -1158,13 +1174,6 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         ]);
     }
 
-    function getQuestionnaireResponse(){
-        list($projectId, $responseId) = $this->getProjectAndRecordIdsFromFHIRUrl();
-        
-        // $data = REDCap::getData($projectId, 'json', $responseId)[0];
-        return new FHIRQuestionnaireResponse;
-    }
-
     function saveResource($expectedType){
         $input = file_get_contents('php://input');
         $o = $this->parse($input);
@@ -1472,8 +1481,12 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $csv;
     }
 
-    function getRepeatingForms(){
-        $result = $this->query('select * from redcap_events_repeat where event_id = ?', $this->getEventId());
+    function getRepeatingForms($eventId = null){
+        if($eventId === null){
+            $eventId = $this->getEventId();
+        }
+
+        $result = $this->query('select * from redcap_events_repeat where event_id = ?', $eventId);
 
         $forms = [];
         while($row = $result->fetch_assoc()){
@@ -1601,7 +1614,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
     function getFHIRType($redcapField){
         $type = $redcapField['element_type'];
-        $validation = $redcapField['element_validation_type'];
+        $validation = $redcapField['element_validation_type'] ?? null;
 
         if($type === 'text'){
             if(empty($validation)){
@@ -1736,7 +1749,15 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     function getFHIRResourceForRecord($projectId, $recordId){
         $type = $this->getProjectType($projectId);
         if($type === 'questionnaire'){
-            return $this->buildQuestionnaireResponse($projectId, $recordId);
+            $instances = $this->getData($projectId, $recordId);
+            if(empty($instances)){
+                throw new Exception("A resource with the specified ID does not exist.");
+            }
+            
+            $edoc = $this->getQuestionnaireEDoc($projectId);
+            $questionnaire = $this->parse(file_get_contents(EDOC_PATH . $edoc['stored_name']));
+
+            return $this->buildQuestionnaireResponse($questionnaire, $projectId, $recordId, $instances);
         }
     }
 
@@ -1757,12 +1778,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         ];
     }
 
-    function buildQuestionnaireResponse($projectId, $recordId){
-        $instances = $this->getData($projectId, $recordId);
-        if(empty($instances)){
-            throw new Exception("A resource with the specified ID does not exist.");
-        }
-
+    function buildQuestionnaireResponse($questionnaire, $projectId, $recordId, $instances, $eventName = null){
         $data = [];
         foreach($instances as $instanceData){
             $currentRecordId = current($instanceData);
@@ -1774,10 +1790,18 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             if(!$instance){
                 $instance = 1;
             }
-            
+
+            $instanceEventName = $instanceData['redcap_event_name'] ?? '';
+
+            if($instanceEventName !== '' && $eventName !== null && $instanceEventName !== $eventName){
+                // Skip this instance, it's not for the current form.
+                continue;
+            }
+
             unset($instanceData[key($instanceData)]);
             unset($instanceData['redcap_repeat_instrument']);
             unset($instanceData['redcap_repeat_instance']);
+            unset($instanceData['redcap_event_name']);
 
             foreach($instanceData as $fieldName=>$value){
                 if($value !== ''){
@@ -1790,14 +1814,15 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             }
         }
 
-        $edoc = $this->getQuestionnaireEDoc($projectId);
-
-        $questionnaire = $this->parse(file_get_contents(EDOC_PATH . $edoc['stored_name']));
-
-        $questionnaireResponse = new FHIRQuestionnaireResponse([
+        $questionnaireResponse = [
             'status' => 'completed',
-            'meta' => self::createMeta($questionnaire->getMeta()->getTag()[0]->getCode())
-        ]);
+        ];
+
+        if($questionnaire->getMeta() !== null){
+            $questionnaireResponse['meta'] = self::createMeta($questionnaire->getMeta()->getTag()[0]->getCode());
+        }
+
+        $questionnaireResponse = new FHIRQuestionnaireResponse($questionnaireResponse);
 
         $questionnaireResponse = $this->addIdentifier($questionnaireResponse, $projectId, $recordId);
 
@@ -1809,7 +1834,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             }
 
             $itemId = $this->getLinkId($item);
-            $responseItem = $responseObjects[$itemId][$instanceIndex];
+            $responseItem = $responseObjects[$itemId][$instanceIndex] ?? null;
             if(!$responseItem){      
                 $responseItem = new FHIRQuestionnaireResponseItem;
                 $responseItem->setLinkId($itemId);
@@ -1873,7 +1898,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $answerData = [
                 'valueCoding' => new FHIRCoding([
                     'code' => $value,
-                    'display' => $this->getAnswers($item)[$value]
+                    'display' => ($this->getAnswers($item)[$value] ?? null)
                 ])
             ];
         }
@@ -1900,7 +1925,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function createQuestionnaireItem($redcapField){
-        $fieldName = $redcapField['field_name'];
+        $fieldName = $redcapField['field_name'] ?? null;
 
         $fhirType = $this->getFHIRType($redcapField);
         if($fhirType === null){
@@ -1909,11 +1934,11 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $item = [
             'linkId' => $fieldName,
-            'text' => $redcapField['element_label'],
+            'text' => $redcapField['element_label'] ?? null,
             'type' => $fhirType
         ];
     
-        if($redcapField['field_req'] === 1){
+        if(($redcapField['field_req'] ?? null) === 1){
             $item['required'] = true;
         }
 
@@ -1942,7 +1967,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     function handleActionTags($redcapField, &$item){
         $getValue = function($tagName) use ($redcapField){
             $this->checkForUnsupportedActionTag($tagName);
-            return @$redcapField['action_tags'][$tagName];
+            return $redcapField['action_tags'][$tagName] ?? null;
         };
         
         $isTagPresent = function($tagName) use ($redcapField){
@@ -2047,18 +2072,26 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return APP_PATH_WEBROOT_FULL . ltrim(APP_PATH_WEBROOT, '/');
     }
 
-    function createQuestionnaire($pid, $formName, $formDisplayName, $fields, $repeatingForms){
+    function createQuestionnaire($pid, $formName, $formDisplayName, $fields, $repeatingForms, $eventName = null){
         $repeatingForms = array_flip($repeatingForms);
 
-        $questionnaire = new FHIRQuestionnaire([
-            'name' => $formName,
-            'title' => $formDisplayName,
-            'status' => 'draft',
-            'url' => $this->getREDCapVersionDirURL() . "Design/online_designer.php?pid=$pid&page=$formName"
+        $questionnaireId = $this->getResourceId('Questionnaire', $pid, null, $formName, [
+            'redcap_event_name' => $eventName
         ]);
 
+        $questionnaire = new FHIRQuestionnaire([
+            'name' => $questionnaireId,
+            'title' => $formDisplayName,
+            'status' => 'draft'
+        ]);
+
+        $questionnaire->setId($questionnaireId);
+        
+        // The "canonical" suffix is added here simply because the FHIR spec says resource URLs cannot match their canonical URLs.
+        $questionnaire->setUrl($this->getResourceUrl($questionnaire) . '&canonical');
+
         $formGroup = new FHIRQuestionnaireItem([
-            'linkId' => "form___$formName",
+            'linkId' => $questionnaireId,
             'type' => 'group',
             'repeats' => isset($repeatingForms[$formName])
         ]);
@@ -2670,8 +2703,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
     }
 
-    function getResourceId($resourceName, $pid, $recordId, $fieldName, $data){
-        $id = $this->getRecordFHIRId($pid, $recordId);
+    function getResourceId($resourceName, $pid, $recordId, $formOrFieldName, $data){
+        if(!empty($recordId)){
+            $id = $this->getRecordFHIRId($pid, $recordId);
+        }
+        else{
+            $id = $pid;
+        }
 
         $append = function($value) use (&$id){
             if($value === ''){
@@ -2682,7 +2720,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         };
 
         if($resourceName !== 'Patient'){
-            $append($fieldName);
+            $append($formOrFieldName);
 
             foreach(['redcap_event_name', 'redcap_repeat_instance'] as $idFieldName){
                 $append($data[$idFieldName] ?? '');
@@ -2703,6 +2741,52 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     $array[$newKey] = $newValue;
                 }
             }
+        }
+    }
+
+    function initResource(&$resource, $recordId, $formOrFieldName, $data){
+        $type = $resource['resourceType'];
+        $copy = $resource;
+
+        foreach($resource as $key=>$value){
+            // Unset all the keys so that identifiers appear at the top.
+            unset($resource[$key]);
+        }
+        
+        $resource['resourceType'] = $type;
+        $resource['id'] = $this->getResourceId($type, $this->getProjectId(), $recordId, $formOrFieldName, $data);;
+
+        $identifier = [
+            'system' => $this->getResourceUrlPrefix(),
+            'value' => $this->getRelativeResourceUrl($resource)
+        ];
+
+        if($type === 'QuestionnaireResponse'){
+            $resource['identifier'] =  $identifier;
+        }
+        else{
+            $resource['identifier'][] =  $identifier;
+        }
+
+        foreach($copy as $key=>$value){
+            $resource[$key] = $value;
+        }
+    }
+
+    function getFormsForEventId($eventId){
+        $project = new \Project($this->getProjectId());
+        if(count($project->getUniqueEventNames()) === 1){
+            return array_keys($project->forms);
+        }
+        else{
+            $result = $this->query('select form_name from redcap_events_forms where event_id = ?', $eventId);
+            
+            $formNames = [];
+            while($row = $result->fetch_assoc()){
+                $formNames[] = $row['form_name'];
+            }
+
+            return $formNames;
         }
     }
 }

@@ -4,22 +4,55 @@ use REDCap;
 use Exception;
 
 class FieldMapper{
+    /** @var FHIRServicesExternalModule */
+    private $module;
+
     function __construct($module, $projectId, $recordId){
         $this->module = $module;
         $this->projectId = $projectId;
         $this->recordId = $recordId;
         $this->resources = [];
 
+        $recordIdFieldName = $this->getModule()->getRecordIdField($projectId);
         $mappings = $this->getMappings($projectId);
 
         // Add the record ID regardless so that the standard return format is used.
         // REDCap returns a different format without it.
-        $fields = array_merge([$this->getModule()->getRecordIdField($projectId)], $this->getMappingFieldNames($mappings));
+        $mappedFieldNames = array_merge([$recordIdFieldName], $this->getMappingFieldNames($mappings));
+        $fields = $mappedFieldNames;
+
+        $unmappedUseQuestionnaire = $this->getModule()->getProjectSetting('unmapped-use-questionnaire', $projectId);
+        if($unmappedUseQuestionnaire){
+            $fields = null; //pull all fields;
+        }
+
         $rows = json_decode(REDCap::getData($projectId, 'json', $recordId, $fields), true);
+        $questionnaireFieldNames = [];
         foreach($rows as $data){
             foreach($data as $fieldName=>$value){
                 $mapping = $mappings[$fieldName] ?? null;
-                if($value === '' || $mapping === null){
+                if($value === ''){
+                    continue;
+                }
+
+                if($mapping === null){
+                    if($unmappedUseQuestionnaire){
+                        $mapping = 'Questionnaire';
+                    }
+                    else{
+                        continue;
+                    }
+                }
+                
+                if($mapping === 'Questionnaire'){
+                    // TODO - The record ID field name is not the only one that needs to be taken into consideration here.
+                    // It might makes sense to expose ALL unit testing fields in the framework to modules,
+                    // so that I can try mapping a questionnaire with every possible combo of repeating fields,
+                    // like that framework unit test Scott helped come up with the examples for.
+                    if($fieldName !== $recordIdFieldName){
+                        $questionnaireFieldNames[$fieldName] = true;
+                    }
+
                     continue;
                 }
 
@@ -40,6 +73,80 @@ class FieldMapper{
         }
 
         $this->processExtensions();
+        $this->processQuestionnaires($projectId, $recordId, $questionnaireFieldNames, $rows);
+    }
+
+    private function processQuestionnaires($projectId, $recordId, $questionnaireFieldNames, $rows){
+        if(empty($questionnaireFieldNames)){
+            return;
+        }
+        
+        $result = $this->getModule()->query('
+            select *
+            from redcap_metadata
+            where
+                project_id = ?
+                and field_name != concat(form_name, \'_complete\')
+            order by field_order
+        ', [$projectId]);
+        
+        $fieldsByFormName = [];
+        while($field = $result->fetch_assoc()){
+            if(!isset($questionnaireFieldNames[$field['field_name']])){
+                continue;
+            }
+
+            $fieldsByFormName[$field['form_name']][] = $field;
+        }
+
+        $project = new \Project($projectId);
+        foreach($project->getUniqueEventNames() as $eventId=>$eventName){
+            foreach($this->getModule()->getFormsForEventId($eventId) as $formName){
+                $fields = $fieldsByFormName[$formName] ?? null;
+                if($fields === null){
+                    continue;
+                }
+
+                $formDisplayName = $project->forms[$formName]['menu'];
+                $repeatingForms = $this->getModule()->getRepeatingForms($eventId);
+
+                // TODO - Consider reporting these warnings somehow.  Maybe there is some metadata the questionnaire could hold that represents them,
+                // or there could be placeholders for missing fields.
+                [$questionnaire, $warnings] = $this->getModule()->createQuestionnaire($projectId, $formName, $formDisplayName, $fields, $repeatingForms, $eventName);
+                $questionnaireResponse = $this->getModule()->buildQuestionnaireResponse($questionnaire, $projectId, $recordId, $rows, $eventName);
+
+                if(empty($questionnaireResponse->getItem())){
+                    // No data points exist for this Questionnaire.  Don't include it.
+                    continue;
+                }
+
+                $questionnaireResponse->setId(null);
+                $questionnaireResponse->setIdentifier(null);
+
+                $convertToJSON = function($resource) use ($recordId, $formName, $eventName){
+                    $resource = json_decode($this->getModule()->jsonSerialize($resource), true);
+                    
+                    if($resource['resourceType'] === 'Questionnaire'){
+                        $recordId = null;
+                    }
+
+                    $this->getModule()->initResource($resource, $recordId, $formName, [
+                        'redcap_event_name' => $eventName
+                    ]);
+
+                    return $resource;
+                };
+
+                $questionnaire = $convertToJSON($questionnaire);
+                $questionnaireResponse = $convertToJSON($questionnaireResponse);
+
+                $questionnaireResponse['questionnaire'] = $questionnaire['url'];
+
+                foreach([$questionnaire, $questionnaireResponse] as $resource){
+                    $this->resources[$resource['resourceType']][] = $resource;
+                }
+            }
+        }
     }
 
     private function processExtensions(){
@@ -106,8 +213,8 @@ class FieldMapper{
             $fieldNames[$fieldName] = true;
 
             if(is_array($mapping)){
-                foreach($mapping['additionalElements'] as $details){
-                    $fieldName = @$details['field'];
+                foreach(($mapping['additionalElements'] ?? []) as $details){
+                    $fieldName = $details['field'] ?? null;
                     if($fieldName !== null){
                         $fieldNames[$fieldName] = true;
                     }
@@ -184,7 +291,7 @@ class FieldMapper{
         foreach($elementParents as $currentName){
             $newArrayItemParents[] = $currentName;
             $current = $lastDefinition['properties'][$currentName];
-            if($current['type'] === 'array'){
+            if(($current['type'] ?? null) === 'array'){
                 $lastArray = count($newArrayItemParents);
             }
 
@@ -232,16 +339,8 @@ class FieldMapper{
 
         $resource = &$this->getArrayChild($this->resources[$resourceName], $addNewArrayItem && $this->getModule()->isRepeatableResource($resourceName));
         if(!isset($resource['id'])){
-            $id = $this->getModule()->getResourceId($resourceName, $this->getProjectId(), $this->getRecordId(), $fieldName, $data);
-            $resource = [
-                'resourceType' => $resourceName,
-                'id' => $id
-            ];
-
-            $resource['identifier'][] = [
-                'system' => $this->getModule()->getResourceUrlPrefix(),
-                'value' => $this->getModule()->getRelativeResourceUrl($resource)
-            ];
+            $resource['resourceType'] = $resourceName;
+            $this->getModule()->initResource($resource, $this->getRecordId(), $fieldName, $data);
         }
 
         $subPath = &$resource;
@@ -369,8 +468,8 @@ class FieldMapper{
 
     private function processAdditionalElements($mapping, $data){
         $resource = $mapping['type'];
-        foreach($mapping['additionalElements'] as $details){
-            $fieldName = @$details['field'];
+        foreach(($mapping['additionalElements'] ?? []) as $details){
+            $fieldName = $details['field'] ?? null;
             if($fieldName === null){
                 $value = $details['value'];
             }
@@ -395,7 +494,7 @@ class FieldMapper{
 
         foreach($possibleValues as $possibleValue){
             // Use lower case strings for case insensitive matching.
-            $matchedValue = @$lowerCaseMap[strtolower($possibleValue)];
+            $matchedValue = $lowerCaseMap[strtolower($possibleValue)] ?? null;
             if($matchedValue !== null){
                 return $matchedValue;
             }
