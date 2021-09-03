@@ -87,6 +87,7 @@ class FieldMapper{
             where
                 project_id = ?
                 and field_name != concat(form_name, \'_complete\')
+                and element_type != "file" -- TODO add support for file fields
             order by field_order
         ', [$projectId]);
         
