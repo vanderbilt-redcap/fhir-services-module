@@ -280,23 +280,24 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     dialog.modal('show')
 
                     $.post(url).always(function(response){
-                        if(response.status === 'success'){
-                            alert('The remote FHIR server has confirmed that the data has been successfully received.')
-                            console.log('Remote Response: ' + response['remote-response'])
-                        }
-                        else{
+                        console.log('Response: ' + response)
+
+                        let message = response.message
+                        if(message === undefined){
                             let content = response.responseText
                             if(content === undefined){
-                                content = JSON.stringify(response)
+                                content = JSON.stringify(response, null, 2)
                             }
 
-                            simpleDialog(
-                                'An error response was returned:<br><br><pre>' + content + '</pre>',
-                                null,
-                                null,
-                                1000
-                            )
+                            message = 'An error response was returned:<br><br>' + content
                         }
+
+                        simpleDialog(
+                            '<pre>' + message + '</pre>',
+                            null,
+                            null,
+                            1000
+                        )
 
                         dialog.modal('hide')
                     })
@@ -2676,17 +2677,27 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         ]));
 
         $handleError = function($errorToWrap=null) use ($resourceType, $response){
-            $message = "A $resourceType response was expected, but ";
-            
-            if(empty($response)){
-                $message .= "an empty response was received.";
+            $parsedResponse = json_decode($response, true);
+            $issues = $parsedResponse['issue'] ?? null;
+            if($issues && $errorToWrap === null){
+                $message = "The request failed with the following errors:\n";
+                foreach($issues as $issue){
+                    $message .= "- {$issue['diagnostics']} for {$issue['expression'][0]}\n";
+                }
             }
             else{
-                $message .= "the following was received instead: $response";
-            }
-
-            if($errorToWrap){
-                $message .= "\n\nThe following Exception occurred while processing this response: " . $errorToWrap->__toString();
+                $message = "A $resourceType response was expected, but ";
+                
+                if(empty($response)){
+                    $message .= "an empty response was received.";
+                }
+                else{
+                    $message .= "the following was received instead: $response";
+                }
+    
+                if($errorToWrap){
+                    $message .= "\n\nThe following Exception occurred while processing this response: " . $errorToWrap->__toString();
+                }
             }
 
             throw new \Exception($message);
