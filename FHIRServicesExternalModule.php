@@ -285,8 +285,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                             console.log('Remote Response: ' + response['remote-response'])
                         }
                         else{
+                            let content = response.responseText
+                            if(content === undefined){
+                                content = JSON.stringify(response)
+                            }
+
                             simpleDialog(
-                                'An error response was returned:<br><br><pre>' + response.responseText + '</pre>',
+                                'An error response was returned:<br><br><pre>' + content + '</pre>',
                                 null,
                                 null,
                                 1000
