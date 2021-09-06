@@ -2682,7 +2682,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             if($issues && $errorToWrap === null){
                 $message = "The request failed with the following errors:\n";
                 foreach($issues as $issue){
-                    $message .= "- {$issue['diagnostics']} for {$issue['expression'][0]}\n";
+                    $message .= "- {$issue['diagnostics']}";
+                    $expression = implode(', ', $issue['expression'] ?? []);
+                    if(!empty($expression)){
+                        $message .= " for $expression";
+                    }
+
+                    $message .= "\n";
                 }
             }
             else{
