@@ -890,7 +890,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
     function testGetMappedFieldsAsBundle_duplicateMappings(){
         $path = "Patient/gender";
 
-        $this->expectExceptionMessage('currently mapped to multiple fields');
+        $this->expectExceptionMessage('mapped to multiple fields');
 
         $this->assert([
             $this->getFieldName() => [
