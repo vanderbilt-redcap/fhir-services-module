@@ -25,11 +25,9 @@ class FHIRServicesExternalModuleTest extends BaseTest{
     static $failing = false;
 
     static function setUpBeforeClass():void{
-        if(!defined('SKIP_VALIDATION')){
-            foreach(glob(RESOURCES_PATH . '*') as $path){
-                // Removed files from the previous test run
-                unlink($path);
-            }
+        foreach(glob(RESOURCES_PATH . '*') as $path){
+            // Removed files from the previous test run
+            unlink($path);
         }
     }
 
@@ -226,11 +224,23 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $assert(false);
     }
 
-    function testGetTypedValue(){
+    function testCreateQuestionnaireAnswer_and_GetTypedValue(){
         $assert = function($value, $type){
             $item = new FHIRQuestionnaireItem([
                 'type' => $type
             ]);
+
+            $expectedSystem = null;
+            if($type === 'choice'){
+                $expectedSystem = $this->getCodeSystemUrl('field_' . rand());
+                $item->setAnswerOption([[
+                    'valueCoding' => [
+                        'system' => $expectedSystem,
+                        'code' => (string) $value,
+                        'display' => (string) rand(),
+                    ]
+                ]]);
+            }
 
             $answer = $this->createQuestionnaireAnswer($item, $value);
             if($type === 'boolean' && $value === '1'){
@@ -240,6 +250,12 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 $d = new DateTime($value, new DateTimeZone('UTC'));
                 $d->setTimezone(new DateTimeZone(date_default_timezone_get()));
                 $value = $this->formatREDCapDateTime($d);
+            }
+            else if($type === 'choice'){
+                $this->assertSame(
+                    $this->getValue($answer->getValueCoding()->getSystem()),
+                    $expectedSystem
+                );
             }
 
             $actualValue = $this->module->getTypedValue($answer);

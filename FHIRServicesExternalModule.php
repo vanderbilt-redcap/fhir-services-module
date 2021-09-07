@@ -1336,6 +1336,18 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         return $valueMap;
     }
 
+    function getCodeSystemUrl($fieldName){        
+        $codeSystem = ['resourceType' => 'CodeSystem'];
+        $this->initResource(
+            $codeSystem,
+            null,
+            $fieldName,
+            null
+        );
+
+        return $this->getResourceUrl($codeSystem);
+    }
+
     function getFHIRAnswerOptions($redcapField){
         $type = $redcapField['element_type'];
         $valueMap = [];
@@ -1353,17 +1365,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $answerOptions = [];
         foreach($valueMap as $code=>$display){
-            $codeSystem = ['resourceType' => 'CodeSystem'];
-            $this->initResource(
-                $codeSystem,
-                null,
-                $redcapField['field_name'],
-                null
-            );
-
             $answerOptions[] = [
                 'valueCoding' => [
-                    'system' => $this->getResourceUrl($codeSystem),
+                    'system' => $this->getCodeSystemUrl($redcapField['field_name']),
                     'code' => strval($code),
                     'display' => $display,
                 ]
@@ -1916,6 +1920,27 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     'display' => ($this->getAnswers($item)[$value] ?? null)
                 ])
             ];
+
+            if($type === 'choice'){
+                $answerOptions = $item->getAnswerOption();
+                if(empty($answerOptions)){
+                    throw new \Exception('Answer options not found for item: ' . $this->jsonSerialize($item));
+                }
+
+                $system = null;
+                foreach($answerOptions as $option){
+                    $coding = $option->getValueCoding();
+                    if($value === $this->getValue($coding->getCode())){
+                        $system = $this->getValue($coding->getSystem());
+                    }
+                }
+
+                if($system === null){
+                    throw new \Exception("Could not find system for value '$value' for item: " . $this->jsonSerialize($item));
+                }
+
+                $answerData['valueCoding']->setSystem($system);
+            }
         }
         else{
             throw new Exception("Type not supported: $type");
