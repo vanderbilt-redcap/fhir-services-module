@@ -50,19 +50,22 @@
                         {
                             "valueCoding": {
                                 "code": "1",
-                                "display": "a"
+                                "display": "a",
+                                "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.dropdown"
                             }
                         },
                         {
                             "valueCoding": {
                                 "code": "2",
-                                "display": "b"
+                                "display": "b",
+                                "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.dropdown"
                             }
                         },
                         {
                             "valueCoding": {
                                 "code": "3",
-                                "display": "c"
+                                "display": "c",
+                                "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.dropdown"
                             }
                         }
                     ],
@@ -77,19 +80,22 @@
                                 {
                                     "valueCoding": {
                                         "code": "1",
-                                        "display": "d"
+                                        "display": "d",
+                                        "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.radio"
                                     }
                                 },
                                 {
                                     "valueCoding": {
                                         "code": "2",
-                                        "display": "e"
+                                        "display": "e",
+                                        "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.radio"
                                     }
                                 },
                                 {
                                     "valueCoding": {
                                         "code": "3",
-                                        "display": "f"
+                                        "display": "f",
+                                        "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.radio"
                                     }
                                 }
                             ],
@@ -117,13 +123,15 @@
                                 {
                                     "valueCoding": {
                                         "code": "1",
-                                        "display": "Yes"
+                                        "display": "Yes",
+                                        "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.yes-or-no"
                                     }
                                 },
                                 {
                                     "valueCoding": {
                                         "code": "0",
-                                        "display": "No"
+                                        "display": "No",
+                                        "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.yes-or-no"
                                     }
                                 }
                             ],
@@ -136,13 +144,15 @@
                                 {
                                     "valueCoding": {
                                         "code": "1",
-                                        "display": "True"
+                                        "display": "True",
+                                        "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.true-or-false"
                                     }
                                 },
                                 {
                                     "valueCoding": {
                                         "code": "0",
-                                        "display": "False"
+                                        "display": "False",
+                                        "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.true-or-false"
                                     }
                                 }
                             ],

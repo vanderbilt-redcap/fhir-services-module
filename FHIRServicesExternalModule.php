@@ -1353,8 +1353,17 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $answerOptions = [];
         foreach($valueMap as $code=>$display){
+            $codeSystem = ['resourceType' => 'CodeSystem'];
+            $this->initResource(
+                $codeSystem,
+                null,
+                $redcapField['field_name'],
+                null
+            );
+
             $answerOptions[] = [
                 'valueCoding' => [
+                    'system' => $this->getResourceUrl($codeSystem),
                     'code' => strval($code),
                     'display' => $display,
                 ]
@@ -2810,5 +2819,14 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
             return $formNames;
         }
+    }
+
+    function getProjectId(){
+        $pid = parent::getProjectId();
+        if(empty($pid)){
+            throw new Exception('The project ID could not be found.');
+        }
+
+        return $pid;
     }
 }
