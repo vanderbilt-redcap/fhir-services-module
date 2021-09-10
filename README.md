@@ -3,7 +3,7 @@
 This module is a work in progress prototyping the following FHIR related features (with more to follow in the future):
 
 * Mapping REDCap fields to FHIR Resources & Elements (limited, but expanding)
-  * To map a field, complete the **FHIR Mapping** section when editing that field in the Online Designer.
+  * To map a field, complete the **FHIR Mapping** section when editing that field in the Online Designer.  Hover over elements in the dropdown list to see their descriptions.
   * Top level Resources that can have multiple instances for a single record require fields to be associated with each other using the **Additional Elements** settings at the bottom of the **FHIR Mapping** section.  Common examples of such Resources include Observation, Condition, and Immunization.
   * There is a built-in validation feature that can catch most invalid mappings or incompatible data formats for a given record (see the **Validate FHIR...** options mentioned below).  The output is currently a little cryptic, but could be made more human readable.
   * Not all Resources or REDCap data structures can be mapped currently, but this module can be expanded to support more scenarios as needed.  Support for some new scenarios can be added in a few hours of development time, while other may take hundreds of hours depending on the specifics.  Here are some technical details on what is and isn't currently supported:
