@@ -11,6 +11,7 @@ This module is a work in progress prototyping the following FHIR related feature
     * Mapping of matrix fields in REDCap has not been implemented yet.
     * It is currently assumed that only a single instance of the Patient Resource will ever be mapped per REDCap record. This Patient will be automatically linked to other Resources in Bundles via the subject/patient reference elements on each Resource.
     * Observation/code is currently limited to LOINC codes
+    * REDCap fields that do not have a compatible location in FHIR can be mapped to the **Questionnaire** resource either explicitly, or via the "Include any unmapped fields under the Questionnaire resource" checkbox setting.  While receivable by most FHIR endpoints, **Questionnaires** likely require custom handling to make use of the data they contain.
     * REDCap to FHIR mapping involves an almost infinite number of edge cases... Whether or not this feature will work for you in its current state is highly dependant on the details of your particular project's design.  However, all evidence so far points to any imaginable mapping being feasible.  We anticipate that at some point we will reach a critical mass of test cases and generalized solutions that will cover the large majority of data that can be represented in both REDCap & FHIR.  We are currently looking for partners to help justify, implement, and verify further work.
     * The only extensions currently supported are those in the US Core Patient profile.
 * Behaving as a FHIR server and sending/receiving FHIR resources
@@ -24,6 +25,7 @@ This module is a work in progress prototyping the following FHIR related feature
 * Downloading any REDCap instrument as a FHIR Questionnaire
   * This feature can be used from the **Online Designer** by clicking **Choose action** next to any instrument and selecting **Download instrument as FHIR Questionnaire**.
 * Selecting a **Project Type** of **Questionnaire** will make the following features available
+  * **NOTICE:** This feature predates the **Questionnaire** functionality built into the mapping feature mentioned above.  The mapping feature is likely a much more useful solution in most cases.
   * The following features are found under the **Questionnaire Options** link in the left menu:
     * Uploading a **Questionnaire** to replace the **Data Dictionary** via the **Data Dictionary Options** button
     * Importing a **QuestionnaireResponse** as a record via the **Import a FHIR QuestionnaireResponse**
