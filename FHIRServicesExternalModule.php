@@ -187,6 +187,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 left: 25px;
                 top: 16px;
                 text-align: right !important;
+                outline: none !important;
             }
             #fhir-services-additional-element-buttons{
                 margin: 6px;
