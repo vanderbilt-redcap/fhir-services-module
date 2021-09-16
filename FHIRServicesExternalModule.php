@@ -345,7 +345,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
                     addOption('View FHIR ' + resourceName, 'file', () => openAction('view'))
 
-                    addOption('Validate FHIR ' + resourceName + ' (experimental)', 'file', () => openAction('validate'))
+                    addOption('Validate FHIR ' + resourceName + ' (basic validation only)', 'file', () => openAction('validate'))
                 
                     addOption('Send FHIR ' + resourceName + ' to remote FHIR server', 'file-export', function(){
                         sendRecord()
