@@ -2428,6 +2428,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     function validateInBrowserAndDisplay($resource){
         ?>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/ajv/6.12.6/ajv.min.js" integrity="sha512-+WCxUYg8L1mFBIyL05WJAJRP2UWCy+6mvpMHQbjPDdlDVcgS4XYyPhw5TVvzf9Dq8DTD/BedPW5745dqUeIP5g==" crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/styles/atom-one-dark-reasonable.min.css" integrity="sha512-RwXJS3k4Z0IK6TGoL3pgQlA9g2THFhKL7z9TYWdAI8u6xK0AUuMWieJuWgTRayywC9A94ifUj1RzjDa1NIlUIg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js" integrity="sha512-MinqHeqca99q5bWxFNQEQpplMBFiUNrEwuuDj2rCSh1DgeeTXUgvgYIHZ1puBS9IKBkdfLMSk/ZWVDasa3Y/2A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         <script>
             (function(){
                 var handleError = function(error, resource){
@@ -2480,7 +2482,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                     // a.click()
                     // close()
 
-                    document.write('<pre>' + JSON.stringify(bundle, null, 2) + '</pre>')
+                    document.write('<pre><code class="language-json">' + JSON.stringify(bundle, null, 2) + '</code></pre>')
+                    hljs.highlightAll()
                 }
                 catch(error){
                     handleError(error, bundle)
