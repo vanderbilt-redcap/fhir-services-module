@@ -318,6 +318,29 @@ class FieldMapper{
         return $array[$subPathIndex];
     }
 
+    private function findSubPath($definitions, $newArrayItemParents, $elementParents, $parentDefinition, &$subPath){
+        $parentsSoFar = [];
+        $subResourceName = '';
+        foreach($elementParents as $parentName){
+            $subPath = &$subPath[$parentName];
+            $parentsSoFar[] = $parentName;
+            $parentProperty = $parentDefinition['properties'][$parentName] ?? null;
+            if($parentProperty === null){
+                throw new Exception("Property named '$parentName' not found in element path for the '$subResourceName' resource: " . json_encode($parentsSoFar, JSON_PRETTY_PRINT));
+            }
+            
+            $subResourceName = SchemaParser::getResourceNameFromRef($parentProperty);
+            $parentDefinition = $definitions[$subResourceName] ?? null;
+    
+            if(($parentProperty['type'] ?? null) === 'array'){
+                $addNewIfExists = $parentsSoFar === $newArrayItemParents;
+                $subPath = &$this->getArrayChild($subPath, $addNewIfExists);
+            }
+        }
+
+        return [&$subPath, $subResourceName, $parentDefinition];
+    }
+
     private function processElementMapping($data, $fieldName, $value, $mappingString, $addNewArrayItem){
         $parts = explode('/', $mappingString);
         $resourceName = array_shift($parts);
@@ -346,28 +369,12 @@ class FieldMapper{
 
         $subPath = &$resource;
         $subResourceName = $resourceName;
-        $parentProperty = [
-            'type' => null
-        ];
         $parentDefinition = $definitions[$resourceName];
 
-        $parentsSoFar = [];
-        foreach($elementParents as $parentName){
-            $subPath = &$subPath[$parentName];
-            $parentsSoFar[] = $parentName;
-            $parentProperty = $parentDefinition['properties'][$parentName] ?? null;
-            if($parentProperty === null){
-                throw new Exception("Property named '$parentName' not found in element path for the '$subResourceName' resource: " . json_encode($parentsSoFar, JSON_PRETTY_PRINT));
-            }
-            
-            $subResourceName = SchemaParser::getResourceNameFromRef($parentProperty);
-            $parentDefinition = $definitions[$subResourceName] ?? null;
-
-            if(($parentProperty['type'] ?? null) === 'array'){
-                $addNewIfExists = $parentsSoFar === $newArrayItemParents;
-                $subPath = &$this->getArrayChild($subPath, $addNewIfExists);
-            }
-        }
+        $response = $this->findSubPath($definitions, $newArrayItemParents, $elementParents, $parentDefinition, $subPath);
+        $subPath = &$response[0];
+        $subResourceName = $response[1];
+        $parentDefinition = $response[2];
 
         $elementProperty = $parentDefinition['properties'][$elementName] ?? null;
         if($elementProperty === null){
