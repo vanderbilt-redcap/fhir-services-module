@@ -945,27 +945,35 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 $this->getFieldName() => [
                     'mapping' => [
                         'type' => 'Consent',
-                        'primaryElementPath' => 'category/coding/code',
+                        'primaryElementPath' => 'category/coding/system',
                         'additionalElements' => [
                             [
-                                'element' => 'category/coding/system',
-                                'value' => 'http://terminology.hl7.org/CodeSystem/consentcategorycodes'
+                                'element' => 'category/coding/code',
+                                'value' => 'acd'
                             ],
                             [
                                 'element' => 'status',
                                 'value' => 'active'
                             ],
                             [
-                                'element' => 'scope',
+                                'element' => 'scope/coding/system',
+                                'value' => 'http://terminology.hl7.org/CodeSystem/consentscope'
+                            ],
+                            [
+                                'element' => 'scope/coding/code',
                                 'value' => 'research'
                             ],
                             [
-                                'element' => 'policyRule',
+                                'element' => 'policyRule/coding/system',
+                                'value' => 'http://terminology.hl7.org/CodeSystem/consentpolicycodes'
+                            ],
+                            [
+                                'element' => 'policyRule/coding/code',
                                 'value' => 'cric'
                             ],
                         ]
                     ],
-                    'value' => 'acd'
+                    'value' => 'http://terminology.hl7.org/CodeSystem/consentcategorycodes'
                 ]
             ],
             [
@@ -973,8 +981,8 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                     [
                         'coding' => [
                             [
-                                'code' => 'acd',
-                                'system' => 'http://terminology.hl7.org/CodeSystem/consentcategorycodes'
+                                'system' => 'http://terminology.hl7.org/CodeSystem/consentcategorycodes',
+                                'code' => 'acd'
                             ]
                         ]
                     ]
@@ -1085,11 +1093,11 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         );
     }
 
-    function testGetMappedFieldsAsBundle_codeableConcept(){
+    function testGetMappedFieldsAsBundle_codingAsPrimaryWithoutSystem(){
         $this->assert(
             [
                 $this->getFieldName() => [
-                    'element' => 'maritalStatus',
+                    'element' => 'maritalStatus/coding/code',
                     'value' => 'married'
                 ],
             ],
@@ -1517,12 +1525,12 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                     'value' => $status
                 ],
                 [
-                    'element' => 'code/coding/code',
-                    'value' => $code
-                ],
-                [
                     'element' => 'code/coding/system',
                     'value' => $system
+                ],
+                [
+                    'element' => 'code/coding/code',
+                    'value' => $code
                 ],
                 [
                     'element' => 'code/coding/display',
@@ -1563,8 +1571,8 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 'code' => [
                     'coding' => [
                         [
-                            'code' => $code,
                             'system' => $system,
+                            'code' => $code,
                             'display' => $display
                         ]
                     ]
@@ -1779,7 +1787,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
     function testImmunizationMapping_bundle(){
         $lastName = 'Smith';
-        $code = 16;
+        $code = '16';
         $occurrence = (string) rand();
 
         $expectedPatient = $this->setResourceTypeAndId('Patient', null, null, [
@@ -1799,8 +1807,12 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 $this->getFieldName2() => [
                     'mapping' => [
                         'type' => 'Immunization',
-                        'primaryElementPath' => 'vaccineCode',
+                        'primaryElementPath' => 'vaccineCode/coding/system',
                         'additionalElements' => [
+                            [
+                                'element' => 'vaccineCode/coding/code',
+                                'value' => $code,
+                            ],
                             [
                                 'element' => 'status',
                                 'value' => 'completed',
@@ -1815,7 +1827,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                             ],
                         ]
                     ],
-                    'value' => $code
+                    'value' => 'http://hl7.org/fhir/sid/cvx'
                 ]
             ],
             [
@@ -1825,7 +1837,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                         'coding' => [
                             [
                                 'system' => 'http://hl7.org/fhir/sid/cvx',
-                                'code' => (string) $code // make sure this is a string!
+                                'code' => $code
                             ]
                         ]
                     ],
@@ -1990,8 +2002,17 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $this->assert(
             [
                 $this->getFieldName() => [
-                    'mapping' => 'Condition/verificationStatus',
-                    'value' => 'confirmed'
+                    'mapping' => [
+                        'type' => 'Condition',
+                        'primaryElementPath' => 'verificationStatus/coding/system',
+                        'additionalElements' => [
+                            [
+                                'element' => 'verificationStatus/coding/code',
+                                'value' => 'confirmed'
+                            ]
+                        ]
+                    ],
+                    'value' => 'http://terminology.hl7.org/CodeSystem/condition-ver-status'
                 ],
                 $this->getFieldName2() => [
                     'mapping' => 'Patient/name/family',

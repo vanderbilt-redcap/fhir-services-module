@@ -9,6 +9,7 @@ class SchemaParser{
     private static $expansions;
     private static $modifiedSchema;
     private static $targetProfiles;
+    private static $codesBySystem;
 
     private static function getFhirJSON($filename){
         $path = __DIR__ . "/fhir/4.0.1/$filename";
@@ -100,12 +101,39 @@ class SchemaParser{
         return self::$modifiedSchema;
     }
 
+    static function getCodesBySystem(){
+        return static::$codesBySystem;
+    }
+
     static function getTargetProfiles(){
         if(self::$targetProfiles === null){
             self::getModifiedSchema();
         }
 
         return self::$targetProfiles;
+    }
+
+    static function isRecursiveLoop($parents, $propertyName){
+        /**
+         * This was an easy way to prevent recursive loops.
+         * We may want to transition to a smart solution in the future,
+         * perhaps one that takes into account types instead of just paths/names.
+         * On the other hand, having a manual exception list here might be a good next step,
+         * until we notice a pattern we can automate in the list of exceptions.
+         */
+
+        $parts = array_merge($parents, [$propertyName]);
+
+        return
+            !(
+                $parts === ['Observation', 'code', 'coding', 'code']
+                ||
+                array_splice($parts, -3, 3) === ['useContext', 'code', 'code']
+            )
+            &&
+            // We should likely modify this to match types instead of just the property name.
+            in_array($propertyName, $parents)
+        ;
     }
 
     static function handleProperties($parents, $parentProperty, $properties){
@@ -116,10 +144,7 @@ class SchemaParser{
                 ||
                 ($propertyName === 'extension' && ($property['added-by-this-module'] ?? null) !== true)
                 ||
-                // Ignore recursive loops
-                // This currently falsely matches things like code/coding/code.
-                // We should modify this to match types instead of just the property name.
-                in_array($propertyName, $parents)
+                self::isRecursiveLoop($parents, $propertyName)
                 ||
                 // Are these related to extensions?
                 $propertyName[0] === '_'
@@ -133,6 +158,9 @@ class SchemaParser{
             }
 
             $refDefinitionName = self::getResourceNameFromRef($property);
+            $property['resourceName'] = $refDefinitionName;
+            $property['parentResourceName'] = $parentProperty['resourceName'] ?? null;
+
             $subProperties = self::getDefinitions()[$refDefinitionName]['properties'] ?? null;
             $parts = array_merge($parents, [$propertyName]);
 
@@ -140,22 +168,16 @@ class SchemaParser{
                 self::handleProperty($parts, $property);
             }
             else{
-                if($refDefinitionName === 'CodeableConcept'){
-                    self::addCodeableConceptValues($parts, $property);
-                    self::handleProperty($parts, $property);
-                }
-                else{
-                    if($refDefinitionName === 'Reference'){
-                        self::indexReference($parts);
+                if($refDefinitionName === 'Reference'){
+                    self::indexReference($parts);
 
-                        // Ignore all sub-properties except display.
-                        $subProperties = [
-                            'display' => $subProperties['display']
-                        ];
-                    }
-
-                    self::handleProperties($parts, $property, $subProperties);
+                    // Ignore all sub-properties except display.
+                    $subProperties = [
+                        'display' => $subProperties['display']
+                    ];
                 }
+
+                self::handleProperties($parts, $property, $subProperties);
             }
         }
     }
@@ -235,7 +257,7 @@ class SchemaParser{
         $pathResource = array_shift($pathParts);
         $elementPath = implode('/', $pathParts);
         $lastPart = $pathParts[count($pathParts)-1];
-        
+
         foreach(($type->targetProfile ?? []) as $profile){
             $profileResource = explode('http://hl7.org/fhir/StructureDefinition/', $profile)[1];
 
@@ -271,6 +293,17 @@ class SchemaParser{
     }
 
     private static function handleProperty($parts, $property){
+        if($property['parentResourceName'] === 'Coding'){
+            $lastPart = array_slice($parts, -1, )[0];
+            if($lastPart === 'system'){
+                // Exclude Coding/system, since it's handled differently in the mapping UI.
+                return;
+            }
+            else if($lastPart === 'code'){
+                self::addCodingValues($parts, $property);
+            }
+        }
+
         $enum = $property['enum'] ?? null;
         if($enum){
             $choices = [];
@@ -289,12 +322,9 @@ class SchemaParser{
         return self::getModifiedSchema()[$resourceName][$elementPath] ?? null;
     }
 
-    private static function addCodeableConceptValues($pathParts, &$property){
-        if($pathParts === ['Observation', 'code']){
-            // The LOINC code list is way too long.  Just have users manually enter LOINC codes.
-            $property['description'] = "The LOINC code for this Observation.  Visit <a target='_blank' href='https://search.loinc.org/' style='color: #000066'>search.loinc.org</a> to search for valid LOINC codes.";
-            return;
-        }
+    private static function addCodingValues($pathParts, &$property){
+        array_pop($pathParts);  // Remove 'code'
+        array_pop($pathParts);  // Remove 'coding'
 
         $dataElement = self::getDataElements()[implode('.', $pathParts)] ?? null;
         $parts = explode('|', $dataElement->snapshot->element[0]->binding->valueSet ?? null); // trim off the version string
@@ -302,14 +332,32 @@ class SchemaParser{
 
         $expansion = self::getExpansions()[$valueSetUrl] ?? null;
 
+        $systems = [];
         $choices = [];
         foreach(($expansion->expansion->contains ?? []) as $option){
+            $system = $option->system;
             $code = $option->code;
-            $choices[$code] = $option->display ?? null;
-            $property['systemsByCode'][$code] = $option->system;
+            $label = $option->display ?? null;
+
+            if($system !== 'http://terminology.hl7.org/CodeSystem/v3-NullFlavor'){
+                $systems[$system] = true;
+            }
+
+            if($system === 'http://loinc.org'){
+                /**
+                 * The list of LOINC codes included the FHIR spec is truncated,
+                 * and the full list is way to long for a typeahead field.
+                 * Just have users manually enter codes instead.
+                 */
+                continue;
+            }
+    
+            $choices[$code] = $label;
+            static::$codesBySystem[$system][$code] = $label;
         }
 
         $property['redcapChoices'] = $choices;
+        $property['systems'] = array_keys($systems);
     }
 
     private static function getDataElements(){

@@ -63,6 +63,16 @@ if (!function_exists('str_contains')) {
     }
 }
 
+if (!function_exists('str_ends_with')) {
+    function str_contains($haystack, $needle) {
+        $length = strlen( $needle );
+        if( !$length ) {
+            return true;
+        }
+        return substr( $haystack, -$length ) === $needle;
+    }
+}
+
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
     function redcap_every_page_top(){
         if($this->isPage('DataEntry/record_home.php')){
@@ -221,6 +231,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         <script>
             var FHIRServicesExternalModule = <?=json_encode([
                 'schema' => SchemaParser::getModifiedSchema(),
+                'codesBySystem' => SchemaParser::getCodesBySystem(),
                 'fields' => $fields,
                 'ACTION_TAG_PREFIX' => ACTION_TAG_PREFIX,
                 'ACTION_TAG_SUFFIX' => ACTION_TAG_SUFFIX,

@@ -402,31 +402,36 @@ class FieldMapper{
         }
 
         $modifiedElementProperty = SchemaParser::getModifiedProperty($resourceName, $elementPath);
-        $choices = $modifiedElementProperty['redcapChoices'] ?? null;
+
+        $choices = null;
+        if($subResourceName === 'Coding'){
+            $system = $subPath['system'] ?? null;
+            if(empty($system)){
+                $system = $modifiedElementProperty['systems'][0] ?? null;
+                if($system !== null){
+                    /**
+                     * A system was not specified.  Use the default.
+                     * This covers the use case of primary element mappings, since we can't currently specify a custom system for those.
+                     * The redcapChoices check below will still handle choices appropriately in this case.
+                     */
+                    $subPath['system'] = $system;
+                }
+            }
+            else{
+                $choices = SchemaParser::getCodesBySystem()[$system] ?? null;
+            }
+        }
+
+        if($choices === null){
+            $choices = $modifiedElementProperty['redcapChoices'] ?? null;
+        }
+
         if($choices !== null){
             $value = $this->getMatchingChoiceValue($this->getProjectId(), $fieldName, $value, $choices);
         }
         
         $ref = SchemaParser::getResourceNameFromRef($modifiedElementProperty);
-        $elementResourceName = SchemaParser::getResourceNameFromRef($elementProperty);
-        if($elementResourceName === 'CodeableConcept'){
-            if($resourceName === 'Observation'){
-                $system = 'http://loinc.org';
-            }
-            else{
-                $system = $modifiedElementProperty['systemsByCode'][$value];
-            }
-
-            $value = [
-                'coding' => [
-                    [
-                        'system' => $system,
-                        'code' => (string) $value // Must be a string for validation to pass
-                    ]
-                ]
-            ];
-        }
-        else if(in_array('boolean', [$ref, $modifiedElementProperty['type'] ?? null])){
+        if(in_array('boolean', [$ref, $modifiedElementProperty['type'] ?? null])){
             if($value === 'true' || $value === '1'){
                 $value = true;
             }
@@ -489,6 +494,7 @@ class FieldMapper{
 
         $lowerCaseMap = [];
         foreach($choices as $code => $label){
+            $code = (string) $code; // PHP forces int keys for arrays if they're integers, but FHIR expects all codes to always be strings.
             $lowerCaseMap[strtolower($label)] = $code;
             $lowerCaseMap[strtolower($code)] = $code;
         }

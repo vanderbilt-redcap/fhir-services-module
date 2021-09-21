@@ -125,25 +125,35 @@ $(function(){
         createTable: (rows) => {
             let table = $('<table></table>')
 
-            for(let label in rows){
-                let row = $('<tr></tr>')
-
-                let addColumn = function(content){
-                    let column = $('<td></td>')
-                    column.append(content)
-                    row.append(column)
+            if(Array.isArray(rows)){
+                rows.forEach((row) => {
+                    table.append(row)
+                })
+            }
+            else{
+                for(let label in rows){
+                    table.append(module.createRow(label, rows[label]))
                 }
-
-                addColumn('<label>' + label + '</label>')
-                addColumn(rows[label])
-
-                table.append(row)
             }
 
             let wrapper = $('<div class="fhir-services-table-wrapper" />')
             wrapper.append(table)
 
             return wrapper
+        },
+        createRow: (label, field) => {
+            let row = $('<tr></tr>')
+
+            let addColumn = function(content){
+                let column = $('<td></td>')
+                column.append(content)
+                row.append(column)
+            }
+
+            addColumn('<label>' + label + '</label>')
+            addColumn(field)
+
+            return row
         },
         initSaveButton: function(){
             var addEditFieldSave = window.addEditFieldSave
@@ -353,13 +363,26 @@ $(function(){
             let button = $("<button class='btn btn-xs btn-rcgreen btn-rcgreen-light'>Add " + type + "</button>")
             button.click((e) => {
                 e.preventDefault()
-                module.addAdditionalElement(type, '', '')
+                module.addAdditionalElement(type, '', '', '')
             })
             
             module.ADDITIONAL_ELEMENT_CONTAINER.find('#fhir-services-additional-element-buttons').append(button)
         },
-        initFieldOrValueInput: (type, fieldOrValue, elementTypeAhead) => {
+        initFieldOrValueInput: (type, fieldOrValue, elementTypeAhead, systemTypeAhead) => {
             const fieldOrValueInput = module.initTypeahead({})
+
+            const setupSystemDropdown = () => {
+                module.setupSystemDropdown(systemTypeAhead, elementTypeAhead.val())
+            }
+
+            setupSystemDropdown()
+            elementTypeAhead.change(()=>{
+                systemTypeAhead.val('') // Using the empty string here will cause the default system to be selected
+                setupSystemDropdown()
+                fieldOrValueInput.val('') // Force the user to re-enter field/value, since the previous one is likely no longer valid.
+                fieldOrValueInput.focus()
+            })
+
             if(type === module.FIELD){
                 const options = []
                 module.fields.forEach((fieldName) => {
@@ -372,25 +395,46 @@ $(function(){
                 fieldOrValueInput.autocomplete('option', 'source', options)
             }
             else{
-                fieldOrValue = module.setValueDropdownOptions(fieldOrValueInput, fieldOrValue, elementTypeAhead)
-                elementTypeAhead.change(()=>{
-                    module.setValueDropdownOptions(fieldOrValueInput, fieldOrValue, elementTypeAhead)
-                })
+                const setOptions = () => {
+                    return module.setValueDropdownOptions(fieldOrValueInput, systemTypeAhead.val(), elementTypeAhead.val(), fieldOrValue)
+                }
+
+                fieldOrValue = setOptions()
+                elementTypeAhead.change(setOptions)
+                systemTypeAhead.change(setOptions)
             }
 
             fieldOrValueInput.val(fieldOrValue)
 
-            elementTypeAhead.change(()=>{
-                fieldOrValueInput.val('') // Force the user to re-enter field/value, since the previous one is likely no longer valid.
-                fieldOrValueInput.focus()
-            })
-
             return fieldOrValueInput
         },
-        setValueDropdownOptions: (fieldOrValueInput, selectedValue, elementTypeAhead) => {
+        setupSystemDropdown: (systemTypeAhead, elementPath) => {
+            const elementDetails = module.getMappedElement(elementPath) || {}
+
+            const isCodingCode = elementDetails.parentResourceName === 'Coding' && elementPath.endsWith('/code')
+            systemTypeAhead.closest('tr').toggle(isCodingCode)
+
+            if(systemTypeAhead.val() === ''){
+                // Enter the default system for this element
+                const systems = elementDetails.systems || []
+                if(systems.length > 0){
+                    systemTypeAhead.val(systems[0])
+                }
+            }
+        },
+        setValueDropdownOptions: (fieldOrValueInput, system, elementPath, selectedValue) => {
             const options = []
             let returnValue = selectedValue // return the raw value if no options exist
-            for(const [value, label] of Object.entries(module.getREDCapChoices(elementTypeAhead.val()))){
+
+            let choices
+            if(system === ''){
+                choices = module.getREDCapChoices(elementPath)
+            }
+            else{
+                choices = module.getSystemChoices(system)
+            }
+            
+            for(const [value, label] of Object.entries(choices)){
                 options.push({
                     value: value,
                     label: label,
@@ -406,15 +450,29 @@ $(function(){
 
             return returnValue
         },
-        addAdditionalElement: (type, elementPath, fieldOrValue) => {
+        getSystemChoices: (system) => {
+            const choices = module.codesBySystem[system]
+            if(choices !== undefined){
+                return choices
+            }
+
+            return {}
+        },
+        addAdditionalElement: (type, elementPath, system, fieldOrValue) => {
             let elementTypeAhead = module.initTypeahead({})
             module.initElementAutocomplete(elementTypeAhead, false)
             elementTypeAhead.val(elementPath)
 
-            let wrapper = module.createTable({
-                'Element': elementTypeAhead,
-                [type]: module.initFieldOrValueInput(type, fieldOrValue, elementTypeAhead)
-            })
+            const systemTypeAhead = module.initTypeahead({})
+            systemTypeAhead.val(system)
+            
+            let wrapper = module.createTable([
+                module.createRow('Element', elementTypeAhead),
+                module.createRow('System', systemTypeAhead)
+                    .addClass('system')
+                    .hide(),
+                module.createRow(type, module.initFieldOrValueInput(type, fieldOrValue, elementTypeAhead, systemTypeAhead))
+            ])
 
             let removeButton = $(`
                 <a href="#" class='fhir-services-remove-additional-element'>
@@ -442,7 +500,23 @@ $(function(){
     
             const additionalElements = mapping.additionalElements || []
         
-            additionalElements.forEach((details) => {
+            let system = ''
+            additionalElements.forEach((details, i) => {
+                const nextDetails = details[i+1]
+                if(nextDetails !== undefined){
+                    if(
+                        details.element.endsWith('/system')
+                        &&
+                        // Since system is not included in the schema, we check to see if the next element is Coding/code.
+                        module.getMappedElement(nextDetails.element).parentResourceName === 'Coding'
+                    ){
+                        // Store the system for use with the next loop iteration and continue
+                        // Since we always store coding/system directly above coding/code
+                        system = details.value
+                        return
+                    }
+                }
+
                 let value = details.field
                 if(value){
                     type = module.FIELD
@@ -452,13 +526,14 @@ $(function(){
                     value = details.value
                 }
 
-                module.addAdditionalElement(type, details.element, value)
+                module.addAdditionalElement(type, details.element, system, value)
+                system = '' // Prevent the system from being used for later loop iterations
             })
         },
         addDefaultAdditionalElements: () => {
             if(module.getResourceName() === 'Observation' && module.getAdditionalElementMappings().length === 0){
-                module.addAdditionalElement(module.VALUE, 'status', 'final')
-                module.addAdditionalElement(module.VALUE, 'code', '')
+                module.addAdditionalElement(module.VALUE, 'status', '', 'final')
+                module.addAdditionalElement(module.VALUE, 'code/coding/code', '', '')
             }
         },
         removeAdditionalElements: () => {
@@ -523,12 +598,21 @@ $(function(){
                 wrapper = $(wrapper)
                 const inputs = wrapper.find('input')
                 const elementPath = $(inputs[0]).val()
-                const fieldOrValueElement = $(inputs[1])
+                const system = $(inputs[1]).val()
+                const fieldOrValueElement = $(inputs[2])
                 const type = fieldOrValueElement.closest('tr').find('label').html()
                 const fieldOrValue = fieldOrValueElement.val()
 
                 if(elementPath === '' || fieldOrValue === ''){
                     return
+                }
+
+                if(system !== ''){
+                    // Insert the system mapping directly above the code mapping
+                    additionalElements.push({
+                        element: elementPath.replaceAll('/code', '/system'),
+                        value: system
+                    })    
                 }
 
                 additionalElements.push({
