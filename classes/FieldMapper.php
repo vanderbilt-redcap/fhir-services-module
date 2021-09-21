@@ -318,27 +318,34 @@ class FieldMapper{
         return $array[$subPathIndex];
     }
 
-    private function findSubPath($definitions, $newArrayItemParents, $elementParents, $parentDefinition, &$subPath){
-        $parentsSoFar = [];
-        $subResourceName = '';
-        foreach($elementParents as $parentName){
-            $subPath = &$subPath[$parentName];
-            $parentsSoFar[] = $parentName;
-            $parentProperty = $parentDefinition['properties'][$parentName] ?? null;
-            if($parentProperty === null){
-                throw new Exception("Property named '$parentName' not found in element path for the '$subResourceName' resource: " . json_encode($parentsSoFar, JSON_PRETTY_PRINT));
-            }
-            
-            $subResourceName = SchemaParser::getResourceNameFromRef($parentProperty);
-            $parentDefinition = $definitions[$subResourceName] ?? null;
-    
-            if(($parentProperty['type'] ?? null) === 'array'){
-                $addNewIfExists = $parentsSoFar === $newArrayItemParents;
-                $subPath = &$this->getArrayChild($subPath, $addNewIfExists);
-            }
+    private function findSubPath($definitions, $newArrayItemParents, $elementParents, $parentDefinition, &$subPath, $subResourceName, &$parentsSoFar = null){
+        if(empty($elementParents)){
+            return [&$subPath, $subResourceName, $parentDefinition];
         }
 
-        return [&$subPath, $subResourceName, $parentDefinition];
+        if($parentsSoFar === null){
+            $parentsSoFar = [];
+        }
+
+        $subResourceName = '';
+        $parentName = array_shift($elementParents);
+
+        $subPath = &$subPath[$parentName];
+        $parentsSoFar[] = $parentName;
+        $parentProperty = $parentDefinition['properties'][$parentName] ?? null;
+        if($parentProperty === null){
+            throw new Exception("Property named '$parentName' not found in element path for the '$subResourceName' resource: " . json_encode($parentsSoFar, JSON_PRETTY_PRINT));
+        }
+        
+        $subResourceName = SchemaParser::getResourceNameFromRef($parentProperty);
+        $parentDefinition = $definitions[$subResourceName] ?? null;
+
+        if(($parentProperty['type'] ?? null) === 'array'){
+            $addNewIfExists = $parentsSoFar === $newArrayItemParents;
+            $subPath = &$this->getArrayChild($subPath, $addNewIfExists);
+        }
+
+        return $this->findSubPath($definitions, $newArrayItemParents, $elementParents, $parentDefinition, $subPath, $subResourceName, $parentsSoFar);
     }
 
     private function processElementMapping($data, $fieldName, $value, $mappingString, $addNewArrayItem){
@@ -371,7 +378,7 @@ class FieldMapper{
         $subResourceName = $resourceName;
         $parentDefinition = $definitions[$resourceName];
 
-        $response = $this->findSubPath($definitions, $newArrayItemParents, $elementParents, $parentDefinition, $subPath);
+        $response = $this->findSubPath($definitions, $newArrayItemParents, $elementParents, $parentDefinition, $subPath, $subResourceName);
         $subPath = &$response[0];
         $subResourceName = $response[1];
         $parentDefinition = $response[2];
