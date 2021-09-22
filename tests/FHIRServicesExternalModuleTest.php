@@ -1453,10 +1453,6 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             die(implode("\n", $output) . "\n\nCould not verify validator output.  $message\n\n");
         };
 
-        if($exitCode !== 0){
-            $onValidationFailed("Validation failed with exit code $exitCode");
-        }
-        
         $validatedPaths = [];
         for($lineIndex=0; $lineIndex<count($output); $lineIndex++){
             $line = $output[$lineIndex];
@@ -1496,6 +1492,11 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             if(($validatedPaths[$path] ?? null) !== true){
                 $onValidationFailed('Validation line not found for path: ' . $path);
             }
+        }
+
+        // Check the exit code last so that any more specific errors are shown first
+        if($exitCode !== 0){
+            $onValidationFailed("Validation failed with exit code $exitCode");
         }
     }
 
