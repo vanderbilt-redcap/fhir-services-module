@@ -283,26 +283,6 @@ class FieldMapper{
         return str_replace(ACTION_TAG_SUFFIX, SINGLE_QUOTE_PLACEHOLDER, $value); 
     }
 
-    private function getNewArrayItemParents($resourceName, $elementParents){
-        $definitions = SchemaParser::getDefinitions();
-        $lastDefinition = $definitions[$resourceName];
-
-        $lastArray = 0;
-        $newArrayItemParents = [];
-        foreach($elementParents as $currentName){
-            $newArrayItemParents[] = $currentName;
-            $current = $lastDefinition['properties'][$currentName];
-            if(($current['type'] ?? null) === 'array'){
-                $lastArray = count($newArrayItemParents);
-            }
-
-            $subResourceName = SchemaParser::getResourceNameFromRef($current);
-            $lastDefinition = $definitions[$subResourceName];
-        }
-        
-        return array_slice($newArrayItemParents, 0, $lastArray);
-    }
-
     private function &getArrayChild(&$array, $addNewIfExists){
         if(empty($array)){
             $subPathIndex = 0;
@@ -318,7 +298,7 @@ class FieldMapper{
         return $array[$subPathIndex];
     }
 
-    private function findSubPath($definitions, $newArrayItemParents, $elementParts, $parentDefinition, &$subPath, $subResourceName, &$parentsSoFar = null){
+    private function findSubPath($definitions, $elementParts, $parentDefinition, &$subPath, $subResourceName, &$parentsSoFar = null){
         if($parentsSoFar === null){
             $parentsSoFar = [];
         }
@@ -343,15 +323,14 @@ class FieldMapper{
 
         $isArray = ($property['type'] ?? null) === 'array';
         if($isArray){
-            $addNewIfExists = $parentsSoFar === $newArrayItemParents;
             $arrayParent = &$subPath;
-            $subPath = &$this->getArrayChild($subPath, $addNewIfExists);
+            $subPath = &$this->getArrayChild($subPath, false);
         }
 
-        $response = $this->findSubPath($definitions, $newArrayItemParents, $elementParts, $parentDefinition, $subPath, $subResourceName, $parentsSoFar);
+        $response = $this->findSubPath($definitions, $elementParts, $parentDefinition, $subPath, $subResourceName, $parentsSoFar);
         if($response[3] === true && $isArray && $subResourceName !== 'Coding'){
             $subPath = &$this->getArrayChild($arrayParent, true);
-            return $this->findSubPath($definitions, $newArrayItemParents, $elementParts, $parentDefinition, $subPath, $subResourceName, $parentsSoFar);
+            return $this->findSubPath($definitions, $elementParts, $parentDefinition, $subPath, $subResourceName, $parentsSoFar);
         }
 
         return $response;
@@ -369,13 +348,6 @@ class FieldMapper{
             throw new Exception('Mapping is missing the resource type!');
         }
 
-        if($addNewArrayItem){
-            $newArrayItemParents = $this->getNewArrayItemParents($resourceName, $elementParents);
-        }
-        else{
-            $newArrayItemParents = null;
-        }
-
         $definitions = SchemaParser::getDefinitions();
 
         $resource = &$this->getArrayChild($this->resources[$resourceName], $addNewArrayItem && $this->getModule()->isRepeatableResource($resourceName));
@@ -388,7 +360,7 @@ class FieldMapper{
         $subResourceName = $resourceName;
         $parentDefinition = $definitions[$resourceName];
 
-        $response = $this->findSubPath($definitions, $newArrayItemParents, $elementParts, $parentDefinition, $subPath, $subResourceName);
+        $response = $this->findSubPath($definitions, $elementParts, $parentDefinition, $subPath, $subResourceName);
         $subPath = &$response[0];
         $subResourceName = $response[1];
         $parentDefinition = $response[2];
