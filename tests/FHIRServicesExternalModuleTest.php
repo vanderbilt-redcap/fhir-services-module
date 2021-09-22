@@ -2039,4 +2039,53 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             true
         );
     }
+
+    function testConsent_multipleCategories(){
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'mapping' => [
+                        'type' => 'Consent',
+                        'primaryElementPath' => 'category/coding/system',
+                        'additionalElements' => [
+                            [
+                                'element' => 'category/coding/code',
+                                'value' => 'acd'
+                            ],
+                            [
+                                'element' => 'category/coding/system',
+                                'value' => 'http://terminology.hl7.org/CodeSystem/consentcategorycodes'
+                            ],
+                            [
+                                'element' => 'category/coding/code',
+                                'value' => 'dnr'
+                            ],
+                        ]
+                    ],
+                    'value' => 'http://terminology.hl7.org/CodeSystem/consentcategorycodes'
+                ]
+            ],
+            [
+                'category' => [
+                    [
+                        'coding' => [
+                            [
+                                'system' => 'http://terminology.hl7.org/CodeSystem/consentcategorycodes',
+                                'code' => 'acd'
+                            ]
+                        ]
+                    ],
+                    [
+                        'coding' => [
+                            [
+                                'system' => 'http://terminology.hl7.org/CodeSystem/consentcategorycodes',
+                                'code' => 'dnr'
+                            ]
+                        ]   
+                    ]
+                ],
+            ],
+            'Consent'
+        );
+    }
 }

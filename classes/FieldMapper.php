@@ -341,23 +341,20 @@ class FieldMapper{
         $subResourceName = SchemaParser::getResourceNameFromRef($property);
         $parentDefinition = $definitions[$subResourceName] ?? null;
 
-        if(($property['type'] ?? null) === 'array'){
+        $isArray = ($property['type'] ?? null) === 'array';
+        if($isArray){
             $addNewIfExists = $parentsSoFar === $newArrayItemParents;
+            $arrayParent = &$subPath;
             $subPath = &$this->getArrayChild($subPath, $addNewIfExists);
         }
 
         $response = $this->findSubPath($definitions, $newArrayItemParents, $elementParts, $parentDefinition, $subPath, $subResourceName, $parentsSoFar);
-        if($response === false){
-            if(($property['type'] ?? null) === 'array'){
-                $subPath = &$this->getArrayChild($subPath, true);
-            }
-            else{
-                return false;
-            }
+        if($response[3] === true && $isArray && $subResourceName !== 'Coding'){
+            $subPath = &$this->getArrayChild($arrayParent, true);
+            return $this->findSubPath($definitions, $newArrayItemParents, $elementParts, $parentDefinition, $subPath, $subResourceName, $parentsSoFar);
         }
-        else{
-            return $response;
-        }
+
+        return $response;
     }
 
     private function processElementMapping($data, $fieldName, $value, $mappingString, $addNewArrayItem){
