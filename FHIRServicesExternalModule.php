@@ -2731,9 +2731,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             if($issues && $errorToWrap === null){
                 $message = "The request failed with the following errors:\n";
                 foreach($issues as $issue){
-                    $prefix = 'invalid JSON:';
-                    $parts = array_filter(explode($prefix, $issue['diagnostics']));
-                    $message .= "- $prefix " . trim($parts[1]);
+                    $phrase = 'invalid JSON: ';
+                    $parts = explode($phrase, $issue['diagnostics']);
+                    $parts = array_map(function(&$part){
+                        return trim($part);
+                    }, $parts);
+
+                    $message .= "- " . implode($phrase, $parts);
 
                     $expression = implode(', ', $issue['expression'] ?? []);
                     if(!empty($expression)){
