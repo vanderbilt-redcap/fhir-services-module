@@ -952,6 +952,14 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                                 'value' => 'acd'
                             ],
                             [
+                                'element' => 'category/coding/system',
+                                'value' => 'http://terminology.hl7.org/CodeSystem/consentcategorycodes'
+                            ],
+                            [
+                                'element' => 'category/coding/code',
+                                'value' => 'dnr'
+                            ],
+                            [
                                 'element' => 'status',
                                 'value' => 'active'
                             ],
@@ -978,6 +986,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             ],
             [
                 'category' => [
+                    // Assert that BOTH codings come through
                     [
                         'coding' => [
                             [
@@ -985,6 +994,14 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                                 'code' => 'acd'
                             ]
                         ]
+                    ],
+                    [
+                        'coding' => [
+                            [
+                                'system' => 'http://terminology.hl7.org/CodeSystem/consentcategorycodes',
+                                'code' => 'dnr'
+                            ]
+                        ]   
                     ]
                 ],
                 'status' => 'active',
@@ -2038,55 +2055,6 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             ],
             null,
             true
-        );
-    }
-
-    function testConsent_multipleCategories(){
-        $this->assert(
-            [
-                $this->getFieldName() => [
-                    'mapping' => [
-                        'type' => 'Consent',
-                        'primaryElementPath' => 'category/coding/system',
-                        'additionalElements' => [
-                            [
-                                'element' => 'category/coding/code',
-                                'value' => 'acd'
-                            ],
-                            [
-                                'element' => 'category/coding/system',
-                                'value' => 'http://terminology.hl7.org/CodeSystem/consentcategorycodes'
-                            ],
-                            [
-                                'element' => 'category/coding/code',
-                                'value' => 'dnr'
-                            ],
-                        ]
-                    ],
-                    'value' => 'http://terminology.hl7.org/CodeSystem/consentcategorycodes'
-                ]
-            ],
-            [
-                'category' => [
-                    [
-                        'coding' => [
-                            [
-                                'system' => 'http://terminology.hl7.org/CodeSystem/consentcategorycodes',
-                                'code' => 'acd'
-                            ]
-                        ]
-                    ],
-                    [
-                        'coding' => [
-                            [
-                                'system' => 'http://terminology.hl7.org/CodeSystem/consentcategorycodes',
-                                'code' => 'dnr'
-                            ]
-                        ]   
-                    ]
-                ],
-            ],
-            'Consent'
         );
     }
 }
