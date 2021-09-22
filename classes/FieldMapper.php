@@ -298,7 +298,7 @@ class FieldMapper{
         return $array[$subPathIndex];
     }
 
-    private function findSubPath($definitions, $elementParts, $parentDefinition, &$subPath, $subResourceName, &$parentsSoFar = null){
+    private function findSubPath($elementParts, $parentDefinition, &$subPath, $subResourceName, &$parentsSoFar = null){
         if($parentsSoFar === null){
             $parentsSoFar = [];
         }
@@ -318,6 +318,7 @@ class FieldMapper{
         $subPath = &$subPath[$elementPart];
         $parentsSoFar[] = $elementPart;
         
+        $definitions = SchemaParser::getDefinitions();
         $subResourceName = SchemaParser::getResourceNameFromRef($property);
         $parentDefinition = $definitions[$subResourceName] ?? null;
 
@@ -327,10 +328,10 @@ class FieldMapper{
             $subPath = &$this->getArrayChild($subPath, false);
         }
 
-        $response = $this->findSubPath($definitions, $elementParts, $parentDefinition, $subPath, $subResourceName, $parentsSoFar);
+        $response = $this->findSubPath($elementParts, $parentDefinition, $subPath, $subResourceName, $parentsSoFar);
         if($response[3] === true && $isArray && $subResourceName !== 'Coding'){
             $subPath = &$this->getArrayChild($arrayParent, true);
-            return $this->findSubPath($definitions, $elementParts, $parentDefinition, $subPath, $subResourceName, $parentsSoFar);
+            return $this->findSubPath($elementParts, $parentDefinition, $subPath, $subResourceName, $parentsSoFar);
         }
 
         return $response;
@@ -360,7 +361,7 @@ class FieldMapper{
         $subResourceName = $resourceName;
         $parentDefinition = $definitions[$resourceName];
 
-        $response = $this->findSubPath($definitions, $elementParts, $parentDefinition, $subPath, $subResourceName);
+        $response = $this->findSubPath($elementParts, $parentDefinition, $subPath, $subResourceName);
         $subPath = &$response[0];
         $subResourceName = $response[1];
         $parentDefinition = $response[2];
