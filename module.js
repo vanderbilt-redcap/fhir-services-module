@@ -502,7 +502,7 @@ $(function(){
         
             let system = ''
             additionalElements.forEach((details, i) => {
-                const nextDetails = details[i+1]
+                const nextDetails = additionalElements[i+1]
                 if(nextDetails !== undefined){
                     if(
                         details.element.endsWith('/system')
