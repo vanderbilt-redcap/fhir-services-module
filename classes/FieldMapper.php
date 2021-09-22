@@ -318,40 +318,53 @@ class FieldMapper{
         return $array[$subPathIndex];
     }
 
-    private function findSubPath($definitions, $newArrayItemParents, $elementParents, $parentDefinition, &$subPath, $subResourceName, &$parentsSoFar = null){
-        if(empty($elementParents)){
-            return [&$subPath, $subResourceName, $parentDefinition];
-        }
-
+    private function findSubPath($definitions, $newArrayItemParents, $elementParts, $parentDefinition, &$subPath, $subResourceName, &$parentsSoFar = null){
         if($parentsSoFar === null){
             $parentsSoFar = [];
         }
+        
+        $elementPart = array_shift($elementParts);
 
-        $subResourceName = '';
-        $parentName = array_shift($elementParents);
-
-        $subPath = &$subPath[$parentName];
-        $parentsSoFar[] = $parentName;
-        $parentProperty = $parentDefinition['properties'][$parentName] ?? null;
-        if($parentProperty === null){
-            throw new Exception("Property named '$parentName' not found in element path for the '$subResourceName' resource: " . json_encode($parentsSoFar, JSON_PRETTY_PRINT));
+        $property = $parentDefinition['properties'][$elementPart] ?? null;
+        if($property === null){
+            throw new Exception("Property named '$elementPart' not found in element path for the '$subResourceName' resource: " . json_encode($parentsSoFar, JSON_PRETTY_PRINT));
         }
         
-        $subResourceName = SchemaParser::getResourceNameFromRef($parentProperty);
+        if(empty($elementParts)){
+            $alreadySet = isset($subPath[$elementPart]) && ($property['type'] ?? null) !== 'array';
+            return [&$subPath, $subResourceName, $parentDefinition, $alreadySet];
+        }
+        
+        $subPath = &$subPath[$elementPart];
+        $parentsSoFar[] = $elementPart;
+        
+        $subResourceName = SchemaParser::getResourceNameFromRef($property);
         $parentDefinition = $definitions[$subResourceName] ?? null;
 
-        if(($parentProperty['type'] ?? null) === 'array'){
+        if(($property['type'] ?? null) === 'array'){
             $addNewIfExists = $parentsSoFar === $newArrayItemParents;
             $subPath = &$this->getArrayChild($subPath, $addNewIfExists);
         }
 
-        return $this->findSubPath($definitions, $newArrayItemParents, $elementParents, $parentDefinition, $subPath, $subResourceName, $parentsSoFar);
+        $response = $this->findSubPath($definitions, $newArrayItemParents, $elementParts, $parentDefinition, $subPath, $subResourceName, $parentsSoFar);
+        if($response === false){
+            if(($property['type'] ?? null) === 'array'){
+                $subPath = &$this->getArrayChild($subPath, true);
+            }
+            else{
+                return false;
+            }
+        }
+        else{
+            return $response;
+        }
     }
 
     private function processElementMapping($data, $fieldName, $value, $mappingString, $addNewArrayItem){
         $parts = explode('/', $mappingString);
         $resourceName = array_shift($parts);
         $elementPath = implode('/', $parts);
+        $elementParts = $parts;
         $elementName = array_pop($parts);
         $elementParents = $parts;
 
@@ -378,17 +391,18 @@ class FieldMapper{
         $subResourceName = $resourceName;
         $parentDefinition = $definitions[$resourceName];
 
-        $response = $this->findSubPath($definitions, $newArrayItemParents, $elementParents, $parentDefinition, $subPath, $subResourceName);
+        $response = $this->findSubPath($definitions, $newArrayItemParents, $elementParts, $parentDefinition, $subPath, $subResourceName);
         $subPath = &$response[0];
         $subResourceName = $response[1];
         $parentDefinition = $response[2];
+        $alreadySet = $response[3];
 
         $elementProperty = $parentDefinition['properties'][$elementName] ?? null;
         if($elementProperty === null){
             throw new Exception("The following mapping is not valid: $mappingString");
         }
 
-        if(($elementProperty['type'] ?? null) !== 'array' && isset($subPath[$elementName])){
+        if($alreadySet){
             if(
                 $resourceName === 'Patient'
                 &&
