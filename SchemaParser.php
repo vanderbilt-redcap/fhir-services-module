@@ -326,7 +326,11 @@ class SchemaParser{
 
     private static function addCodingValues($pathParts, &$property){
         array_pop($pathParts);  // Remove 'code'
-        array_pop($pathParts);  // Remove 'coding'
+        if(end($pathParts) === 'coding'){
+            // This is required to make the UI function for direct coding references
+            // like Encounter/class, as opposed to Encounter/type.
+            array_pop($pathParts);  // Remove 'coding'
+        }
 
         $dataElement = self::getDataElements()[implode('.', $pathParts)] ?? null;
         $parts = explode('|', $dataElement->snapshot->element[0]->binding->valueSet ?? null); // trim off the version string
