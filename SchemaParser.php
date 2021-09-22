@@ -123,15 +123,17 @@ class SchemaParser{
          */
 
         $parts = array_merge($parents, [$propertyName]);
+        $parts = array_splice($parts, -3, 3);
 
         return
             !(
-                $parts === ['Observation', 'code', 'coding', 'code']
+                $parts === ['code', 'coding', 'code']
                 ||
-                array_splice($parts, -3, 3) === ['useContext', 'code', 'code']
+                $parts === ['useContext', 'code', 'code']
             )
             &&
             // We should likely modify this to match types instead of just the property name.
+            // On second thought, that would open us back up to recursive loops wouldn't it...
             in_array($propertyName, $parents)
         ;
     }
