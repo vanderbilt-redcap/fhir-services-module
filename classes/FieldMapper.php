@@ -343,7 +343,6 @@ class FieldMapper{
         $elementPath = implode('/', $parts);
         $elementParts = $parts;
         $elementName = array_pop($parts);
-        $elementParents = $parts;
 
         if(empty($resourceName)){
             throw new Exception('Mapping is missing the resource type!');
