@@ -1,4 +1,4 @@
-# The FHIR Services module
+# The FHIR Services Module
 
 This module is a work in progress prototyping the following FHIR related features (with more to follow in the future):
 
