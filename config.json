@@ -2,7 +2,7 @@
     "name": "FHIR Services",
     "namespace": "Vanderbilt\\FHIRServicesExternalModule",
     "framework-version": 6,
-    "description": "An experimental module prototyping multiple FHIR features (see the README documentation for details).",
+    "description": "An experimental module that aims to add a FHIR compatibility layer to REDCap, effectively turning it into a FHIR server in a limited capacity.  The mapping feature for exporting REDCap data via FHIR is currently the most mature.  There are a few other minor features included currently, and there is a solid foundation for many others to be added in the future.  See the README for more details.",
     "authors": [
         {
             "name": "Mark McEver",
