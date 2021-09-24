@@ -415,10 +415,10 @@ $(function(){
             systemTypeAhead.closest('tr').toggle(isCodingCode)
 
             if(systemTypeAhead.val() === ''){
-                // Enter the default system for this element
-                const systems = elementDetails.systems || []
-                if(systems.length > 0){
-                    systemTypeAhead.val(systems[0])
+                // Enter the first system for this element
+                const system = elementDetails.system
+                if(system){
+                    systemTypeAhead.val(system)
                 }
             }
         },
@@ -426,12 +426,11 @@ $(function(){
             const options = []
             let returnValue = selectedValue // return the raw value if no options exist
 
-            let choices
-            if(system === ''){
+            const elementDetails = module.getMappedElement(elementPath) || {}
+
+            let choices = [];
+            if(system === '' || system === elementDetails.system){
                 choices = module.getREDCapChoices(elementPath)
-            }
-            else{
-                choices = module.getSystemChoices(system)
             }
             
             for(const [value, label] of Object.entries(choices)){
@@ -449,14 +448,6 @@ $(function(){
             fieldOrValueInput.autocomplete('option', 'source', options)
 
             return returnValue
-        },
-        getSystemChoices: (system) => {
-            const choices = module.codesBySystem[system]
-            if(choices !== undefined){
-                return choices
-            }
-
-            return {}
         },
         addAdditionalElement: (type, elementPath, system, fieldOrValue) => {
             let elementTypeAhead = module.initTypeahead({})

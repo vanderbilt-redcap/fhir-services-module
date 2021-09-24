@@ -404,7 +404,7 @@ class FieldMapper{
         if($subResourceName === 'Coding'){
             $system = $subPath['system'] ?? null;
             if(empty($system)){
-                $system = $modifiedElementProperty['systems'][0] ?? null;
+                $system = $modifiedElementProperty['system'] ?? null;
                 if($system !== null){
                     /**
                      * A system was not specified.  Use the default.

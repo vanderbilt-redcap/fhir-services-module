@@ -231,7 +231,6 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         <script>
             var FHIRServicesExternalModule = <?=json_encode([
                 'schema' => SchemaParser::getModifiedSchema(),
-                'codesBySystem' => SchemaParser::getCodesBySystem(),
                 'fields' => $fields,
                 'ACTION_TAG_PREFIX' => ACTION_TAG_PREFIX,
                 'ACTION_TAG_SUFFIX' => ACTION_TAG_SUFFIX,

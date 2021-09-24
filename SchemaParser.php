@@ -338,32 +338,45 @@ class SchemaParser{
 
         $expansion = self::getExpansions()[$valueSetUrl] ?? null;
 
-        $systems = [];
+        $options = $expansion->expansion->contains ?? [];
+
+        $system = $options[0]->system ?? null;
+        $property['system'] = $system;
+
         $choices = [];
-        foreach(($expansion->expansion->contains ?? []) as $option){
-            $system = $option->system;
-            $code = $option->code;
-            $label = $option->display ?? null;
+        if(
+            /**
+             * There are a few SNOMED value sets greater than 1000 that don't say they're truncated,
+             * but I think they might still be. 
+             */
+            count($options) >= 1000
+            && in_array($system, [
+                'http://snomed.info/sct',
+                'http://loinc.org',
+                'http://unitsofmeasure.org'
+            ])
+        ){
+            /**
+             * The list of options us not available since it is very large.
+             * Do not include any choices in this case so users can enter whatever value they like.
+             */
+        }
+        else{
+            foreach($options as $option){
+                if($system !== $option->system){
+                    // The UI only supports one system for now.  Only show choices for the first one.
+                    break;
+                }
 
-            if($system !== 'http://terminology.hl7.org/CodeSystem/v3-NullFlavor'){
-                $systems[$system] = true;
-            }
+                $code = $option->code;
+                $label = $option->display ?? null;
 
-            if($system === 'http://loinc.org'){
-                /**
-                 * The list of LOINC codes included the FHIR spec is truncated,
-                 * and the full list is way to long for a typeahead field.
-                 * Just have users manually enter codes instead.
-                 */
-                continue;
+                $choices[$code] = $label;
+                static::$codesBySystem[$system][$code] = $label;
             }
-    
-            $choices[$code] = $label;
-            static::$codesBySystem[$system][$code] = $label;
         }
 
         $property['redcapChoices'] = $choices;
-        $property['systems'] = array_keys($systems);
     }
 
     private static function getDataElements(){
