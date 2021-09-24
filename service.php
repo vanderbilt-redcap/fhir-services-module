@@ -3,7 +3,6 @@
 use Exception;
 
 use DCarbone\PHPFHIRGenerated\R4\FHIRResource\FHIRDomainResource\FHIROperationOutcome;
-use DCarbone\PHPFHIRGenerated\R4\FHIRElement\FHIRBackboneElement\FHIROperationOutcome\FHIROperationOutcomeIssue;
 
 $sendErrorResponse = function($message, $diagnostics=null) use ($module){
     if(strpos($_SERVER['HTTP_ACCEPT'], 'text/html') === 0){
@@ -33,6 +32,8 @@ try{
         $response = $module->saveResource($type);
     }
     else if($method === 'GET'){
+        die('Project level authentication for GET requests needs to be implemented!');
+
         list($projectId, $recordId) = $module->getProjectAndRecordIdsFromFHIRUrl();
         
         if($type === 'Composition'){
