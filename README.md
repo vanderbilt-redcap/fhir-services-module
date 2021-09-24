@@ -1,6 +1,6 @@
 # The FHIR Services Module
 
-This module is a work in progress prototyping the following FHIR related features (with more to follow in the future):
+This module is a work in progress prototyping the following FHIR related features (with more to follow in the future).  For a more detailed description of how to use this module see the [User Guide](https://github.com/vanderbilt-redcap/fhir-services-module/raw/master/FHIR%20Services%20Module%20User%20Guide.docx).
 
 * Mapping REDCap fields to FHIR Resources & Elements (limited, but expanding)
   * To map a field, complete the **FHIR Mapping** section when editing that field in the Online Designer.  Hover over elements in the dropdown list to see their descriptions.
