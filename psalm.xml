@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<psalm>
+    <projectFiles>
+        <directory name="." />
+        <ignoreFiles>
+            <directory name="vendor" />
+        </ignoreFiles>
+    </projectFiles>
+</psalm>
