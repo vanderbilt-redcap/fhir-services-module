@@ -50,8 +50,8 @@ try{
     ]);
 }
 catch(\Throwable $t){
+    error_log($t->__toString());
     echo json_encode([
-        'message' => $t->getMessage(),
-        'exception' => $t->__toString()
+        'message' => $t->getMessage()
     ]);
 }
