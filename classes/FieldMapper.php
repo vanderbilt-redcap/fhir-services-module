@@ -436,7 +436,7 @@ class FieldMapper{
             $pattern = $definitions[$ref]['pattern'];
         }
 
-        if(in_array('boolean', [$ref, $modifiedElementProperty['type'] ?? null])){
+        if($pattern === BOOLEAN_PATTERN){
             if($value === 'true' || $value === '1'){
                 $value = true;
             }
