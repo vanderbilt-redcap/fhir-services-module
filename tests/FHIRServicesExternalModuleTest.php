@@ -2057,4 +2057,39 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             true
         );
     }
+
+    function testNegativeIntegers(){
+        $negativeNumber = -rand();
+        $this->assertTrue($negativeNumber < 0);
+
+        $codeText = (string) rand();
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'mapping' => [
+                        'type' => 'Observation',
+                        'primaryElementPath' => 'code/text',
+                        'additionalElements' => [
+                            [
+                                'element' => 'status',
+                                'value' => 'final'
+                            ],
+                            [
+                                'element' => 'valueInteger',
+                                'value' => $negativeNumber
+                            ],
+                        ]
+                    ],
+                    'value' => $codeText
+                ],
+            ],
+            [
+                'code' => [
+                    'text' => $codeText,
+                ],
+                'status' => 'final',
+                'valueInteger' => $negativeNumber
+            ],
+        );
+    }
 }

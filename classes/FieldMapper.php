@@ -444,8 +444,9 @@ class FieldMapper{
             ||
             $ref === 'positiveInt'
         ){
-            if(ctype_digit($value)){
-                $value = (int) $value;
+            $intValue = (int) $value; // This handles positive & negative numbers
+            if($intValue == $value){
+                $value = $intValue;
             }
             else{
                 throw new \Exception("Expected an integer value for the '$fieldName' field but found '$value' instead.");
