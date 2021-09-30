@@ -1,6 +1,7 @@
 <?php namespace Vanderbilt\FHIRServicesExternalModule;
 
 use Exception;
+use stdClass;
 use Throwable;
 
 class SchemaParser{
@@ -10,6 +11,7 @@ class SchemaParser{
     private static $modifiedSchema;
     private static $targetProfiles;
     private static $codesBySystem;
+    private static $resourcesByPath;
 
     private static function getFhirJSON($filename){
         $path = __DIR__ . "/fhir/4.0.1/$filename";
@@ -155,13 +157,17 @@ class SchemaParser{
             }
 
             $property['description'] = $propertyName . ' - ' . ($property['description'] ?? '');
-            if($parentProperty !== null){
+            if($parentProperty === null){
+                $parentResourceName = $parents[0];
+            }
+            else{
+                $parentResourceName = $parentProperty['resourceName'];
                 $property['description'] = $parentProperty['description'] . "\n\n" . $property['description'];
             }
 
             $refDefinitionName = self::getResourceNameFromRef($property);
             $property['resourceName'] = $refDefinitionName;
-            $property['parentResourceName'] = $parentProperty['resourceName'] ?? null;
+            $property['parentResourceName'] = $parentResourceName;
 
             $subProperties = self::getDefinitions()[$refDefinitionName]['properties'] ?? null;
             $parts = array_merge($parents, [$propertyName]);
@@ -179,6 +185,7 @@ class SchemaParser{
                     ];
                 }
 
+                static::$resourcesByPath[$parentResourceName][$propertyName] = $refDefinitionName;
                 self::handleProperties($parts, $property, $subProperties);
             }
         }
@@ -301,9 +308,10 @@ class SchemaParser{
                 // Exclude Coding/system, since it's handled differently in the mapping UI.
                 return;
             }
-            else if($lastPart === 'code'){
-                self::addCodingValues($parts, $property);
-            }
+        }
+
+        if($property['resourceName'] === 'code'){
+            self::addCodingValues($parts, $property);
         }
 
         $enum = $property['enum'] ?? null;
@@ -323,16 +331,64 @@ class SchemaParser{
     static function getModifiedProperty($resourceName, $elementPath){
         return self::getModifiedSchema()[$resourceName][$elementPath] ?? null;
     }
-
-    private static function addCodingValues($pathParts, &$property){
-        array_pop($pathParts);  // Remove 'code'
-        if(end($pathParts) === 'coding'){
-            // This is required to make the UI function for direct coding references
-            // like Encounter/class, as opposed to Encounter/type.
-            array_pop($pathParts);  // Remove 'coding'
+    private static function getDataElementForParts($pathParts){
+        if(in_array($pathParts[0], [
+            'Coding',
+            'CodeableConcept',
+            'Duration',
+            'Age',
+            'OperationDefinition',
+            'Count',
+            'Distance',
+            'TestScript',
+            'ValueSet'
+        ])){
+            // We don't need to process these directly, only when they're contained within another resource along with a code system.
+            // Returning an empty object will facilitate this behavior
+            return new stdClass;
         }
 
-        $dataElement = self::getDataElements()[implode('.', $pathParts)] ?? null;
+        $element = static::getDataElements()[implode('.', $pathParts)] ?? null;
+        if($element === null){
+            $resource = array_shift($pathParts);
+            $firstChild = array_shift($pathParts);
+
+            $subResource = static::$resourcesByPath[$resource][$firstChild];
+            if($subResource === null){
+                var_dump([
+                    'Could not find the following sub-resource:',
+                    $resource,
+                    $firstChild,
+                    static::$resourcesByPath[$resource]
+                ]);
+                die();
+            }
+        
+            array_unshift($pathParts, $subResource);
+
+            $element = static::getDataElementForParts($pathParts);
+        }
+        
+        return $element;
+    }
+
+    private static function addCodingValues($pathParts, &$property){
+        $parentResource = $property['parentResourceName'];
+        if($parentResource === 'Coding'){
+            array_pop($pathParts);  // Remove 'code'
+            if(end($pathParts) === 'coding'){
+                // This is required to make the UI function for direct coding references
+                // like Encounter/class, as opposed to Encounter/type.
+                array_pop($pathParts);  // Remove 'coding'
+            }
+        }
+
+        $dataElement = static::getDataElementForParts($pathParts) ?? null;
+        if($dataElement === null){
+            var_dump(['Data element not found for:', $pathParts]);
+            die();
+        }
+
         $parts = explode('|', $dataElement->snapshot->element[0]->binding->valueSet ?? null); // trim off the version string
         $valueSetUrl = $parts[0];
 
@@ -345,6 +401,9 @@ class SchemaParser{
 
         $choices = [];
         if(
+            // Don't include the 'Common Languages' so that users can enter any language.
+            $valueSetUrl === 'http://hl7.org/fhir/ValueSet/languages'
+            ||
             /**
              * There are a few SNOMED value sets greater than 1000 that don't say they're truncated,
              * but I think they might still be. 

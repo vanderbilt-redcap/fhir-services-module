@@ -447,6 +447,8 @@ $(function(){
 
             fieldOrValueInput.autocomplete('option', 'source', options)
 
+            console.log('setValueDropdownOptions', options)
+
             return returnValue
         },
         addAdditionalElement: (type, elementPath, system, fieldOrValue) => {
