@@ -428,6 +428,14 @@ class FieldMapper{
         }
         
         $ref = SchemaParser::getResourceNameFromRef($modifiedElementProperty);
+        
+        if($ref === null){
+            $pattern = $modifiedElementProperty['pattern'] ?? null;
+        }
+        else{
+            $pattern = $definitions[$ref]['pattern'];
+        }
+
         if(in_array('boolean', [$ref, $modifiedElementProperty['type'] ?? null])){
             if($value === 'true' || $value === '1'){
                 $value = true;
@@ -439,11 +447,7 @@ class FieldMapper{
         else if(in_array($ref, ['dateTime', 'instant']) || ($modifiedElementProperty['pattern'] ?? null) === DATE_TIME_PATTERN){
             $value = $this->getModule()->formatFHIRDateTime($value);
         }
-        else if(
-            ($modifiedElementProperty['pattern'] ?? null) === INTEGER_PATTERN
-            ||
-            $ref === 'positiveInt'
-        ){
+        else if(in_array($pattern, [INTEGER_PATTERN, POSITIVE_INT_PATTERN])){
             $intValue = (int) $value; // This handles positive & negative numbers
             if($intValue == $value){
                 $value = $intValue;
