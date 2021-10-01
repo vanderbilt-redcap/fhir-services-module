@@ -7,6 +7,7 @@ const INTEGER_PATTERN = "^-?([0]|([1-9][0-9]*))$";
 const POSITIVE_INT_PATTERN = "^[1-9][0-9]*$";
 const UNSIGNED_INT_PATTERN = "^[0]|([1-9][0-9]*)$";
 const DATE_TIME_PATTERN = "^([0-9]([0-9]([0-9][1-9]|[1-9]0)|[1-9]00)|[1-9]000)(-(0[1-9]|1[0-2])(-(0[1-9]|[1-2][0-9]|3[0-1])(T([01][0-9]|2[0-3]):[0-5][0-9]:([0-5][0-9]|60)(\\.[0-9]+)?(Z|(\\+|-)((0[0-9]|1[0-3]):[0-5][0-9]|14:00)))?)?)?$";
+const INSTANT_PATTERN = "^([0-9]([0-9]([0-9][1-9]|[1-9]0)|[1-9]00)|[1-9]000)-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])T([01][0-9]|2[0-3]):[0-5][0-9]:([0-5][0-9]|60)(\\.[0-9]+)?(Z|(\\+|-)((0[0-9]|1[0-3]):[0-5][0-9]|14:00))$";
 const BOOLEAN_PATTERN = "^true|false$";
 const DECIMAL_PATTERN = "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?([eE][+-]?[0-9]+)?$";
 
@@ -451,7 +452,7 @@ class FieldMapper{
                 $value = false;
             }
         }
-        else if(in_array($ref, ['dateTime', 'instant']) || ($modifiedElementProperty['pattern'] ?? null) === DATE_TIME_PATTERN){
+        else if(in_array($pattern, [DATE_TIME_PATTERN, INSTANT_PATTERN])){
             $value = $this->getModule()->formatFHIRDateTime($value);
         }
         else if(in_array($pattern, [INTEGER_PATTERN, POSITIVE_INT_PATTERN, UNSIGNED_INT_PATTERN])){
