@@ -456,7 +456,7 @@ class FieldMapper{
                 throw new \Exception("Expected an integer value for the '$fieldName' field but found '$value' instead.");
             }
         }
-        else if($ref === 'decimal'){
+        else if($pattern === DECIMAL_PATTERN){
             $newValue = (float) $value;
             if((string)$newValue === $value){
                 $value = $newValue;
