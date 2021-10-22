@@ -51,21 +51,21 @@
                             "valueCoding": {
                                 "code": "1",
                                 "display": "a",
-                                "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.dropdown"
+                                "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.dropdown"
                             }
                         },
                         {
                             "valueCoding": {
                                 "code": "2",
                                 "display": "b",
-                                "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.dropdown"
+                                "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.dropdown"
                             }
                         },
                         {
                             "valueCoding": {
                                 "code": "3",
                                 "display": "c",
-                                "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.dropdown"
+                                "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.dropdown"
                             }
                         }
                     ],
@@ -81,21 +81,21 @@
                                     "valueCoding": {
                                         "code": "1",
                                         "display": "d",
-                                        "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.radio"
+                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.radio"
                                     }
                                 },
                                 {
                                     "valueCoding": {
                                         "code": "2",
                                         "display": "e",
-                                        "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.radio"
+                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.radio"
                                     }
                                 },
                                 {
                                     "valueCoding": {
                                         "code": "3",
                                         "display": "f",
-                                        "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.radio"
+                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.radio"
                                     }
                                 }
                             ],
@@ -124,14 +124,14 @@
                                     "valueCoding": {
                                         "code": "1",
                                         "display": "Yes",
-                                        "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.yes-or-no"
+                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.yes-or-no"
                                     }
                                 },
                                 {
                                     "valueCoding": {
                                         "code": "0",
                                         "display": "No",
-                                        "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.yes-or-no"
+                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.yes-or-no"
                                     }
                                 }
                             ],
@@ -145,14 +145,14 @@
                                     "valueCoding": {
                                         "code": "1",
                                         "display": "True",
-                                        "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.true-or-false"
+                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.true-or-false"
                                     }
                                 },
                                 {
                                     "valueCoding": {
                                         "code": "0",
                                         "display": "False",
-                                        "system": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.true-or-false"
+                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.true-or-false"
                                     }
                                 }
                             ],
@@ -196,5 +196,5 @@
     "name": "<?=$pid?>.all-field-type-examples",
     "status": "draft",
     "title": "All Field Type Examples",
-    "url": "https://localhost/api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/Questionnaire/<?=$pid?>.all-field-type-examples&canonical"
+    "url": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/Questionnaire/<?=$pid?>.all-field-type-examples&canonical"
 }
