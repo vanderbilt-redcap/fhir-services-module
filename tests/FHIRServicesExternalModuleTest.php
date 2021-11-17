@@ -893,6 +893,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                             'value' => 'b',
                             'system' => 'email'
                         ],
+                    ]
+                ],
+                [
+                    'telecom' => [
                         [
                             'value' => 'd',
                             'system' => 'email'
@@ -2001,13 +2005,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         );
     }
 
-    function testCondition_verificationStatus(){
-        /**
-         * Condition/verificationStatus has a version appended to the valueSet URL in dataelements.json.
-         * This test ensures that that version gets removed so that the system url can be matched.
-         */
-
+    function testCondition(){
         $family = 'Jetson';
+        $snomed1 = '109006';
+        $snomed2 = '122003';
 
         $patient = $this->setResourceTypeAndId('Patient', null, null, [
             'name' => [
@@ -2027,9 +2028,21 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                             [
                                 'element' => 'verificationStatus/coding/code',
                                 'value' => 'confirmed'
-                            ]
+                            ],
+                            [
+                                'element' => 'code/coding/code',
+                                'value' => $snomed1
+                            ],
+                            [
+                                'element' => 'code/coding/code',
+                                'value' => $snomed2
+                            ],
                         ]
                     ],
+                    /**
+                     * Condition/verificationStatus has a version appended to the valueSet URL in dataelements.json.
+                     * Test to ensure that that version gets removed so that the system url can be matched.
+                     */
                     'value' => 'http://terminology.hl7.org/CodeSystem/condition-ver-status'
                 ],
                 $this->getFieldName2() => [
@@ -2044,6 +2057,19 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                             [
                                 'system' => 'http://terminology.hl7.org/CodeSystem/condition-ver-status',
                                 'code' => 'confirmed'
+                            ]
+                        ]
+                    ],
+                    'code' => [
+                        'coding' => [
+                            // Make sure multiple codes can be mapped at the same time.
+                            [
+                                'system' => 'http://snomed.info/sct',
+                                'code' => $snomed1
+                            ],
+                            [  
+                                'system' => 'http://snomed.info/sct',
+                                'code' => $snomed2
                             ]
                         ]
                     ],

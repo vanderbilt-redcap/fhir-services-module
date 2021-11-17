@@ -306,7 +306,7 @@ class FieldMapper{
         return $array[$subPathIndex];
     }
 
-    private function findSubPath($elementParts, $parentDefinition, &$subPath, $subResourceName, &$parentsSoFar = null){
+    private function findSubPath($elementParts, $parentDefinition, &$subPath, $subResourceName, &$parentsSoFar = null, $hasParentArray = false){
         if($parentsSoFar === null){
             $parentsSoFar = [];
         }
@@ -336,10 +336,14 @@ class FieldMapper{
             $subPath = &$this->getArrayChild($subPath, false);
         }
 
-        $response = $this->findSubPath($elementParts, $parentDefinition, $subPath, $subResourceName, $parentsSoFar);
-        if($response[3] === true && $isArray && $subResourceName !== 'Coding'){
+        $findSubPath = function(&$subPath) use ($elementParts, $parentDefinition, $subResourceName, &$parentsSoFar, $hasParentArray, $isArray){
+            return $this->findSubPath($elementParts, $parentDefinition, $subPath, $subResourceName, $parentsSoFar, $hasParentArray || $isArray);
+        };
+
+        $response = $findSubPath($subPath);
+        if($response[3] === true && $isArray && !$hasParentArray){
             $subPath = &$this->getArrayChild($arrayParent, true);
-            return $this->findSubPath($elementParts, $parentDefinition, $subPath, $subResourceName, $parentsSoFar);
+            $response = $findSubPath($subPath);
         }
 
         return $response;
@@ -441,7 +445,7 @@ class FieldMapper{
             $pattern = $modifiedElementProperty['pattern'] ?? null;
         }
         else{
-            $pattern = $definitions[$ref]['pattern'];
+            $pattern = $definitions[$ref]['pattern'] ?? null;
         }
 
         if($pattern === BOOLEAN_PATTERN){
