@@ -395,7 +395,7 @@ class FieldMapper{
                 }
             }
             else{
-                throw new StackFreeException("The '$mappingString' element might be unintentionally mapped to multiple fields.  You can check this by opening the Codebook and searching for '$mappingString'.  If only one instance is found, this could also be explained by multiple values existing for the same field in different contexts (ex: events).  Until we can add some sort of 'Repeatable Context' feature, the best work around for this is to add an additional field mapping (any field or value) to signify that an additional instance of the resource needs to be created.");
+                throw new StackFreeException("The '$mappingString' element might be unintentionally mapped to multiple fields.  You can check this by opening the Codebook and searching for '$elementPath' and seeing if it is mapped multiple times for the '$resourceName' resource.  If only one instance is found, this could also be explained by multiple values existing for the same field in different contexts (ex: events).  Until we can add some sort of 'Repeatable Context' feature, the best work around for this is to add an additional field mapping (any field or value) to signify that an additional instance of the resource needs to be created.");
             }
         }
 
