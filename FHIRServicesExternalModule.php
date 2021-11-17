@@ -312,7 +312,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 }
 
                 waitForElement('#recordActionDropdownDiv', function(dropdown){                       
-                    var lastPdfOption = dropdown.find('[data-rc-lang="data_entry_314"]').last().closest('.ui-menu-item')
+                    var lastPdfOption = $(dropdown.find('[data-rc-lang="data_entry_314"]').last()).closest('.ui-menu-item')
                     
                     var addOption = function(text, iconName, action){
                         var newOption = lastPdfOption.clone()
