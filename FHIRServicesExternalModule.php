@@ -61,7 +61,7 @@ if (!function_exists('str_contains')) {
 }
 
 if (!function_exists('str_ends_with')) {
-    function str_contains($haystack, $needle) {
+    function str_ends_with($haystack, $needle) {
         $length = strlen( $needle );
         if( !$length ) {
             return true;
