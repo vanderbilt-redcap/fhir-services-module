@@ -239,9 +239,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         <?php
     }
 
+    function getRecordId(){
+        return htmlentities($_GET['id'], ENT_QUOTES);
+    }
+
     private function hookRecordHome(){
         $projectId = $this->getProjectId();
-        $recordId = $_GET['id'];
+        $recordId = $this->getRecordId();
 
         $projectType = $this->getProjectType();
         $resourceName = null;
@@ -276,7 +280,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 }
 
                 var sendRecord = function(action){
-                    var url = <?=json_encode($this->getUrl('send-record.php') . "&id=" . $_GET['id'])?>;
+                    var url = <?=json_encode($this->getUrl('send-record.php') . "&id=" . $recordId)?>;
 
                     if(action){
                         url = url + '&action=' + action
@@ -795,7 +799,12 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function getResourceUrlPrefix(){
-        $originalPid = $_GET['pid'] ?? null;
+        if(isset($_GET['pid'])){
+            $originalPid = $this->getProjectId();
+        }
+        else{
+            $originalPid = null;
+        }
         unset($_GET['pid']);
 
         // Get the URL without the pid.
@@ -2707,7 +2716,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     function sendToRemoteFHIRServer($resource){
-        $resourceType = $resource['resourceType'];
+        // Use preg_replace() to prevent vulernabilities per Psalm.
+        $resourceType = preg_replace('/[^A-Za-z]/', '', $resource['resourceType']);
 
         $url = rtrim($this->getRemoteFHIRServerUrl(), '/');
         $response = file_get_contents("$url/$resourceType", false, stream_context_create([

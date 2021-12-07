@@ -2,7 +2,7 @@
 
 use REDCap;
 
-$pid = $_GET['pid'];
+$pid = $module->getProjectId();
 $formName = $_GET['form'];
 $formDisplayNames = REDCap::getInstrumentNames();
 $formDisplayName = $formDisplayNames[$formName];

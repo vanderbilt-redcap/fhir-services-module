@@ -114,7 +114,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $actual = trim($this->jsonSerialize($questionnaire));
 
         ob_start();
-        $pid = $_GET['pid'];
+        $pid = $this->getProjectId();
         require(__DIR__ . '/expected-questionnaire.json.php');
         $expected = ob_get_clean();
         

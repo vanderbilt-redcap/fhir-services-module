@@ -1,13 +1,13 @@
 <?php namespace Vanderbilt\FHIRServicesExternalModule;
 
 $projectId = $module->getProjectId();
-$recordId = $_GET['id'];
+$recordId = $module->getRecordId();
 
 if($module->getProjectType() === 'composition'){
     $resource = $module->buildBundle($projectId, $recordId);
 }
 else if($module->getProjectType() === 'questionnaire'){
-    $resource = $module->getFHIRResourceForRecord($projectId, $_GET['id']);
+    $resource = $module->getFHIRResourceForRecord($projectId, $recordId);
 }
 else{
     $resource = $module->getMappedFieldsAsBundle($projectId, $recordId);

@@ -1,5 +1,5 @@
 <?php
-$pid = $_GET['pid'];
+$pid = $module->getProjectId();
 $record = $_GET['record'];
 $form = $_GET['form'];
 $event = $_GET['event'];
