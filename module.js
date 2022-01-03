@@ -6,8 +6,8 @@ $(function(){
         VALUE: 'value',
         init: function(){
             var elementTypeahead = module.initTypeahead({})
-            
             var resourceTypeahead = module.initResourceTypeahead(elementTypeahead)
+            var systemTypeahead = module.initTypeahead({})
 
             module.RESOURCE_TYPEAHEAD = resourceTypeahead
             module.ELEMENT_TYPEAHEAD = elementTypeahead
@@ -15,7 +15,8 @@ $(function(){
             var typeaheadContainer = $('<div id="fhir-services-mapping-field-settings" style="border: 1px solid rgb(211, 211, 211); padding: 4px 8px; margin-top: 5px; display: block;"><b>FHIR Mapping</b></div>')
             typeaheadContainer.append(module.createTable({
                 'Resource': resourceTypeahead,
-                'Element': elementTypeahead
+                'Element': elementTypeahead,
+                'System': systemTypeahead
             }))
 
             typeaheadContainer.append(module.RECOMMENDED_CHOICES_LINK)
@@ -76,6 +77,10 @@ $(function(){
 
                     if(mapping.type !== 'Questionnaire'){
                         elementTypeahead.val(mapping.primaryElementPath)
+
+                        // Trigger the change event so the listener in setupSystemDropdown() fires
+                        elementTypeahead.change()
+
                         module.initElementAutocomplete(elementTypeahead, true)
                         module.showElementTypeahead()
                     }
@@ -92,6 +97,9 @@ $(function(){
             }
 
             $('#div_field_req').before(typeaheadContainer)
+
+            // Does this spot correctly account for previously set values on page load?
+            module.setupSystemDropdown(systemTypeahead, elementTypeahead, null)
 
             module.initSaveButton()
             module.initRecommendedChoiceLinks()
@@ -370,18 +378,7 @@ $(function(){
         },
         initFieldOrValueInput: (type, fieldOrValue, elementTypeAhead, systemTypeAhead) => {
             const fieldOrValueInput = module.initTypeahead({})
-
-            const setupSystemDropdown = () => {
-                module.setupSystemDropdown(systemTypeAhead, elementTypeAhead.val())
-            }
-
-            setupSystemDropdown()
-            elementTypeAhead.change(()=>{
-                systemTypeAhead.val('') // Using the empty string here will cause the default system to be selected
-                setupSystemDropdown()
-                fieldOrValueInput.val('') // Force the user to re-enter field/value, since the previous one is likely no longer valid.
-                fieldOrValueInput.focus()
-            })
+            module.setupSystemDropdown(systemTypeAhead, elementTypeAhead, fieldOrValueInput)
 
             if(type === module.FIELD){
                 const options = []
@@ -408,19 +405,33 @@ $(function(){
 
             return fieldOrValueInput
         },
-        setupSystemDropdown: (systemTypeAhead, elementPath) => {
-            const elementDetails = module.getMappedElement(elementPath) || {}
+        setupSystemDropdown: (systemTypeAhead, elementTypeAhead, fieldOrValueInput) => {
+            const action = () => {
+                const elementPath = elementTypeAhead.val()
+                const elementDetails = module.getMappedElement(elementPath) || {}
 
-            const isCodingCode = elementDetails.parentResourceName === 'Coding' && elementPath.endsWith('/code')
-            systemTypeAhead.closest('tr').toggle(isCodingCode)
+                const isCodingCode = elementDetails.parentResourceName === 'Coding' && elementPath.endsWith('/code')
+                systemTypeAhead.closest('tr').toggle(isCodingCode)
 
-            if(systemTypeAhead.val() === ''){
-                // Enter the first system for this element
-                const system = elementDetails.system
-                if(system){
-                    systemTypeAhead.val(system)
+                if(systemTypeAhead.val() === ''){
+                    // Enter the first system for this element
+                    const system = elementDetails.system
+                    if(system){
+                        systemTypeAhead.val(system)
+                    }
                 }
             }
+
+            action()
+            elementTypeAhead.change(()=>{
+                systemTypeAhead.val('') // Using the empty string here will cause the default system to be selected
+                action()
+
+                if(fieldOrValueInput !== null){
+                    fieldOrValueInput.val('') // Force the user to re-enter field/value, since the previous one is likely no longer valid.
+                    fieldOrValueInput.focus()
+                }
+            })
         },
         setValueDropdownOptions: (fieldOrValueInput, system, elementPath, selectedValue) => {
             const options = []
