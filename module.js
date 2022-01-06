@@ -11,6 +11,7 @@ $(function(){
 
             module.RESOURCE_TYPEAHEAD = resourceTypeahead
             module.ELEMENT_TYPEAHEAD = elementTypeahead
+            module.SYSTEM_TYPEAHEAD = systemTypeahead
 
             var typeaheadContainer = $('<div id="fhir-services-mapping-field-settings" style="border: 1px solid rgb(211, 211, 211); padding: 4px 8px; margin-top: 5px; display: block;"><b>FHIR Mapping</b></div>')
             typeaheadContainer.append(module.createTable({
@@ -77,9 +78,8 @@ $(function(){
 
                     if(mapping.type !== 'Questionnaire'){
                         elementTypeahead.val(mapping.primaryElementPath)
-
-                        // Trigger the change event so the listener in setupSystemDropdown() fires
-                        elementTypeahead.change()
+                        systemTypeahead.val(mapping.primaryElementSystem)
+                        module.toggleTypeaheadRow(systemTypeahead, mapping.primaryElementSystem)
 
                         module.initElementAutocomplete(elementTypeahead, true)
                         module.showElementTypeahead()
@@ -405,19 +405,23 @@ $(function(){
 
             return fieldOrValueInput
         },
+        toggleTypeaheadRow: (typeahead, flag) => {
+            typeahead.closest('tr').toggle(flag)
+        },
         setupSystemDropdown: (systemTypeAhead, elementTypeAhead, fieldOrValueInput) => {
             const action = () => {
                 const elementPath = elementTypeAhead.val()
                 const elementDetails = module.getMappedElement(elementPath) || {}
 
                 const isCodingCode = elementDetails.parentResourceName === 'Coding' && elementPath.endsWith('/code')
-                systemTypeAhead.closest('tr').toggle(isCodingCode)
+                module.toggleTypeaheadRow(systemTypeAhead, isCodingCode)
 
                 if(systemTypeAhead.val() === ''){
                     // Enter the first system for this element
                     const system = elementDetails.system
                     if(system){
                         systemTypeAhead.val(system)
+                        module.updateActionTag()
                     }
                 }
             }
@@ -573,10 +577,11 @@ $(function(){
             let newTag = ''
             if(resource != ''){
                 if(element != '' || resource === 'Questionnaire'){
+                    const primaryElementSystem = module.SYSTEM_TYPEAHEAD.val()
                     const additionalElements = module.getAdditionalElementMappings()
     
                     let content
-                    if($.isEmptyObject(additionalElements)){
+                    if(primaryElementSystem === '' && $.isEmptyObject(additionalElements)){
                         content = resource
                         if(element != ''){
                             content += '/' + element
@@ -586,6 +591,7 @@ $(function(){
                         content = module.actionTagEncode({
                             type: resource,
                             primaryElementPath: element,
+                            primaryElementSystem: primaryElementSystem,
                             additionalElements: additionalElements
                         })
                     }

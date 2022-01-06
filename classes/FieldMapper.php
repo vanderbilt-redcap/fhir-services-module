@@ -65,14 +65,22 @@ class FieldMapper{
                 }
 
                 $isArrayMapping = is_array($mapping);
+                $primaryElementSystemWasSet = false;
                 if($isArrayMapping){
                     $primaryMapping = $mapping['type'] . '/' . $mapping['primaryElementPath'];
+                    
+                    $systemValue = $mapping['primaryElementSystem'] ?? null;
+                    if(!empty($systemValue)){
+                        $systemElementPath = preg_replace('/code$/', 'system', $primaryMapping);
+                        $this->processElementMapping($data, $fieldName, $systemValue, $systemElementPath, $isArrayMapping);
+                        $primaryElementSystemWasSet = true;
+                    }
                 }
                 else{
                     $primaryMapping = $mapping;
                 }
 
-                $this->processElementMapping($data, $fieldName, $value, $primaryMapping, $isArrayMapping);
+                $this->processElementMapping($data, $fieldName, $value, $primaryMapping, $isArrayMapping && !$primaryElementSystemWasSet);
 
                 if($isArrayMapping){
                     $this->processAdditionalElements($mapping, $data);

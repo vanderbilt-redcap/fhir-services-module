@@ -1490,7 +1490,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 if(
                     (
                         $line1 === 'Success: 0 errors, 0 warnings, 1 notes' &&
-                        $line2 === '  Information @ ?? : All OK'
+                        $line2 === '  Information: All OK'
                     )
                     ||
                     (
@@ -2115,6 +2115,41 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 ],
                 'status' => 'final',
                 'valueInteger' => $negativeNumber
+            ],
+        );
+    }
+
+    function testPrimaryElementSystem(){
+        $system = 'http://terminology.hl7.org/CodeSystem/observation-category';
+        $code = 'social-history';
+
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'mapping' => [
+                        'type' => 'Observation',
+                        'primaryElementPath' => 'code/coding/code',
+                        'primaryElementSystem' => $system,
+                        'additionalElements' => [
+                            [
+                                'element' => 'status',
+                                'value' => 'final'
+                            ],
+                        ]
+                    ],
+                    'value' => $code
+                ],
+            ],
+            [
+                'code' => [
+                    'coding' => [
+                        [
+                            'system' => $system,
+                            'code' => $code
+                        ],
+                    ]
+                ],
+                'status' => 'final',
             ],
         );
     }
