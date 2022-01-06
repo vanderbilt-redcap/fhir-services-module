@@ -325,12 +325,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
                         var a = newOption.find('a')
                         a.removeAttr('target')
-                        
-                        newOption.click(function(e){
+
+                        // This event is registered as follows to make sure it replaces the click and middle mouse button click actions from the cloned element.
+                        a.mouseup(function(e){
                             e.preventDefault()
                             dropdown.hide()
                             action()
-                        })              
+                        })
                         
                         lastPdfOption.after(newOption)
                         lastPdfOption = newOption
