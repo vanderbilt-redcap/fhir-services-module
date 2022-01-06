@@ -79,7 +79,7 @@ $(function(){
                     if(mapping.type !== 'Questionnaire'){
                         elementTypeahead.val(mapping.primaryElementPath)
                         systemTypeahead.val(mapping.primaryElementSystem)
-                        module.toggleTypeaheadRow(systemTypeahead, mapping.primaryElementSystem)
+                        module.toggleTypeaheadRow(systemTypeahead, mapping.primaryElementSystem !== undefined)
 
                         module.initElementAutocomplete(elementTypeahead, true)
                         module.showElementTypeahead()
@@ -414,21 +414,25 @@ $(function(){
                 const elementDetails = module.getMappedElement(elementPath) || {}
 
                 const isCodingCode = elementDetails.parentResourceName === 'Coding' && elementPath.endsWith('/code')
-                module.toggleTypeaheadRow(systemTypeAhead, isCodingCode)
-
-                if(systemTypeAhead.val() === ''){
-                    // Enter the first system for this element
-                    const system = elementDetails.system
-                    if(system){
-                        systemTypeAhead.val(system)
-                        module.updateActionTag()
+                if(isCodingCode){
+                    if(systemTypeAhead.val() === ''){
+                        // Enter the first system for this element
+                        const system = elementDetails.system
+                        if(system){
+                            systemTypeAhead.val(system)
+                        }
                     }
                 }
+                else{
+                    systemTypeAhead.val('')
+                }
+
+                module.toggleTypeaheadRow(systemTypeAhead, isCodingCode)
+                module.updateActionTag()
             }
 
             action()
             elementTypeAhead.change(()=>{
-                systemTypeAhead.val('') // Using the empty string here will cause the default system to be selected
                 action()
 
                 if(fieldOrValueInput !== null){
@@ -577,11 +581,15 @@ $(function(){
             let newTag = ''
             if(resource != ''){
                 if(element != '' || resource === 'Questionnaire'){
-                    const primaryElementSystem = module.SYSTEM_TYPEAHEAD.val()
+                    let primaryElementSystem = module.SYSTEM_TYPEAHEAD.val()
+                    if(primaryElementSystem === ''){
+                        primaryElementSystem = undefined
+                    }
+
                     const additionalElements = module.getAdditionalElementMappings()
     
                     let content
-                    if(primaryElementSystem === '' && $.isEmptyObject(additionalElements)){
+                    if(primaryElementSystem === undefined && $.isEmptyObject(additionalElements)){
                         content = resource
                         if(element != ''){
                             content += '/' + element
