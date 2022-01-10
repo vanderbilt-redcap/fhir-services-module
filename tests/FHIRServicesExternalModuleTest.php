@@ -1462,12 +1462,12 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         // Normalize the path so it matches paths in the output.
         $validatorPath = realpath($validatorPath);
 
-        $igArgs = '';
+        $igArgs = ' -ig hl7.fhir.us.core#4.0.0 ';
         foreach(glob(RESOURCES_PATH . '*-questionnaire.json') as $path){
             $igArgs .= " -ig $path";
         }
 
-        $cmd = "java -Xmx3g -jar $validatorPath " . RESOURCES_PATH . " -version 4.0.1 $igArgs 2>&1";
+        $cmd = "java -Xmx4g -jar $validatorPath " . RESOURCES_PATH . " -version 4.0.1 $igArgs 2>&1";
         exec($cmd, $output, $exitCode);
 
         $onValidationFailed = function($message) use ($output){
