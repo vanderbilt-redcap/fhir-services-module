@@ -303,7 +303,7 @@ class SchemaParser{
 
     private static function handleProperty($parts, $property){
         if($property['parentResourceName'] === 'Coding'){
-            $lastPart = array_slice($parts, -1, )[0];
+            $lastPart = array_slice($parts, -1)[0];
             if($lastPart === 'system'){
                 // Exclude Coding/system, since it's handled differently in the mapping UI.
                 return;
