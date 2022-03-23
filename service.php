@@ -32,6 +32,11 @@ try{
         $response = $module->saveResource($type);
     }
     else if($method === 'GET'){
+        /**
+         * To get around this, we could implement REDCap auth (for simple testing).
+         * For an actual use case using REDCap as both sender & receiver, we could
+         * implement API token based auth alongside the existing JWT key auth.
+         */
         die('Project level authentication for GET requests needs to be implemented!');
 
         list($projectId, $recordId) = $module->getProjectAndRecordIdsFromFHIRUrl();
