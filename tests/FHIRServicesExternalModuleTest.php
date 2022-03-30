@@ -74,6 +74,9 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
         $_GET['pid'] = $this->getTestPID();
         $this->removeProjectSetting('unmapped-use-questionnaire');
+
+        // Remove the project object, in case it was spoofed by the previous test
+        unset($this->module->project);
     }
 
     private function getFieldName(){
@@ -2152,5 +2155,91 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 'status' => 'final',
             ],
         );
+    }
+
+    private function setOntology($field, $key){
+        $project = new \stdClass;
+        $project->metadata = [
+            $field => [
+                'element_enum' => 'BIOPORTAL:' . $key
+            ]
+        ];
+
+        $this->module->project = $project;
+    }
+
+    function testSystemSetFromOntology(){
+        $code = (string) rand();
+
+        $systems = $this->getOntologySystems();
+        $ontologyKey = array_rand($systems);
+        $system = $systems[$ontologyKey];
+        
+        $this->setOntology($this->getFieldName(), $ontologyKey);
+
+        // Make sure an ontology system is set for primary elements
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'mapping' => [
+                        'type' => 'Condition',
+                        'primaryElementPath' => 'code/coding/code',
+                    ],
+                    'value' => $code
+                ],
+            ],
+            [
+                'code' => [
+                    'coding' => [
+                        [
+                            'system' => $system,
+                            'code' => $code
+                        ],
+                    ]
+                ],
+            ],
+        );
+
+        // Make sure an ontology system is set for additional elements
+        $display = (string) rand();
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'mapping' => [
+                        'type' => 'Condition',
+                        'primaryElementPath' => 'code/coding/display',
+                        'additionalElements' => [
+                            [
+                                'element' => 'code/coding/code',
+                                'value' => $code
+                            ],
+                        ]
+                    ],
+                    'value' => $display
+                ],
+            ],
+            [
+                'code' => [
+                    'coding' => [
+                        [
+                            'system' => $system,
+                            'display' => $display,
+                            'code' => $code
+                        ],
+                    ]
+                ],
+            ],
+        );
+    }
+
+    function testGetOntologySystems(){
+        $list = $this->getOntologySystems();
+
+        foreach(CUSTOM_ONTOLOGY_SYSTEMS as $key=>$value){
+            $this->assertSame($value, $list[$key]);
+        }
+
+        // Check one that REDCap autopopulates that is not in our custom list.
+        $this->assertSame($list['ICO'], 'https://data.bioontology.org/ontologies/ICO');
     }
 }

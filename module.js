@@ -409,6 +409,8 @@ $(function(){
             typeahead.closest('tr').toggle(flag)
         },
         setupSystemDropdown: (systemTypeAhead, elementTypeAhead, fieldOrValueInput) => {
+            const ontologyCategory = $('#bioportal_ontology_category')
+
             const action = () => {
                 const elementPath = elementTypeAhead.val()
                 const elementDetails = module.getMappedElement(elementPath) || {}
@@ -422,6 +424,19 @@ $(function(){
                             systemTypeAhead.val(system)
                         }
                     }
+
+                    const isOntology = systemTypeAhead === module.SYSTEM_TYPEAHEAD && ontologyCategory.val() !== ''
+                    let placeholder
+                    if(isOntology){
+                        placeholder = '(set automatically from ontology)'
+                        systemTypeAhead.val('')
+                    }
+                    else{
+                        placeholder = ''
+                    }
+                    
+                    systemTypeAhead.attr('placeholder', placeholder)
+                    systemTypeAhead.prop("readonly", isOntology)
                 }
                 else{
                     systemTypeAhead.val('')
@@ -432,6 +447,8 @@ $(function(){
             }
 
             action()
+            ontologyCategory.change(action)
+            $('#ontology_service_select').change(action)
             elementTypeAhead.change(()=>{
                 action()
 

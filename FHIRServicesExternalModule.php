@@ -53,6 +53,13 @@ const SUPPORTED_ACTION_TAGS = [
 const ACTION_TAG_PREFIX = "@FHIR-MAPPING='";
 const ACTION_TAG_SUFFIX = "'";
 const SINGLE_QUOTE_PLACEHOLDER = '<single-quote-placeholder>';
+const CUSTOM_ONTOLOGY_SYSTEMS = [
+    'LOINC' => 'http://loinc.org',
+    'SNOMEDCT' => 'http://snomed.info/sct',
+    'ICD10' => 'http://hl7.org/fhir/sid/icd-10',
+    'ICD10CM' => 'http://hl7.org/fhir/sid/icd-10-cm',
+    'ICD9CM' => 'http://hl7.org/fhir/sid/icd-9-cm',
+];
 
 if (!function_exists('str_contains')) {
     function str_contains($haystack, $needle) {
@@ -71,6 +78,29 @@ if (!function_exists('str_ends_with')) {
 }
 
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
+    private $ontologySystems;
+
+    function getOntologySystems(){
+        global $bioportal_ontology_list;
+
+        if(!isset($this->ontologySystems)){
+            $this->ontologySystems = [];
+
+            $list = json_decode($bioportal_ontology_list, true);
+            if(is_array($list)){
+                foreach($list as $item){
+                    $this->ontologySystems[$item['acronym']] = $item['@id'];
+                }
+            }
+
+            foreach(CUSTOM_ONTOLOGY_SYSTEMS as $key=>$value){
+                $this->ontologySystems[$key] = $value;
+            }
+        }
+
+        return $this->ontologySystems;
+    }
+
     function redcap_every_page_top(){
         if($this->isPage('DataEntry/record_home.php')){
             $this->hookRecordHome();
@@ -2880,5 +2910,13 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
 
         return $pid;
+    }
+    
+    function getProject(){
+        if(!isset($this->project)){
+            $this->project = new \Project($this->getProjectId());
+        }
+
+        return $this->project;
     }
 }

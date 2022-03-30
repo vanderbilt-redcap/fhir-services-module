@@ -424,13 +424,20 @@ class FieldMapper{
         if($subResourceName === 'Coding'){
             $system = $subPath['system'] ?? null;
             if(empty($system)){
-                $system = $modifiedElementProperty['system'] ?? null;
-                if($system !== null){
-                    /**
+                $ontologySystem = $this->getOntologySystem($fieldName);
+                if(!empty($ontologySystem)){
+                    $system = $ontologySystem;
+                }
+                else{
+                     /**
                      * A system was not specified.  Use the default.
-                     * This covers the use case of primary element mappings, since we can't currently specify a custom system for those.
-                     * The redcapChoices check below will still handle choices appropriately in this case.
+                     * This is likely not necessary for new primary element mappings now that a system can be specified.
+                     * However, we probably want to leave it in place for previously existing primary element mappings that don't explicitly include the system.
                      */
+                    $system = $modifiedElementProperty['system'] ?? null;
+                }
+
+                if($system !== null){
                     $subPath['system'] = $system;
                 }
             }
@@ -492,6 +499,16 @@ class FieldMapper{
         else{
             $subPath[$elementName] = $value;
         }
+    }
+    
+    function getOntologySystem($fieldName){
+        $enum = $this->getModule()->getProject()->metadata[$fieldName]['element_enum'] ?? '';
+        $ontologyParts = explode('BIOPORTAL:', $enum);
+        if(count($ontologyParts) === 2 && $ontologyParts[0] === ''){
+            return $this->getModule()->getOntologySystems()[$ontologyParts[1]] ?? null;
+        }
+        
+        return null;
     }
 
     private function processAdditionalElements($mapping, $data){
