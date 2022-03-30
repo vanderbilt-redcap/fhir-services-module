@@ -51,21 +51,21 @@
                             "valueCoding": {
                                 "code": "1",
                                 "display": "a",
-                                "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.dropdown"
+                                "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/<?=$pid?>.dropdown"
                             }
                         },
                         {
                             "valueCoding": {
                                 "code": "2",
                                 "display": "b",
-                                "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.dropdown"
+                                "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/<?=$pid?>.dropdown"
                             }
                         },
                         {
                             "valueCoding": {
                                 "code": "3",
                                 "display": "c",
-                                "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.dropdown"
+                                "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/<?=$pid?>.dropdown"
                             }
                         }
                     ],
@@ -81,21 +81,21 @@
                                     "valueCoding": {
                                         "code": "1",
                                         "display": "d",
-                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.radio"
+                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/<?=$pid?>.radio"
                                     }
                                 },
                                 {
                                     "valueCoding": {
                                         "code": "2",
                                         "display": "e",
-                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.radio"
+                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/<?=$pid?>.radio"
                                     }
                                 },
                                 {
                                     "valueCoding": {
                                         "code": "3",
                                         "display": "f",
-                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.radio"
+                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/<?=$pid?>.radio"
                                     }
                                 }
                             ],
@@ -124,14 +124,14 @@
                                     "valueCoding": {
                                         "code": "1",
                                         "display": "Yes",
-                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.yes-or-no"
+                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/<?=$pid?>.yes-or-no"
                                     }
                                 },
                                 {
                                     "valueCoding": {
                                         "code": "0",
                                         "display": "No",
-                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.yes-or-no"
+                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/<?=$pid?>.yes-or-no"
                                     }
                                 }
                             ],
@@ -145,14 +145,14 @@
                                     "valueCoding": {
                                         "code": "1",
                                         "display": "True",
-                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.true-or-false"
+                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/<?=$pid?>.true-or-false"
                                     }
                                 },
                                 {
                                     "valueCoding": {
                                         "code": "0",
                                         "display": "False",
-                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/133.true-or-false"
+                                        "system": "<?=APP_PATH_WEBROOT_FULL?>api/?type=module&prefix=fhir_services&page=service&NOAUTH&fhir-url=/CodeSystem/<?=$pid?>.true-or-false"
                                     }
                                 }
                             ],
