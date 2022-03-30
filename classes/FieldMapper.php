@@ -424,9 +424,13 @@ class FieldMapper{
         if($subResourceName === 'Coding'){
             $system = $subPath['system'] ?? null;
             if(empty($system)){
-                $ontologySystem = $this->getOntologySystem($fieldName);
+                list($ontologyCategory, $ontologySystem) = $this->getOntologyCategoryAndSystem($fieldName);
                 if(!empty($ontologySystem)){
                     $system = $ontologySystem;
+                    $display = \Form::getWebServiceCacheValues($this->getProjectId(), 'BIOPORTAL', $ontologyCategory, $value);
+                    if(!empty($display)){
+                        $subPath['display'] = $display;
+                    }
                 }
                 else{
                      /**
@@ -501,14 +505,19 @@ class FieldMapper{
         }
     }
     
-    function getOntologySystem($fieldName){
+    function getOntologyCategoryAndSystem($fieldName){
         $enum = $this->getModule()->getProject()->metadata[$fieldName]['element_enum'] ?? '';
         $ontologyParts = explode('BIOPORTAL:', $enum);
         if(count($ontologyParts) === 2 && $ontologyParts[0] === ''){
-            return $this->getModule()->getOntologySystems()[$ontologyParts[1]] ?? null;
+            $category = $ontologyParts[1];
+            $system = $this->getModule()->getOntologySystems()[$category] ?? null;
+        }
+        else{
+            $category = '';
+            $system = '';
         }
         
-        return null;
+        return [$category, $system];
     }
 
     private function processAdditionalElements($mapping, $data){
