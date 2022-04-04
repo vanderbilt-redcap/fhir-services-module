@@ -355,10 +355,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
                         var a = newOption.find('a')
                         a.removeAttr('target')
+                        a.attr('href', 'javascript:void(0)')
 
-                        // This event is registered as follows to make sure it replaces the click and middle mouse button click actions from the cloned element.
-                        a.mouseup(function(e){
-                            e.preventDefault()
+                        a.click(function(e){
                             dropdown.hide()
                             action()
                         })
