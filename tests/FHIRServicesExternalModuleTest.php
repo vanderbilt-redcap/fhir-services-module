@@ -1492,8 +1492,17 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
                 if(
                     (
-                        $line1 === 'Success: 0 errors, 0 warnings, 1 notes' &&
-                        $line2 === '  Information: All OK'
+                        $line1 === 'Success: 0 errors, 0 warnings, 1 notes'
+                        &&
+                        (
+                            $line2 === '  Information: All OK'
+                            ||
+                            (
+                                str_starts_with($line2, "  Information @ Bundle.entry[0].resource.ofType(Contract).scope.coding[0] (line 17, col26): Code System URI 'https://data.bioontology.org/ontologies/")
+                                &&
+                                str_ends_with($line2, "' is unknown so the code cannot be validated")
+                            )
+                        )
                     )
                     ||
                     (
@@ -2182,14 +2191,14 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             [
                 $this->getFieldName() => [
                     'mapping' => [
-                        'type' => 'Condition',
-                        'primaryElementPath' => 'code/coding/code',
+                        'type' => 'Contract',
+                        'primaryElementPath' => 'scope/coding/code',
                     ],
                     'value' => $code
                 ],
             ],
             [
-                'code' => [
+                'scope' => [
                     'coding' => [
                         [
                             'system' => $system,
@@ -2206,11 +2215,11 @@ class FHIRServicesExternalModuleTest extends BaseTest{
             [
                 $this->getFieldName() => [
                     'mapping' => [
-                        'type' => 'Condition',
-                        'primaryElementPath' => 'code/coding/display',
+                        'type' => 'Contract',
+                        'primaryElementPath' => 'scope/coding/display',
                         'additionalElements' => [
                             [
-                                'element' => 'code/coding/code',
+                                'element' => 'scope/coding/code',
                                 'value' => $code
                             ],
                         ]
@@ -2219,7 +2228,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 ],
             ],
             [
-                'code' => [
+                'scope' => [
                     'coding' => [
                         [
                             'system' => $system,
