@@ -2166,15 +2166,70 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         );
     }
 
-    private function setOntology($field, $key){
+    private function spoofElementEnum($field, $value){
+        if(is_array($value)){
+            $value = $this->toElementEnum($value);
+            $type = 'select';
+        }
+        else{
+            $type = 'text';
+        }
+
         $project = new \stdClass;
         $project->metadata = [
             $field => [
-                'element_enum' => 'BIOPORTAL:' . $key
+                'element_type' => $type,
+                'element_enum' => $value
             ]
         ];
 
         $this->module->project = $project;
+    }
+
+    private function toElementEnum($choices){
+        $enum = '';
+        foreach($choices as $code=>$label){
+            $enum .= "$code, $label \\n";
+        }
+
+        return trim($enum);
+    }
+
+    function testMultipleChoiceDisplayValues(){
+        $choices = [
+            'Q01' => 'Encephalocele',
+            'Q02' => 'Microcephaly',
+            'Q03' => 'Congenital hydrocephalus',
+        ];
+
+        $system = 'http://hl7.org/fhir/sid/icd-10';
+        $code = array_rand($choices);
+
+        $this->spoofElementEnum($this->getFieldName(), $choices);
+
+        $this->assert(
+            [
+                $this->getFieldName() => [
+                    'mapping' => [
+                        'type' => 'Contract',
+                        'primaryElementPath' => 'scope/coding/code',
+                        'primaryElementSystem' => $system
+                    ],
+                    'value' => $code
+                ],
+            ],
+            [
+                'scope' => [
+                    'coding' => [
+                        [
+                            'system' => $system,
+                            'display' => $choices[$code],
+                            'code' => $code,
+                        ],
+                    ]
+                ],
+            ],
+        );
     }
 
     function testSystemSetFromOntology(){
@@ -2184,7 +2239,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $ontologyKey = array_rand($systems);
         $system = $systems[$ontologyKey];
         
-        $this->setOntology($this->getFieldName(), $ontologyKey);
+        $this->spoofElementEnum($this->getFieldName(), "BIOPORTAL:$ontologyKey");
 
         // Make sure an ontology system is set for primary elements
         $this->assert(

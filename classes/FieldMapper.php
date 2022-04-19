@@ -448,6 +448,10 @@ class FieldMapper{
             else{
                 $choices = SchemaParser::getCodesBySystem()[$system] ?? null;
             }
+
+            if($elementName === 'code' && !empty($fieldName) && $this->isMultipleChoice($fieldName)){
+                $subPath['display'] = $this->getChoiceLabel($fieldName, $value);
+            }
         }
 
         if($choices === null){
@@ -504,17 +508,42 @@ class FieldMapper{
             $subPath[$elementName] = $value;
         }
     }
+
+    private function getMetadata($fieldName){
+        return $this->getModule()->getProject()->metadata[$fieldName];
+    }
+
+    private function isMultipleChoice($fieldName){
+        $type = $this->getMetadata($fieldName)['element_type'];
+        return in_array($type, ['select', 'radio']);
+    }
+
+    private function getChoiceLabel($fieldName, $value){
+        $lines = explode("\\n", $this->getMetadata($fieldName)['element_enum']);
+        foreach($lines as $line){
+            $firstComma = strpos($line, ',');
+            $code = trim(substr($line, 0, $firstComma));
+            $label = trim(substr($line, $firstComma+1));
+
+            if($code === $value){
+                return $label;
+            }
+        }
+        
+        throw new \Exception("Code '$value' not found for field '$fieldName'!");
+    }
     
     function getOntologyCategoryAndSystem($fieldName){
-        $enum = $this->getModule()->getProject()->metadata[$fieldName]['element_enum'] ?? '';
-        $ontologyParts = explode('BIOPORTAL:', $enum);
-        if(count($ontologyParts) === 2 && $ontologyParts[0] === ''){
-            $category = $ontologyParts[1];
-            $system = $this->getModule()->getOntologySystems()[$category] ?? null;
-        }
-        else{
-            $category = '';
-            $system = '';
+        $category = '';
+        $system = '';
+        
+        if(!empty($fieldName)){
+            $enum = $this->getMetadata($fieldName)['element_enum'];
+            $ontologyParts = explode('BIOPORTAL:', $enum);
+            if(count($ontologyParts) === 2 && $ontologyParts[0] === ''){
+                $category = $ontologyParts[1];
+                $system = $this->getModule()->getOntologySystems()[$category] ?? null;
+            }
         }
         
         return [$category, $system];
