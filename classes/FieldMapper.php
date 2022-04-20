@@ -38,6 +38,14 @@ class FieldMapper{
         $questionnaireFieldNames = [];
         foreach($rows as $data){
             foreach($data as $fieldName=>$value){
+                $fieldNameForID = $fieldName;
+
+                [$checkboxFieldName, $checkboxValue] = $this->parseCheckboxFieldName($fieldName);
+                if($checkboxFieldName && $value === '1'){
+                    $fieldName = $checkboxFieldName;
+                    $value = $checkboxValue;
+                }
+
                 $mapping = $mappings[$fieldName] ?? null;
                 if($value === ''){
                     continue;
@@ -72,7 +80,7 @@ class FieldMapper{
                     $systemValue = $mapping['primaryElementSystem'] ?? null;
                     if(!empty($systemValue)){
                         $systemElementPath = preg_replace('/code$/', 'system', $primaryMapping);
-                        $this->processElementMapping($data, $fieldName, $systemValue, $systemElementPath, $isArrayMapping);
+                        $this->processElementMapping($data, $fieldName, $fieldNameForID, $systemValue, $systemElementPath, $isArrayMapping);
                         $primaryElementSystemWasSet = true;
                     }
                 }
@@ -80,16 +88,30 @@ class FieldMapper{
                     $primaryMapping = $mapping;
                 }
 
-                $this->processElementMapping($data, $fieldName, $value, $primaryMapping, $isArrayMapping && !$primaryElementSystemWasSet);
+                $this->processElementMapping($data, $fieldName, $fieldNameForID, $value, $primaryMapping, $isArrayMapping && !$primaryElementSystemWasSet);
 
                 if($isArrayMapping){
-                    $this->processAdditionalElements($mapping, $data);
+                    $this->processAdditionalElements($fieldNameForID, $mapping, $data);
                 }
             }
         }
 
         $this->processExtensions();
         $this->processQuestionnaires($projectId, $recordId, $questionnaireFieldNames, $rows);
+    }
+
+    function parseCheckboxFieldName($fieldName){
+        $separator = '___';
+        $parts = explode($separator, $fieldName);
+        $fieldName = array_shift($parts);
+        if($this->fieldExists($fieldName) && $this->getFieldType($fieldName) === 'checkbox'){
+            $value = implode($separator, $parts);
+            $value = $this->getCodeFromExtendedCheckboxCodeFormatted($fieldName, $value);
+
+            return [$fieldName, $value];
+        }
+        
+        return [null, null];
     }
 
     private function processQuestionnaires($projectId, $recordId, $questionnaireFieldNames, $rows){
@@ -357,7 +379,7 @@ class FieldMapper{
         return $response;
     }
 
-    private function processElementMapping($data, $fieldName, $value, $mappingString, $addNewArrayItem){
+    private function processElementMapping($data, $fieldName, $fieldNameForID, $value, $mappingString, $addNewArrayItem){
         $parts = explode('/', $mappingString);
         $resourceName = array_shift($parts);
         $elementPath = implode('/', $parts);
@@ -373,7 +395,7 @@ class FieldMapper{
         $resource = &$this->getArrayChild($this->resources[$resourceName], $addNewArrayItem && $this->getModule()->isRepeatableResource($resourceName));
         if(!isset($resource['id'])){
             $resource['resourceType'] = $resourceName;
-            $this->getModule()->initResource($resource, $this->getRecordId(), $fieldName, $data);
+            $this->getModule()->initResource($resource, $this->getRecordId(), $fieldNameForID, $data);
         }
 
         $subPath = &$resource;
@@ -509,13 +531,34 @@ class FieldMapper{
         }
     }
 
+    private function fieldExists($fieldName){
+        return isset($this->getModule()->getProject()->metadata[$fieldName]);
+    }
+
     private function getMetadata($fieldName){
         return $this->getModule()->getProject()->metadata[$fieldName];
     }
 
+    private function getFieldType($fieldName){
+        return $this->getMetadata($fieldName)['element_type'];
+    }
+
     private function isMultipleChoice($fieldName){
-        $type = $this->getMetadata($fieldName)['element_type'];
+        $type = $this->getFieldType($fieldName);
         return in_array($type, ['select', 'radio']);
+    }
+
+    function getCodeFromExtendedCheckboxCodeFormatted($fieldName, $formattedCode){
+        $lines = explode("\\n", $this->getMetadata($fieldName)['element_enum']);
+        foreach($lines as $line){
+            $firstComma = strpos($line, ',');
+            $code = trim(substr($line, 0, $firstComma));
+            if($formattedCode === \Project::getExtendedCheckboxCodeFormatted($code)){
+                return $code;
+            }
+        }
+        
+        throw new \Exception("Formatted code '$formattedCode' not found for field '$fieldName'!");
     }
 
     private function getChoiceLabel($fieldName, $value){
@@ -549,7 +592,7 @@ class FieldMapper{
         return [$category, $system];
     }
 
-    private function processAdditionalElements($mapping, $data){
+    private function processAdditionalElements($fieldNameForID, $mapping, $data){
         $resource = $mapping['type'];
         foreach(($mapping['additionalElements'] ?? []) as $details){
             $fieldName = $details['field'] ?? null;
@@ -560,7 +603,7 @@ class FieldMapper{
                 $value = $data[$fieldName];
             }
             
-            $this->processElementMapping($data, $fieldName, $value, "$resource/{$details['element']}", false);
+            $this->processElementMapping($data, $fieldName, $fieldNameForID, $value, "$resource/{$details['element']}", false);
         }
     }
 

@@ -15,6 +15,7 @@ const TEST_RECORD_ID_FIELD = 'test_record_id';
 const TEST_TEXT_FIELD = 'test_text_field';
 const TEST_TEXT_FIELD_2 = 'test_text_field_2';
 const TEST_SQL_FIELD = 'test_sql_field';
+const TEST_CHECKBOX_FIELD = 'test_checkbox_field';
 const TEST_REPEATING_FORM = 'test_repeating_form';
 const TEST_REPEATING_FIELD_1 = 'test_repeating_field_1';
 const TEST_REPEATING_FIELD_2 = 'test_repeating_field_2';
@@ -331,6 +332,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
         $data = [TEST_RECORD_ID_FIELD => $recordId];
         $uniqueMappings = [];
+        $fieldNamesForIDs = [];
         foreach($fields as $fieldName=>$details){
             $mapping = $details['mapping'] ?? null;
             $element = $details['element'] ?? null;
@@ -372,13 +374,25 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
             $this->setFHIRMapping($fieldName, $mapping);
 
-            $value = (string) $details['value'];
-            if(!empty($value) && $value[0] === ' '){
-                // This is a leading white space check.  Manually update the DB since REDCap::saveData() trims leading & trailing whitespace automatically.
-                $this->query('update redcap_data set value = ? where project_id = ? and record = ? and field_name = ?', [$value, $pid, $recordId, $fieldName]);
+            $values = $details['values'] ?? null; 
+            if($values){
+                // This is checkbox field
+                foreach($values as $value){
+                    $fieldNameForID = $fieldName . '___' . \Project::getExtendedCheckboxCodeFormatted($value);
+                    $fieldNamesForIDs[] = $fieldNameForID;
+                    $data[$fieldNameForID] = '1';
+                }
             }
             else{
-                $data[$fieldName] = $value;
+                $fieldNamesForIDs[] = $fieldName;
+                $value = (string) $details['value'];
+                if(!empty($value) && $value[0] === ' '){
+                    // This is a leading white space check.  Manually update the DB since REDCap::saveData() trims leading & trailing whitespace automatically.
+                    $this->query('update redcap_data set value = ? where project_id = ? and record = ? and field_name = ?', [$value, $pid, $recordId, $fieldName]);
+                }
+                else{
+                    $data[$fieldName] = $value;
+                }
             }
         }
 
@@ -394,7 +408,6 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         }
 
         $entries = [];
-        $fieldNames = array_keys($fields);
         for($i=0; $i<count($expectedJSON); $i++){
             if($expectingMultipleEntries){
                 $fieldNameIndex = $i;
@@ -405,7 +418,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
             $expectedResource = $expectedJSON[$i];
             if(!isset($expectedResource['resourceType'])){
-                $expectedResource = $this->setResourceTypeAndId($resource, $fieldNames[$fieldNameIndex] ?? null, null, $expectedResource);
+                $expectedResource = $this->setResourceTypeAndId($resource, $fieldNamesForIDs[$fieldNameIndex] ?? null, null, $expectedResource);
             }
 
             $entry = [];
@@ -2307,5 +2320,58 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $key = 'ICO';
         $this->assertNull(CUSTOM_ONTOLOGY_SYSTEMS[$key] ?? null);
         $this->assertSame($list[$key], 'https://data.bioontology.org/ontologies/ICO');
+    }
+
+    function testCheckboxMapping(){
+        $resource = 'Contract';
+        
+        [$firstCode, $secondCode] = array_rand([
+            '1' => true,
+            '2'=> true,
+            '3'=> true,
+        ], 2);
+
+        $firstCode = (string) $firstCode;
+        $secondCode = (string) $secondCode;
+
+        $this->assert(
+            [
+                TEST_CHECKBOX_FIELD => [
+                    'mapping' => [
+                        'type' => $resource,
+                        'primaryElementPath' => 'name',
+                    ],
+                    'values' => [$firstCode, $secondCode]
+                ],
+            ],
+            [
+                [
+                    'name' => $firstCode
+                ],
+                [
+                    'name' => $secondCode
+                ],
+            ],
+            null,
+             true
+        );
+    }
+
+    function testGetCodeFromExtendedCheckboxCodeFormatted(){
+        $fieldName = 'whatever';
+        $code = 'Q21.0';
+
+        $this->spoofElementEnum($fieldName, [
+            $code => rand()
+        ]);
+
+        $m = new FieldMapper($this->module, $this->getProjectId(), TEST_RECORD_ID);
+        $this->assertSame(
+            $code,
+            $m->getCodeFromExtendedCheckboxCodeFormatted($fieldName, \Project::getExtendedCheckboxCodeFormatted($code))
+        );
+
+        $this->expectExceptionMessage('not found for field');
+        $m->getCodeFromExtendedCheckboxCodeFormatted($fieldName, 'code-that-does-not-exist');
     }
 }
