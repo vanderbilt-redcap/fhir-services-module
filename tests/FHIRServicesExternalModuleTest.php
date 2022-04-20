@@ -2304,6 +2304,8 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         }
 
         // Check one that REDCap autopopulates that is not in our custom list.
-        $this->assertSame($list['ICO'], 'https://data.bioontology.org/ontologies/ICO');
+        $key = 'ICO';
+        $this->assertNull(CUSTOM_ONTOLOGY_SYSTEMS[$key] ?? null);
+        $this->assertSame($list[$key], 'https://data.bioontology.org/ontologies/ICO');
     }
 }
