@@ -15,7 +15,6 @@ const TEST_RECORD_ID_FIELD = 'test_record_id';
 const TEST_TEXT_FIELD = 'test_text_field';
 const TEST_TEXT_FIELD_2 = 'test_text_field_2';
 const TEST_SQL_FIELD = 'test_sql_field';
-const TEST_CHECKBOX_FIELD = 'test_checkbox_field';
 const TEST_REPEATING_FORM = 'test_repeating_form';
 const TEST_REPEATING_FIELD_1 = 'test_repeating_field_1';
 const TEST_REPEATING_FIELD_2 = 'test_repeating_field_2';
@@ -437,6 +436,10 @@ class FHIRServicesExternalModuleTest extends BaseTest{
     }
 
     function setTypeAndEnum($fieldName, $type, $enum){
+        if(is_array($enum)){
+            $enum = $this->toElementEnum($enum);
+        }
+
         $this->query('update redcap_metadata set element_type = ? ,element_enum = ? where project_id = ? and field_name = ?', [
             $type,
             $enum,
@@ -2324,32 +2327,52 @@ class FHIRServicesExternalModuleTest extends BaseTest{
 
     function testCheckboxMapping(){
         $resource = 'Contract';
-        
-        [$firstCode, $secondCode] = array_rand([
-            '1' => true,
-            '2'=> true,
-            '3'=> true,
-        ], 2);
 
-        $firstCode = (string) $firstCode;
-        $secondCode = (string) $secondCode;
+        $choices = [
+            'Q01' => 'Encephalocele',
+            'Q02' => 'Microcephaly',
+            'Q03' => 'Congenital hydrocephalus',
+        ];
+
+        $system = 'http://hl7.org/fhir/sid/icd-10';
+        [$firstCode, $secondCode] = array_rand($choices, 2);
+
+        $this->setTypeAndEnum($this->getFieldName(), 'checkbox', $choices);
+        $this->clearProjectCache();
 
         $this->assert(
             [
-                TEST_CHECKBOX_FIELD => [
+                $this->getFieldName() => [
                     'mapping' => [
                         'type' => $resource,
-                        'primaryElementPath' => 'name',
+                        'primaryElementPath' => 'scope/coding/code',
+                        'primaryElementSystem' => $system,
                     ],
                     'values' => [$firstCode, $secondCode]
                 ],
             ],
             [
                 [
-                    'name' => $firstCode
+                    'scope' => [
+                        'coding' => [
+                            [
+                                'system' => $system,
+                                'display' => $choices[$firstCode],
+                                'code' => $firstCode,
+                            ]
+                        ]
+                    ]
                 ],
                 [
-                    'name' => $secondCode
+                    'scope' => [
+                        'coding' => [
+                            [
+                                'system' => $system,
+                                'display' => $choices[$secondCode],
+                                'code' => $secondCode,
+                            ]
+                        ]
+                    ]
                 ],
             ],
             null,

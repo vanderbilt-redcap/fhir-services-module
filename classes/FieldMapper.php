@@ -471,8 +471,11 @@ class FieldMapper{
                 $choices = SchemaParser::getCodesBySystem()[$system] ?? null;
             }
 
-            if($elementName === 'code' && !empty($fieldName) && $this->isMultipleChoice($fieldName)){
-                $subPath['display'] = $this->getChoiceLabel($fieldName, $value);
+            if($elementName === 'code' && !empty($fieldName)){
+                $type = $this->getFieldType($fieldName);
+                if(in_array($type, ['select', 'radio', 'checkbox'])){
+                    $subPath['display'] = $this->getChoiceLabel($fieldName, $value);
+                }
             }
         }
 
@@ -541,11 +544,6 @@ class FieldMapper{
 
     private function getFieldType($fieldName){
         return $this->getMetadata($fieldName)['element_type'];
-    }
-
-    private function isMultipleChoice($fieldName){
-        $type = $this->getFieldType($fieldName);
-        return in_array($type, ['select', 'radio']);
     }
 
     function getCodeFromExtendedCheckboxCodeFormatted($fieldName, $formattedCode){
