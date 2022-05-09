@@ -2398,6 +2398,12 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
         $surveyResponseDetails = $responses->fetch_assoc();
 
+        /**
+         * Replacing the given record ID with identical value from the query effectively
+         * allowlists the record ID before including in output, making psalm happy.
+         */
+        $record = $surveyResponseDetails['record'];
+
         global $pdf_custom_header_text;
         $data = REDCap::getPDF($record, $form, $event, false, $instance, true, $pdf_custom_header_text);
 
