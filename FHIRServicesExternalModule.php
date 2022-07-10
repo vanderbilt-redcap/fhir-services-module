@@ -734,7 +734,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             $handle($a);
             return $a;
         }
-        else{
+        else if(is_null($fhirObjectOrArray)){
+            return "null";
+        } else {
             throw new Exception('A valid FHIR object or array must be specified.');
         }
     }
@@ -2805,19 +2807,45 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             throw new \Exception($message);
         };
 
+        $successful_response_with_empty_body = false;
+        if(empty($response)){
+            // parse for response HTTP status code
+            $http_response_line = $http_response_header[0];
+            // look for "HTTP/1.1 [[STATUS_CODE]] OK"
+            if(preg_match("/\s([0-9]+)\s/", $http_response_line, $match)){
+                $http_response_status_code = intval($match[0]);
+                if($http_response_status_code>=200 && $http_response_status_code<300){
+                    $successful_response_with_empty_body = true;
+                }
+            }
+        }
+
+        // parse resource body from response (including empty body)
         try{
             $responseResource = $this->parse($response);
-            $responseResourceType = $responseResource->_getFHIRTypeName();
         }
         catch(\Throwable $t){
             $handleError($t);
         }
 
-        if($responseResourceType === $resourceType){
+        if ($successful_response_with_empty_body){
+            // FHIR server responded with success -> assume valid server response
             return $responseResource;
-        }
-        else{
-            $handleError();
+        }else{
+            // check resourceType only if response body was given
+            try{
+                $responseResourceType = $responseResource->_getFHIRTypeName();
+            }
+            catch(\Throwable $t){
+                $handleError($t);
+            }
+
+            if($responseResourceType === $resourceType){
+                return $responseResource;
+            }
+            else{
+                $handleError();
+            }
         }
     }
 
