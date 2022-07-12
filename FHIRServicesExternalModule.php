@@ -2429,19 +2429,26 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $firstName = $args['firstName'];
         $lastName = $args['lastName'];
         $patientId = $args['patientId'];
+        $birthDate = $args['birthDate'];
 
-        $patient = $this->createResource('Patient', [
-            'id' => $patientId,
-            'name' => [
+        $patientObj = [
+            'id' => $patientId
+        ];
+
+        if(!is_null($firstName) && !is_null($lastName)){
+            $patientObj['name'] = [
                 [
-                    'given' => [
-                        $firstName
-                    ],
+                    'given' => [ $firstName ],
                     'family' => $lastName
                 ]
-            ],
-            'birthDate' => $args['birthDate']
-        ]);
+            ];
+        }
+
+        if(!is_null(birthDate)){
+            $patientObj['birthDate'] = $birthDate;
+        }
+
+        $patient = $this->createResource('Patient', $patientObj);
 
         $consent = $this->createResource('Consent', [
             'id' => $args['consentId'],
