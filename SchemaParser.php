@@ -389,7 +389,7 @@ class SchemaParser{
             die();
         }
 
-        $parts = explode('|', $dataElement->snapshot->element[0]->binding->valueSet ?? null); // trim off the version string
+        $parts = explode('|', $dataElement->snapshot->element[0]->binding->valueSet ?? ''); // trim off the version string
         $valueSetUrl = $parts[0];
 
         $expansion = self::getExpansions()[$valueSetUrl] ?? null;
