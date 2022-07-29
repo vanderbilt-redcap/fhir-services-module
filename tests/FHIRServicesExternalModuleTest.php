@@ -15,6 +15,7 @@ const TEST_RECORD_ID_FIELD = 'test_record_id';
 const TEST_TEXT_FIELD = 'test_text_field';
 const TEST_TEXT_FIELD_2 = 'test_text_field_2';
 const TEST_SQL_FIELD = 'test_sql_field';
+const TEST_CHECKBOX_FIELD = 'test_checkbox_field';
 const TEST_REPEATING_FORM = 'test_repeating_form';
 const TEST_REPEATING_FIELD_1 = 'test_repeating_field_1';
 const TEST_REPEATING_FIELD_2 = 'test_repeating_field_2';
@@ -2337,12 +2338,12 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         $system = 'http://hl7.org/fhir/sid/icd-10';
         [$firstCode, $secondCode] = array_rand($choices, 2);
 
-        $this->setTypeAndEnum($this->getFieldName(), 'checkbox', $choices);
+        $this->setTypeAndEnum(TEST_CHECKBOX_FIELD, 'checkbox', $choices);
         $this->clearProjectCache();
 
         $this->assert(
             [
-                $this->getFieldName() => [
+                TEST_CHECKBOX_FIELD => [
                     'mapping' => [
                         'type' => $resource,
                         'primaryElementPath' => 'scope/coding/code',
