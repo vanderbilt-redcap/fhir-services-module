@@ -733,16 +733,17 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     
             $handle($a);
             return $a;
-        }
-        else if(is_null($fhirObjectOrArray)){
-            return "null";
         } else {
             throw new Exception('A valid FHIR object or array must be specified.');
         }
     }
     
-    function jsonSerialize($fhirObjectOrArray){
-        $a = $this->toArray($fhirObjectOrArray);
+    function jsonSerialize($fhirObjectOrArrayOrNull){
+        if(is_null($fhirObjectOrArrayOrNull)){
+            $a = null;
+        } else {
+            $a = $this->toArray($fhirObjectOrArrayOrNull);
+        }
         return json_encode($a, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES);
     }
 
@@ -2793,7 +2794,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 $message = "A $resourceType response was expected, but ";
                 
                 if(empty($response)){
-                    $message .= "an empty response was received.";
+                    $message .= "an empty response with an unsuccessful HTTP response status code was received.";
                 }
                 else{
                     $message .= "the following was received instead: $response";
@@ -2807,7 +2808,6 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             throw new \Exception($message);
         };
 
-        $successful_response_with_empty_body = false;
         if(empty($response)){
             // parse for response HTTP status code
             $http_response_line = $http_response_header[0];
@@ -2815,37 +2815,26 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             if(preg_match("/\s([0-9]+)\s/", $http_response_line, $match)){
                 $http_response_status_code = intval($match[0]);
                 if($http_response_status_code>=200 && $http_response_status_code<300){
-                    $successful_response_with_empty_body = true;
+                    // got empty response but status code indicate success
+                    // -> no further validation
+                    return null;
                 }
             }
         }
 
-        // parse resource body from response (including empty body)
         try{
             $responseResource = $this->parse($response);
+            $responseResourceType = $responseResource->_getFHIRTypeName();
         }
         catch(\Throwable $t){
             $handleError($t);
         }
 
-        if ($successful_response_with_empty_body){
-            // FHIR server responded with success -> assume valid server response
+        if($responseResourceType === $resourceType){
             return $responseResource;
-        }else{
-            // check resourceType only if response body was given
-            try{
-                $responseResourceType = $responseResource->_getFHIRTypeName();
-            }
-            catch(\Throwable $t){
-                $handleError($t);
-            }
-
-            if($responseResourceType === $resourceType){
-                return $responseResource;
-            }
-            else{
-                $handleError();
-            }
+        }
+        else{
+            $handleError();
         }
     }
 
