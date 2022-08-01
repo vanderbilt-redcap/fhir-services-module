@@ -738,12 +738,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         }
     }
     
-    function jsonSerialize($fhirObjectOrArrayOrNull){
-        if(is_null($fhirObjectOrArrayOrNull)){
-            $a = null;
-        } else {
-            $a = $this->toArray($fhirObjectOrArrayOrNull);
-        }
+    function jsonSerialize($fhirObjectOrArray){
+        $a = $this->toArray($fhirObjectOrArray);
         return json_encode($a, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES);
     }
 
