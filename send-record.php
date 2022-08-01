@@ -44,9 +44,15 @@ else if($action == 'validate'){
 header('Content-type: application/json'); 
 try{
     $response = $module->sendToRemoteFHIRServer($resource);
+    if(is_null($response)){
+        $remote_response = "";
+    } else {
+        $remote_response = $module->jsonSerialize($response);
+    }
+    
     echo json_encode([
         'message' => 'The remote FHIR server has confirmed that the data has been successfully received.',
-        'remote-response' => $module->jsonSerialize($response)
+        'remote-response' => $remote_response
     ]);
 }
 catch(\Throwable $t){
