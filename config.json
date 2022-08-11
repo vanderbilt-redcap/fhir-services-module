@@ -67,6 +67,11 @@
             "type": "checkbox"
         },
         {
+            "key": "allow-consent-bundle-cleanup",
+            "name": "Allow and clean eConsents messages to the Remote FHIR Server with invalid birth date or name attributes",
+            "type": "checkbox"
+        },
+        {
 			"key": "project-type",
 			"name": "<b>Project Type</b> - This setting should be left blank in most cases",
 			"type": "dropdown",
@@ -112,7 +117,7 @@
                         {
                             "name" : "Treatment",
                             "value" : "treatment"
-                        }   
+                        }
                     ]
                 },
                 {

@@ -2428,19 +2428,37 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $firstName = $args['firstName'];
         $lastName = $args['lastName'];
         $patientId = $args['patientId'];
+        $birthDate = $args['birthDate'];
 
-        $patient = $this->createResource('Patient', [
-            'id' => $patientId,
-            'name' => [
+        $patientObj = [
+            'id' => $patientId
+        ];
+
+        $allow_cleaned_consent_bundle = $this->getProjectSetting('allow-consent-bundle-cleanup');
+
+        // Set attributes only if not null
+        if(is_null($firstName) || is_null($lastName)){
+            if(!$allow_cleaned_consent_bundle){
+                throw new \Exception('eConsent FHIR name attribute is null.');
+            }
+        } else {
+            $patientObj['name'] = [
                 [
-                    'given' => [
-                        $firstName
-                    ],
+                    'given' => [ $firstName ],
                     'family' => $lastName
                 ]
-            ],
-            'birthDate' => $args['birthDate']
-        ]);
+            ];
+        }
+
+        if(is_null($birthDate)){
+            if(!$allow_cleaned_consent_bundle){
+                throw new \Exception('eConsent FHIR birthDate attribute is null.');
+            }
+        } else {
+            $patientObj['birthDate'] = $birthDate;
+        }
+
+        $patient = $this->createResource('Patient', $patientObj);
 
         $consent = $this->createResource('Consent', [
             'id' => $args['consentId'],
