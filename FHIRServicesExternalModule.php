@@ -2434,22 +2434,35 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             'id' => $patientId
         ];
 
-        $allow_cleaned_consent_bundle = $this->getProjectSetting('allow-consent-bundle-cleanup');
+        $allow_cleaned_consent_bundle = $this->getProjectSetting('remove-blank-econsent-identifiers');
 
-        // Set attributes only if not null
-        if(is_null($firstName) || is_null($lastName)){
+        // Initialize name attribute only if first name and last name are not null
+        if(is_null($firstName) && is_null($lastName)){
             if(!$allow_cleaned_consent_bundle){
-                throw new \Exception('eConsent FHIR name attribute is null.');
+                throw new \Exception('eConsent first name and last name attributes are null.');
             }
         } else {
-            $patientObj['name'] = [
-                [
-                    'given' => [ $firstName ],
-                    'family' => $lastName
-                ]
-            ];
+            // Create (list of) empty name object (=array of array) to fill
+            $patientObj['name'] = [ array() ];
         }
 
+        // Fill first name if given
+        if(is_null($firstName)){
+            if(!$allow_cleaned_consent_bundle){
+                throw new \Exception('eConsent FHIR firstName attribute is null.');
+            }
+        } else {
+            $patientObj['name'][0]["given"] = [ $firstName ];
+        }
+        // Fill last name if given
+        if(is_null($lastName)){
+            if(!$allow_cleaned_consent_bundle){
+                throw new \Exception('eConsent FHIR lastName attribute is null.');
+            }
+        } else {
+            $patientObj['family'] = $lastName;
+        }
+    
         if(is_null($birthDate)){
             if(!$allow_cleaned_consent_bundle){
                 throw new \Exception('eConsent FHIR birthDate attribute is null.');

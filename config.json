@@ -67,8 +67,8 @@
             "type": "checkbox"
         },
         {
-            "key": "allow-consent-bundle-cleanup",
-            "name": "Allow and clean eConsents messages to the Remote FHIR Server with invalid birth date or name attributes",
+            "key": "remove-blank-econsent-identifiers",
+            "name": "Remove blank identifiers from eConsents",
             "type": "checkbox"
         },
         {
