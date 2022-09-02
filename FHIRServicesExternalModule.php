@@ -2460,7 +2460,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
                 throw new \Exception('eConsent FHIR lastName attribute is null.');
             }
         } else {
-            $patientObj['family'] = $lastName;
+            $patientObj['name'][0]['family'] = $lastName;
         }
     
         if(is_null($birthDate)){
