@@ -572,8 +572,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 		$min_field_order_var = db_result($q1, 0);
 		// Now add the new form menu label
 		$sql = "update $metadata_table set form_menu_description = '".db_escape($menu_description)."'
-				where field_name = '$min_field_order_var' and project_id = $project_id";
-		$q1 = db_query($sql);
+				where field_name = ? and project_id = ?";
+		$q1 = $this->query($sql, [$min_field_order_var, $project_id]);
 
 		// As a default, the form_name stays the same value
 		$new_form_name = $form_name;
@@ -1818,7 +1818,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
             }
             
             $edoc = $this->getQuestionnaireEDoc($projectId);
-            $questionnaire = $this->parse(file_get_contents(EDOC_PATH . $edoc['stored_name']));
+            $questionnaire = $this->parse(file_get_contents($this->getSafePath($edoc['stored_name'], EDOC_PATH)));
 
             return $this->buildQuestionnaireResponse($questionnaire, $projectId, $recordId, $instances);
         }

@@ -3,11 +3,20 @@
 	<projectFiles>
 		<directory name="." />
 		<ignoreFiles allowMissingFiles="true">
+			<!-- Ignore the third party dependencies, because they can cause the scan to take a long time or hang on some modules -->
 			<directory name="vendor" />
 			<directory name="node_modules" />
 		</ignoreFiles>
 	</projectFiles>
+	<stubs>
+		<file name="../../temp/psalm/stubs/mysqli_result.phpstub" />
+		<file name="../../temp/psalm/stubs/REDCap.phpstub" />
+		<file name="../../temp/psalm/stubs/functions.phpstub" />
+		<file name="../../temp/psalm/stubs/Framework.phpstub" />
+		<file name="../../temp/psalm/stubs/AbstractExternalModule.phpstub" />
+	</stubs>
 	<globals>
+		<var name="rc_connection" type="mysqli" />
 		<var name="module" type="Vanderbilt\FHIRServicesExternalModule\FHIRServicesExternalModule" />
 	</globals>
 </psalm>

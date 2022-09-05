@@ -32,7 +32,7 @@ $edoc = $module->getQuestionnaireEDoc();
 if($edoc){
     ?>
     <p>This project's Data Dictionary was last generated from the following FHIR Questionnaire, and should not be modified manually:</p>
-    <a href='<?=$module->getUrl('download-questionnaire.php')?>' style='text-decoration: underline'><?=$edoc['doc_name']?></a>
+    <a href='<?=$module->getUrl('download-questionnaire.php')?>' style='text-decoration: underline'><?=htmlspecialchars($edoc['doc_name'], ENT_QUOTES)?></a>
     <?php
 }
 
