@@ -2428,19 +2428,50 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
         $firstName = $args['firstName'];
         $lastName = $args['lastName'];
         $patientId = $args['patientId'];
+        $birthDate = $args['birthDate'];
 
-        $patient = $this->createResource('Patient', [
-            'id' => $patientId,
-            'name' => [
-                [
-                    'given' => [
-                        $firstName
-                    ],
-                    'family' => $lastName
-                ]
-            ],
-            'birthDate' => $args['birthDate']
-        ]);
+        $patientObj = [
+            'id' => $patientId
+        ];
+
+        $allow_cleaned_consent_bundle = $this->getProjectSetting('remove-blank-econsent-identifiers');
+
+        // Initialize name attribute only if first name and last name are not null
+        if(is_null($firstName) && is_null($lastName)){
+            if(!$allow_cleaned_consent_bundle){
+                throw new \Exception('eConsent first name and last name attributes are null.');
+            }
+        } else {
+            // Create (list of) empty name object (=array of array) to fill
+            $patientObj['name'] = [ array() ];
+        }
+
+        // Fill first name if given
+        if(is_null($firstName)){
+            if(!$allow_cleaned_consent_bundle){
+                throw new \Exception('eConsent FHIR firstName attribute is null.');
+            }
+        } else {
+            $patientObj['name'][0]["given"] = [ $firstName ];
+        }
+        // Fill last name if given
+        if(is_null($lastName)){
+            if(!$allow_cleaned_consent_bundle){
+                throw new \Exception('eConsent FHIR lastName attribute is null.');
+            }
+        } else {
+            $patientObj['name'][0]['family'] = $lastName;
+        }
+    
+        if(is_null($birthDate)){
+            if(!$allow_cleaned_consent_bundle){
+                throw new \Exception('eConsent FHIR birthDate attribute is null.');
+            }
+        } else {
+            $patientObj['birthDate'] = $birthDate;
+        }
+
+        $patient = $this->createResource('Patient', $patientObj);
 
         $consent = $this->createResource('Consent', [
             'id' => $args['consentId'],
