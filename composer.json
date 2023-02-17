@@ -6,6 +6,6 @@
     },
     "require": {
         "dcarbone/php-fhir-generated": "^2",
-        "firebase/php-jwt": "^5.4"
+        "firebase/php-jwt": "^6.0"
     }
 }
