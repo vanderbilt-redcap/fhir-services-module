@@ -2146,7 +2146,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 ],
                 'status' => 'final',
                 'valueInteger' => $negativeNumber
-            ],
+            ]
         );
     }
 
@@ -2181,7 +2181,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                     ]
                 ],
                 'status' => 'final',
-            ],
+            ]
         );
     }
 
@@ -2247,7 +2247,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                         ],
                     ]
                 ],
-            ],
+            ]
         );
     }
 
@@ -2280,7 +2280,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                         ],
                     ]
                 ],
-            ],
+            ]
         );
 
         // Make sure an ontology system is set for additional elements
@@ -2311,7 +2311,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                         ],
                     ]
                 ],
-            ],
+            ]
         );
     }
 
