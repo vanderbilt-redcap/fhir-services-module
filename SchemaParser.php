@@ -292,10 +292,10 @@ class SchemaParser{
     static function getResourceNameFromRef($property){
         $items = $property['items'] ?? null;
         if($items !== null){
-            $ref = $items['$ref'] ?? null;
+            $ref = $items['$ref'] ?? '';
         }
         else{
-            $ref = $property['$ref'] ?? null;
+            $ref = $property['$ref'] ?? '';
         }
         
         return explode('/', $ref)[2] ?? null;

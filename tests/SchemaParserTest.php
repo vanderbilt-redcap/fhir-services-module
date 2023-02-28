@@ -3,6 +3,8 @@
 use Exception;
 
 class SchemaParserTest extends BaseTest{
+    public $module;
+
     function testGetModifiedSchema(){
         $actual = [];
         foreach(SchemaParser::getModifiedSchema() as $resourceName => $elementPaths){

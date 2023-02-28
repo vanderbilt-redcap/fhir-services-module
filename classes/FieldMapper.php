@@ -14,6 +14,9 @@ const DECIMAL_PATTERN = "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?([eE][+-]?[0-9]+)?$";
 class FieldMapper{
     /** @var FHIRServicesExternalModule */
     private $module;
+    private $projectId;
+    private $recordId;
+    private $resources;
 
     function __construct($module, $projectId, $recordId){
         $this->module = $module;

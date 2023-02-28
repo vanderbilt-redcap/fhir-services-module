@@ -23,6 +23,8 @@ const VENDOR_PATH = __DIR__ . '/../vendor/';
 const RESOURCES_PATH = VENDOR_PATH . 'resources-to-validate/';
 
 class FHIRServicesExternalModuleTest extends BaseTest{
+    public $module;
+
     static $failing = false;
 
     static function setUpBeforeClass():void{

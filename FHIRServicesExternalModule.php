@@ -78,6 +78,7 @@ if (!function_exists('str_ends_with')) {
 }
 
 class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule{
+    public $project;
     private $ontologySystems;
 
     function getOntologySystems(){
@@ -2099,7 +2100,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
     function parseActionTags($redcapField){
         $misc = $redcapField['misc'];
-        $actionTags = explode(' ', $misc);
+        $actionTags = explode(' ', $misc ?? '');
 
         $parsed = [];
         foreach($actionTags as $tag){
