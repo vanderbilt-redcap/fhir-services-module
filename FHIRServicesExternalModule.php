@@ -117,7 +117,9 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
     }
 
     private function hookOnlineDesigner(){
-        $this->getEditFieldModifications();
+        if(isset($_GET['page'])){
+            $this->getEditFieldModifications();
+        }
         ?>
         <script>
             $(function(){
