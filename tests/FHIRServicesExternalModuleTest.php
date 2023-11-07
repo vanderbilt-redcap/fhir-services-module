@@ -68,7 +68,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         parent::setUp();
 
         // Remove any data from failed tests, or EM framework tests.
-        $this->query('delete from redcap_data where project_id = ? and record = ?', [$this->getTestPID(), TEST_RECORD_ID]);
+        $this->query('delete from ' . $this->getDataTable($this->getTestPID()) . ' where project_id = ? and record = ?', [$this->getTestPID(), TEST_RECORD_ID]);
 
         // Remove all FHIR Mappings
         $this->query('update redcap_metadata set misc = "" where project_id = ?', $this->getTestPID());
@@ -390,7 +390,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
                 $value = (string) $details['value'];
                 if(!empty($value) && $value[0] === ' '){
                     // This is a leading white space check.  Manually update the DB since REDCap::saveData() trims leading & trailing whitespace automatically.
-                    $this->query('update redcap_data set value = ? where project_id = ? and record = ? and field_name = ?', [$value, $pid, $recordId, $fieldName]);
+                    $this->query('update ' . $this->getDataTable($pid) . ' set value = ? where project_id = ? and record = ? and field_name = ?', [$value, $pid, $recordId, $fieldName]);
                 }
                 else{
                     $data[$fieldName] = $value;
@@ -2341,7 +2341,7 @@ class FHIRServicesExternalModuleTest extends BaseTest{
         [$firstCode, $secondCode] = array_rand($choices, 2);
 
         $this->setTypeAndEnum(TEST_CHECKBOX_FIELD, 'checkbox', $choices);
-        $this->clearProjectCache();
+        \ExternalModules\ExternalModules::clearProjectCache($this->getTestPID());
 
         $this->assert(
             [
