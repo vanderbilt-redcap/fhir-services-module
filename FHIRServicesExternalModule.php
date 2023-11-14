@@ -645,7 +645,8 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 			$sql = "update $metadata_table set field_name = '{$new_form_name}_complete' where field_name = '{$form_name}_complete' and project_id = $project_id";
 			db_query($sql);
 			// Change actual data table field_names to reflect the changed Form Status field
-			$sql = "update redcap_data set field_name = '{$new_form_name}_complete' where field_name = '{$form_name}_complete' and project_id = $project_id";
+			$table = $this->getDataTable($project_id);
+			$sql = "update $table set field_name = '{$new_form_name}_complete' where field_name = '{$form_name}_complete' and project_id = $project_id";
 			db_query($sql);
 			// Change alerts tables
 			$alertIds = pre_query("select alert_id from redcap_alerts where project_id = $project_id and form_name = '".db_escape($form_name)."'");
@@ -672,6 +673,10 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
 		return [$new_form_name, $menu_description, $surveyTitle];
 	}
+
+    function getDataTable($project_id){
+        return method_exists('\REDCap', 'getDataTable') ? \REDCap::getDataTable($project_id) : "redcap_data"; 
+    }
 
     function getEventId($projectId = null){
         if(!$projectId){
