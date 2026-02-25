@@ -1,11 +1,11 @@
 {
     "config": {
         "platform": {
-            "php": "7.2"
+            "php": "8.0"
         }
     },
     "require": {
         "dcarbone/php-fhir-generated": "^2",
-        "firebase/php-jwt": "^6.0"
+        "firebase/php-jwt": "^7"
     }
 }
