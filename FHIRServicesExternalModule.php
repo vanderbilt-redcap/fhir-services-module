@@ -1302,12 +1302,12 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 
 		$out = fopen('php://memory', 'r+');
 		$firstForm = reset($forms);
-		fputcsv($out, ["Variable / Field Name","Form Name","Section Header","Field Type","Field Label","Choices, Calculations, OR Slider Labels","Field Note","Text Validation Type OR Show Slider Number","Text Validation Min","Text Validation Max","Identifier?","Branching Logic (Show field only if...)","Required Field?","Custom Alignment","Question Number (surveys only)","Matrix Group Name","Matrix Ranking?","Field Annotation"]);
-		fputcsv($out, ['response_id', $firstForm['formName'], '', 'text', 'Response ID']);
+		fputcsv($out, ["Variable / Field Name","Form Name","Section Header","Field Type","Field Label","Choices, Calculations, OR Slider Labels","Field Note","Text Validation Type OR Show Slider Number","Text Validation Min","Text Validation Max","Identifier?","Branching Logic (Show field only if...)","Required Field?","Custom Alignment","Question Number (surveys only)","Matrix Group Name","Matrix Ranking?","Field Annotation"], ',', '"', "\\");
+		fputcsv($out, ['response_id', $firstForm['formName'], '', 'text', 'Response ID'], ',', '"', "\\");
 
 		foreach ($forms as $form) {
 			foreach ($form['fields'] as $name => $field) {
-				fputcsv($out, [$name, $form['formName'], '', $field['type'], $field['label'], $field['choices']]);
+				fputcsv($out, [$name, $form['formName'], '', $field['type'], $field['label'], $field['choices']], ',', '"', "\\");
 			}
 		}
 
@@ -1506,7 +1506,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 				'redcap_repeat_instance'
 			],
 			$fieldNames
-		));
+		), ',', '"', "\\");
 
 		foreach ($data as $repeatInstrument => $instancesByFieldName) {
 			for ($instance = 1; $instance <= $instanceCount; $instance++) {
@@ -1533,7 +1533,7 @@ class FHIRServicesExternalModule extends \ExternalModules\AbstractExternalModule
 				}
 
 				if ($rowHasValues) {
-					fputcsv($out, $row);
+					fputcsv($out, $row, ',', '"', "\\");
 				}
 
 				if (!$repeatInstrument) {
